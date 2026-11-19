@@ -24,6 +24,13 @@ if [[ "${source_files[*]}" != "${embedded_files[*]}" ]]; then
   exit 1
 fi
 
+# The embedded runner owns the transaction boundary. The standalone SQL files
+# may retain outer BEGIN/COMMIT wrappers for manual psql execution, so compare
+# the SQL bodies after removing only those exact wrapper lines.
+normalize() {
+  sed -E '/^[[:space:]]*(BEGIN|COMMIT);[[:space:]]*$/Id' "$1"
+}
+
 expected=1
 for name in "${source_files[@]}"; do
   number=$((10#${name:0:4}))
@@ -31,12 +38,11 @@ for name in "${source_files[@]}"; do
     echo "Migration sequence gap: expected $(printf '%04d' "$expected"), found $name." >&2
     exit 1
   fi
-  if ! cmp -s "$source_dir/$name" "$embedded_dir/$name"; then
-    echo "Migration mirror differs: $name" >&2
-    diff -u "$source_dir/$name" "$embedded_dir/$name" || true
+  if ! diff -u <(normalize "$source_dir/$name") <(normalize "$embedded_dir/$name"); then
+    echo "Migration SQL body differs: $name" >&2
     exit 1
   fi
   expected=$((expected + 1))
 done
 
-echo "Verified ${#source_files[@]} ordered SQL migrations; source and embedded copies are identical."
+echo "Verified ${#source_files[@]} ordered migrations; SQL bodies match and transaction wrappers are handled separately."
