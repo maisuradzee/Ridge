@@ -45,3 +45,8 @@ A successful local Go test does not imply that PostgreSQL/PostGIS has been provi
 ## Status
 
 This repository is the project foundation. The 2.x starter archives document implemented backend increments and their verification boundaries. Consult the increment test reports before treating a feature as production-ready.
+
+
+## Increment 2.8 — virtual tax calculation
+
+The starter archive adds a deterministic Go tax-calculation library using integer tetri, configurable progressive brackets and versioned policies. Tax rates are intentionally not hard-coded. The library is calculation groundwork only; tax persistence, wallet/company settlement and production tax rules are not yet implemented. See `docs/54_INCREMENT_2.8_VIRTUAL_TAX_CALCULATION.md`.
