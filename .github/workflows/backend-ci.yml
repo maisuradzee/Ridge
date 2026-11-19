@@ -1,0 +1,90 @@
+name: RIDGE backend CI
+
+on:
+  pull_request:
+    paths:
+      - "backend/**"
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+  workflow_dispatch:
+    inputs:
+      run_checks:
+        description: Run backend and PostGIS integration checks
+        required: true
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ridge-backend-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  go:
+    name: Go tests, race, vet and build
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_checks }}
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.23.x"
+          cache: true
+          cache-dependency-path: backend/go.mod
+      - name: Unit tests
+        run: go test ./...
+      - name: Race detector
+        run: go test -race ./...
+      - name: Static analysis
+        run: go vet ./...
+      - name: Compile all packages
+        run: go build ./...
+
+  postgres-migrations:
+    name: PostGIS migration integration
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_checks }}
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgis/postgis:16-3.4
+        env:
+          POSTGRES_USER: ridge
+          POSTGRES_PASSWORD: ridge_ci_only
+          POSTGRES_DB: ridge_ci
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U ridge -d ridge_ci"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+      - name: Verify embedded migration copies
+        run: bash scripts/verify-migration-mirror.sh
+      - name: Apply all migrations to clean PostGIS database
+        env:
+          PGPASSWORD: ridge_ci_only
+        run: |
+          set -euo pipefail
+          for migration in backend/migrations/[0-9][0-9][0-9][0-9]_*.sql; do
+            echo "Applying $migration"
+            psql "host=127.0.0.1 port=5432 dbname=ridge_ci user=ridge sslmode=disable" -v ON_ERROR_STOP=1 -f "$migration"
+          done
+      - name: Verify required PostGIS schema objects
+        env:
+          PGPASSWORD: ridge_ci_only
+        run: |
+          psql "host=127.0.0.1 port=5432 dbname=ridge_ci user=ridge sslmode=disable" -v ON_ERROR_STOP=1 -c "SELECT PostGIS_Full_Version();" -c "SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = 'public' AND table_name IN ('accounts','player_profiles','simulation_nodes','player_runtime_sessions','recovery_delivery_inbox');" | tee /tmp/ridge-schema-check.txt
+          grep -q "5" /tmp/ridge-schema-check.txt
