@@ -2,11 +2,11 @@
 
 ## Why this gate exists
 
-RIDGE's backend uses ordered PostgreSQL migrations and also embeds a copy of those migrations into the Go binary. A mismatch between the two copies can make local operations and production startup apply different schemas. CI now checks the two copies byte-for-byte and applies the ordered migration set to a clean PostGIS database.
+RIDGE's backend uses ordered PostgreSQL migrations and also embeds a copy of those migrations into the Go binary. A mismatch can make manual operations and production startup apply different schemas. CI checks ordered filenames and compares SQL bodies while accounting for the standalone `BEGIN;` / `COMMIT;` wrappers omitted from embedded migrations because the Go runner owns the transaction boundary. It then applies the standalone migration set to a clean PostGIS database.
 
 ## Workflow
 
-`.github/workflows/backend-ci.yml` runs when backend, migration scripts or the workflow itself change, and can also be started manually.
+`.github/workflows/backend-ci.yml` runs automatically when files under `backend/` change. It can also be started manually; set `run_checks=true` to run the jobs.
 
 ### Go job
 
@@ -19,11 +19,11 @@ RIDGE's backend uses ordered PostgreSQL migrations and also embeds a copy of tho
 
 - Starts a clean PostgreSQL 16 / PostGIS 3.4 service.
 - Checks that numbered migration filenames are contiguous from 0001.
-- Checks that source and embedded SQL files are identical.
-- Applies every migration in numeric order with `ON_ERROR_STOP=1`.
+- Compares SQL bodies in the source and embedded directories, excluding only exact outer transaction-wrapper lines.
+- Applies every standalone migration in numeric order with `ON_ERROR_STOP=1`.
 - Confirms PostGIS and core persistence tables exist.
 
-The jobs are skipped until the backend source tree is committed. This avoids reporting a false green for a documentation-only repository state.
+The workflow is scoped to backend source changes. Manual runs default to skipping checks until explicitly enabled, avoiding a false green for a documentation-only repository state.
 
 ## Local execution
 
