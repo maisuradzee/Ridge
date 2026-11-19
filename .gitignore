@@ -1,0 +1,35 @@
+# Go
+/backend/bin/
+/backend/dist/
+*.test
+*.out
+coverage.*
+
+# Unreal Engine generated content
+/Binaries/
+/DerivedDataCache/
+/Intermediate/
+/Saved/
+/.vs/
+/.vscode/
+*.sln
+*.suo
+*.opensdf
+*.sdf
+*.VC.db
+*.opendb
+
+# Local secrets and environment
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+
+# Operating system/editor
+.DS_Store
+Thumbs.db
+*.swp
+*.tmp
