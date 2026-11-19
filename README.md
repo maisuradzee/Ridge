@@ -50,3 +50,8 @@ This repository is the project foundation. The 2.x starter archives document imp
 ## Increment 2.8 — virtual tax calculation
 
 The starter archive adds a deterministic Go tax-calculation library using integer tetri, configurable progressive brackets and versioned policies. Tax rates are intentionally not hard-coded. The library is calculation groundwork only; tax persistence, wallet/company settlement and production tax rules are not yet implemented. See `docs/54_INCREMENT_2.8_VIRTUAL_TAX_CALCULATION.md`.
+
+
+## Increment 2.9 — offline player protection
+
+The backend includes a fail-closed domain guard that requires authoritative active session presence and a non-expired lease before a player can be targeted by hostile player actions. It is a domain primitive and must still be wired into every combat, robbery, kidnapping, and asset-related command path. See `docs/55_INCREMENT_2.9_OFFLINE_PLAYER_PROTECTION.md`.
