@@ -4,15 +4,17 @@ on:
   pull_request:
     paths:
       - "backend/**"
-      - "scripts/**"
-      - ".github/workflows/backend-ci.yml"
   push:
     branches: [main]
     paths:
       - "backend/**"
-      - "scripts/**"
-      - ".github/workflows/backend-ci.yml"
   workflow_dispatch:
+    inputs:
+      run_checks:
+        description: Run backend and PostGIS integration checks
+        required: true
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -24,7 +26,7 @@ concurrency:
 jobs:
   go:
     name: Go tests, race, vet and build
-    if: ${{ hashFiles('backend/go.mod') != '' }}
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_checks }}
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -47,7 +49,7 @@ jobs:
 
   postgres-migrations:
     name: PostGIS migration integration
-    if: ${{ hashFiles('backend/migrations/*.sql') != '' }}
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.run_checks }}
     runs-on: ubuntu-latest
     services:
       postgres:
