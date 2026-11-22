@@ -39,7 +39,9 @@
     "Tools/BotLab/validate_ue_telemetry.py",
     "Tools/BotLab/Run-UE58BotLabBuild.ps1",
     "Tools/BotLab/UE58_INTEGRATION_CHECKLIST_GE.md",
-    "Tools/BotLab/tests/test_ue_telemetry.py"
+    "Tools/BotLab/tests/test_ue_telemetry.py",
+    "Tools/BotLab/validate_ue_project.py",
+    "Tools/BotLab/tests/test_ue_project_integration.py"
   ],
   "python_test_dirs": [
     "RIDGE_GIS/Tests",
