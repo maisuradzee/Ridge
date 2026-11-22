@@ -1,0 +1,55 @@
+{
+  "schema": "ridge.botlab.seed-matrix.v1",
+  "catalog_actions": 303,
+  "action_families": 28,
+  "synthetic_archetypes": 16,
+  "environment_axes": 20,
+  "agents_per_run": 64,
+  "actions_per_agent": 250,
+  "run_count": 4,
+  "total_simulated_events": 64000,
+  "total_accepted": 62206,
+  "total_rejected": 1794,
+  "total_invariant_failures": 0,
+  "total_pairwise_scenarios": 12444,
+  "total_pairwise_invariant_failures": 0,
+  "runs": [
+    {
+      "seed": 20261121,
+      "simulated_events": 16000,
+      "accepted": 15592,
+      "rejected": 408,
+      "invariant_failures": 0,
+      "pairwise_scenarios": 3111,
+      "pairwise_invariant_failures": 0
+    },
+    {
+      "seed": 20261122,
+      "simulated_events": 16000,
+      "accepted": 15549,
+      "rejected": 451,
+      "invariant_failures": 0,
+      "pairwise_scenarios": 3111,
+      "pairwise_invariant_failures": 0
+    },
+    {
+      "seed": 20261123,
+      "simulated_events": 16000,
+      "accepted": 15530,
+      "rejected": 470,
+      "invariant_failures": 0,
+      "pairwise_scenarios": 3111,
+      "pairwise_invariant_failures": 0
+    },
+    {
+      "seed": 20261124,
+      "simulated_events": 16000,
+      "accepted": 15535,
+      "rejected": 465,
+      "invariant_failures": 0,
+      "pairwise_scenarios": 3111,
+      "pairwise_invariant_failures": 0
+    }
+  ],
+  "scope_note": "Repeatable synthetic Python decision model only; not an exhaustive model of human behavior and not Unreal runtime/NPC validation."
+}

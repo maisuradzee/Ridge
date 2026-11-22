@@ -1,0 +1,76 @@
+name: RIDGE PostgreSQL Integration
+
+on:
+  push:
+    branches:
+      - release/botlab-v14
+    paths:
+      - 'backend/**'
+      - 'database/migrations/**'
+      - '.github/workflows/ridge-postgres-integration.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'backend/**'
+      - 'database/migrations/**'
+      - '.github/workflows/ridge-postgres-integration.yml'
+  workflow_dispatch:
+
+jobs:
+  postgres-integration:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres_test
+          POSTGRES_DB: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d postgres"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+      - name: Create isolated RIDGE development database
+        env:
+          PGPASSWORD: postgres_test
+        run: |
+          psql -h 127.0.0.1 -U postgres -d postgres -v ON_ERROR_STOP=1 \
+            -c "CREATE ROLE ridge_backend LOGIN PASSWORD 'ridge_ci_password';"
+          createdb -h 127.0.0.1 -U postgres -O ridge_backend ridge_dev
+          psql -h 127.0.0.1 -U postgres -d ridge_dev -v ON_ERROR_STOP=1 \
+            -c "CREATE EXTENSION IF NOT EXISTS pgcrypto;"
+      - name: Apply migrations to ephemeral CI database
+        env:
+          PGPASSWORD: ridge_ci_password
+        run: |
+          for migration in \
+            database/migrations/001_initial_schema.sql \
+            database/migrations/002_job_checkpoints.sql \
+            database/migrations/003_postgres_runtime.sql; do
+            echo "Applying $migration"
+            psql "postgresql://ridge_backend:ridge_ci_password@127.0.0.1:5432/ridge_dev" \
+              -X --single-transaction -v ON_ERROR_STOP=1 -f "$migration"
+          done
+      - name: Install backend dependencies
+        working-directory: backend
+        run: npm install --no-audit --no-fund
+      - name: Run backend and live PostgreSQL integration tests
+        working-directory: backend
+        env:
+          RIDGE_RUN_POSTGRES_INTEGRATION: "YES"
+          RIDGE_DB_ENV: development
+          DATABASE_URL: postgresql://ridge_backend:ridge_ci_password@127.0.0.1:5432/ridge_dev
+        run: npm test

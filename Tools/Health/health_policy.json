@@ -1,0 +1,69 @@
+{
+  "schema_version": "1.0",
+  "project": "RIDGE",
+  "expected_engine_association": "5.8",
+  "required_directories": [
+    "RIDGE_GIS/Data/Raw",
+    "RIDGE_GIS/Data/Processed",
+    "RIDGE_GIS/Data/GeoJSON",
+    "RIDGE_GIS/Data/DEM",
+    "RIDGE_GIS/Data/DEM/ReferenceDSM",
+    "RIDGE_GIS/Data/WorldCover",
+    "RIDGE_GIS/Data/Imagery",
+    "RIDGE_GIS/Data/UnrealExport",
+    "RIDGE_GIS/Data/QA",
+    "RIDGE_GIS/Data/ReviewOnly",
+    "RIDGE_GIS/Data/SourceBoundary",
+    "RIDGE_GIS/Data/UnrealExport/RecoveryBackups"
+  ],
+  "critical_files": [
+    "RIDGE.uproject",
+    "Source/RIDGE.Target.cs",
+    "Source/RIDGEEditor.Target.cs",
+    "Source/RIDGEServer.Target.cs",
+    "backend/package.json",
+    "backend/src/server.mjs",
+    "database/migrations/001_initial_schema.sql",
+    "database/migrations/002_job_checkpoints.sql",
+    "database/migrations/003_postgres_runtime.sql",
+    "Content/SourceAssets/Blockout/BLOCKOUT_MANIFEST.json",
+    "RIDGE_GIS/Tools/WorldGen/build_world_package.py",
+    "RIDGE_GIS/Tools/WorldGen/validate_world_package.py",
+    "Tools/BotLab/botlab.py",
+    "Tools/BotLab/tests/test_botlab.py",
+    "Source/RIDGE/Public/RidgeBotTestController.h",
+    "Source/RIDGE/Private/RidgeBotTestController.cpp",
+    "Tools/BotLab/action_catalog.json",
+    "Tools/BotLab/interaction_contracts.py",
+    "Tools/BotLab/tests/test_interaction_contracts.py",
+    "Tools/BotLab/validate_ue_telemetry.py",
+    "Tools/BotLab/Run-UE58BotLabBuild.ps1",
+    "Tools/BotLab/UE58_INTEGRATION_CHECKLIST_GE.md",
+    "Tools/BotLab/tests/test_ue_telemetry.py",
+    "Tools/BotLab/validate_ue_project.py",
+    "Tools/BotLab/tests/test_ue_project_integration.py"
+  ],
+  "python_test_dirs": [
+    "RIDGE_GIS/Tests",
+    "Tools/Health/tests"
+  ],
+  "backend_tests": true,
+  "blockout_validation": true,
+  "worldgen_export_dir": "RIDGE_GIS/Data/UnrealExport",
+  "backend_health_url": "http://127.0.0.1:8787",
+  "repair_policy": {
+    "create_missing_data_directories": true,
+    "rebuild_derived_world_package": true,
+    "max_repair_attempts_per_check": 1,
+    "keep_world_package_backups": 3,
+    "never_modify_source_assets": true,
+    "never_modify_database": true,
+    "never_modify_credentials": true,
+    "never_modify_unreal_project_settings": true
+  },
+  "watch": {
+    "default_interval_seconds": 30,
+    "backend_consecutive_failures_before_alert": 3,
+    "http_timeout_seconds": 3
+  }
+}

@@ -1,0 +1,201 @@
+{
+  "schema": "ridge.botlab.interaction-contracts.v1",
+  "checks": 35,
+  "passed": 35,
+  "failed": 0,
+  "all_passed": true,
+  "checks_detail": [
+    {
+      "name": "locked_door_rejected_without_mutation",
+      "passed": true,
+      "detail": "door_locked"
+    },
+    {
+      "name": "door_unlock_authorized",
+      "passed": true,
+      "detail": "accepted"
+    },
+    {
+      "name": "door_out_of_range_rejected",
+      "passed": true,
+      "detail": "interaction_out_of_range"
+    },
+    {
+      "name": "unauthorized_property_entry_rejected",
+      "passed": true,
+      "detail": "property_access_denied"
+    },
+    {
+      "name": "item_transfer_atomic",
+      "passed": true,
+      "detail": "accepted"
+    },
+    {
+      "name": "item_transfer_idempotent",
+      "passed": true,
+      "detail": "duplicate replay did not transfer again"
+    },
+    {
+      "name": "inventory_mid_operation_rollback",
+      "passed": true,
+      "detail": "injected_fault_rolled_back"
+    },
+    {
+      "name": "double_entry_wallet_transfer",
+      "passed": true,
+      "detail": "accepted"
+    },
+    {
+      "name": "wallet_transfer_idempotent",
+      "passed": true,
+      "detail": "duplicate transfer did not double-credit"
+    },
+    {
+      "name": "mission_reward_claim",
+      "passed": true,
+      "detail": "accepted"
+    },
+    {
+      "name": "mission_reward_idempotent",
+      "passed": true,
+      "detail": "duplicate reward not paid again"
+    },
+    {
+      "name": "vehicle_occupancy_bijective",
+      "passed": true,
+      "detail": "accepted"
+    },
+    {
+      "name": "vehicle_exit_releases_seat",
+      "passed": true,
+      "detail": "accepted"
+    },
+    {
+      "name": "social_assist_requires_consent",
+      "passed": true,
+      "detail": "consent_required"
+    },
+    {
+      "name": "social_assist_requires_proximity",
+      "passed": true,
+      "detail": "target_out_of_range"
+    },
+    {
+      "name": "social_assist_with_consent",
+      "passed": true,
+      "detail": "accepted"
+    },
+    {
+      "name": "utility_restore_requires_authority",
+      "passed": true,
+      "detail": "technician_authorization_required"
+    },
+    {
+      "name": "utility_authorized_restore",
+      "passed": true,
+      "detail": "accepted"
+    },
+    {
+      "name": "animal_care_requires_owner",
+      "passed": true,
+      "detail": "animal_care_authorization_required"
+    },
+    {
+      "name": "animal_welfare_safe_feed",
+      "passed": true,
+      "detail": "accepted"
+    },
+    {
+      "name": "crafting_partial_failure_rolls_back",
+      "passed": true,
+      "detail": "injected_fault_rolled_back"
+    },
+    {
+      "name": "crafting_success_atomic",
+      "passed": true,
+      "detail": "accepted"
+    },
+    {
+      "name": "door_open_authorized_after_unlock",
+      "passed": true,
+      "detail": "accepted"
+    },
+    {
+      "name": "door_close_success",
+      "passed": true,
+      "detail": "accepted"
+    },
+    {
+      "name": "door_lock_after_close",
+      "passed": true,
+      "detail": "accepted"
+    },
+    {
+      "name": "property_unlock_requires_owner_or_tenant",
+      "passed": true,
+      "detail": "property_unlock_denied"
+    },
+    {
+      "name": "property_owner_unlocks_home",
+      "passed": true,
+      "detail": "accepted"
+    },
+    {
+      "name": "owner_enters_unlocked_property",
+      "passed": true,
+      "detail": "accepted"
+    },
+    {
+      "name": "item_consumption_updates_inventory",
+      "passed": true,
+      "detail": "accepted"
+    },
+    {
+      "name": "missing_item_consumption_rejected",
+      "passed": true,
+      "detail": "insufficient_item_quantity"
+    },
+    {
+      "name": "transport_requires_valid_ticket",
+      "passed": true,
+      "detail": "valid_ticket_required"
+    },
+    {
+      "name": "transport_boarding_tracks_occupancy",
+      "passed": true,
+      "detail": "accepted"
+    },
+    {
+      "name": "transport_exit_releases_capacity",
+      "passed": true,
+      "detail": "accepted"
+    },
+    {
+      "name": "every_interaction_contract_maps_to_catalog_action",
+      "passed": true,
+      "detail": "{}"
+    },
+    {
+      "name": "randomized_1200_step_fault_injection_stress",
+      "passed": true,
+      "detail": "399 accepted / 801 rejected; 11 injected rollbacks"
+    }
+  ],
+  "action_bindings": {
+    "binding_count": 18,
+    "missing": {},
+    "valid": true
+  },
+  "randomized_stress": {
+    "seed": 140022,
+    "iterations": 1200,
+    "accepted": 399,
+    "rejected": 801,
+    "injected_fault_rollbacks": 11,
+    "invariant_checks": 1200,
+    "wallet_value_conserved": true,
+    "ledger_entries": 154,
+    "audit_events": 1200
+  },
+  "scope_note": "Synthetic isolated contract world only; this is not proof that matching Unreal gameplay systems are implemented."
+}
