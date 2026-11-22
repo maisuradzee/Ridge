@@ -104,7 +104,7 @@ Guardian არ ცვლის player wallet/ledger-ს, inventory-ს, propert
 | GIS regression | 10/10 PASS |
 | Guardian unit tests | 12/12 PASS |
 | Backend Node tests | 22 PASS / 0 FAIL / 1 SKIP |
-| BotLab 16,000-event simulation | 16,000; invariant failures = 0 |
+| BotLab multi-seed simulation | 64,000 events / 4 seeds; 0 invariant failures |
 | Interaction contract smoke | 35/35 PASS |
 | Randomized contract stress | 1,200/1,200 invariant checks; 11 fault rollbacks |
 | Player Foundation / Mission Bridge | 10/10 და 12/12 PASS |
