@@ -45,7 +45,7 @@
   },
   "tests": {
     "python_compileall": "PASS",
-    "botlab_unit_tests": "28/28 PASS",
+    "botlab_unit_tests": "30/30 PASS",
     "gis_regression_tests": "10/10 PASS",
     "guardian_unit_tests": "12/12 PASS",
     "backend": "21 PASS / 0 FAIL / 1 SKIP",
@@ -59,7 +59,8 @@
     "ue_source_contract_static_tests": "8/8 PASS",
     "combined_botlab_python_tests": "40/40 PASS",
     "postgres_integration": "NOT_RUN; no Docker/PostgreSQL runtime available here",
-    "unreal_cpp_build": "NOT_RUN; Unreal Engine 5.8 toolchain unavailable here"
+    "unreal_cpp_build": "NOT_RUN; Unreal Engine 5.8 toolchain unavailable here",
+    "ue_project_static_validation": "24/24 PASS (STATIC_ONLY; no compile/UHT/PIE)"
   },
   "known_limitations": [
     "Unreal Engine 5.8 C++ compilation/UHT/PIE/NavMesh/Dedicated Server/replication not run in this runtime",
@@ -69,7 +70,8 @@
     "14 of 303 intents have Python state-transition model; 289 are contract/precondition probes; 18 additional operations are modeled in a separate isolated transactional interaction-contract simulator",
     "Full Guardian aggregate command exceeded this runtime's execution timeout; individual component suites and quick Guardian were run separately",
     "PostgreSQL real database migration/restart integration was not run in this runtime because Docker and PostgreSQL binaries are unavailable; a disposable Docker QA runner was added for the project machine",
-    "Unreal source contract tests are static checks only and do not replace UHT/C++ compilation or PIE runtime validation"
+    "Unreal source contract tests are static checks only and do not replace UHT/C++ compilation or PIE runtime validation",
+    "Unreal source static validation passed 24/24; actual UE 5.8 compile/UHT/PIE/NavMesh/Dedicated Server/replication remains unrun in this runtime."
   ],
   "safety_boundaries": [
     "No automatic mutation of player money/ledger, inventory, property, ownership or rewards",
@@ -86,5 +88,6 @@
     "postgresql_cli": "unavailable",
     "docker": "unavailable",
     "unreal_engine_5_8": "unavailable"
-  }
+  },
+  "ue_project_static_report": "RIDGE_GIS/Data/QA/ridge_ue_project_static_validation.json"
 }
