@@ -17,9 +17,12 @@
 
 - 303 action intents / 28 ოჯახი; 16 სინთეზური, არაკლინიკური გადაწყვეტილების არქეტიპი.
 - 20 გარემოს ღერძი; 3,111 pairwise probe.
-- ორი დამოუკიდებელი 16,000-event simulation:
+- ოთხი დამოუკიდებელი seed-ით **64,000 synthetic events**:
   - seed `20261121`: 15,592 accepted / 408 rejected / 0 invariant failures.
   - seed `20261122`: 15,549 accepted / 451 rejected / 0 invariant failures.
+  - seed `20261123`: 15,530 accepted / 470 rejected / 0 invariant failures.
+  - seed `20261124`: 15,535 accepted / 465 rejected / 0 invariant failures.
+- Pairwise coverage: 3,111 სცენარი თითო seed-ზე; სულ 12,444 შესრულება და 0 invariant failure.
 - BotLab, interaction, telemetry, UE project integration და UE source contract Python suite: **42/42 PASS**.
 - Interaction contracts: **35/35 PASS**; randomized stress: 1,200 ოპერაცია / 1,200 invariant checks; 11 injected-fault rollback.
 - უარყოფილი მოქმედებები თამაშის წინაპირობების დარღვევას/შეუსრულებელ მოთხოვნას აღნიშნავს და არა invariant failure-ს.
