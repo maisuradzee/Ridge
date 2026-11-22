@@ -45,3 +45,5 @@ python Tools/BotLab/validate_ue_project.py --project-root .
 ## Multi-seed regression
 
 Four deterministic seeds completed: **64,000 synthetic events / 0 invariant failures**. See `RIDGE_GIS/Data/QA/ridge_botlab_seed_matrix_v14.json`.
+
+GitHub Actions-ში ცალკე PostgreSQL 16 service-container job რეალურად იყენებს migrations 001–003-ს და `RIDGE_RUN_POSTGRES_INTEGRATION=YES` რეჟიმში ამოწმებს persistence/restart-ს. ლოკალური Docker QA გაშვების ბრძანება ზემოთაა.
