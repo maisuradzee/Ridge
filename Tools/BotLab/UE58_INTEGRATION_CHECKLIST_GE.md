@@ -1,3 +1,11 @@
+## 0. Static source/project validation (not a compile)
+
+```powershell
+python Tools\BotLab\validate_ue_project.py --project-root .
+```
+
+Expected current result: 24/24 PASS. This checks the UE 5.8 project descriptor, Build.cs dependencies, Game/Editor/Server targets and Bot QA Controller source wiring. It does **not** prove C++ compilation, UHT, PIE, NavMesh, physics or Dedicated Server operation.
+
 # RIDGE BotLab — Unreal Engine 5.8 გაშვების checklist
 
 ეს checklist საჭიროა V14-ის C++ adapter-ის რეალურ engine გარემოში დასადასტურებლად. მიმდინარე პაკეტში Unreal Build Tool არ არის, ამიტომ ქვემოთ ჩამოთვლილი ნაბიჯები ჯერ არ არის შესრულებულად მიჩნეული.
