@@ -1,6 +1,6 @@
 {
   "project": "RIDGE Saburtalo Vertical Slice v0.6.0",
-  "release": "BotLab V14",
+  "release": "BotLab V14.2 integration hardening",
   "release_date": "2026-11-22",
   "engine_target": "Unreal Engine 5.8",
   "release_status": "VERIFIED_WITH_LIMITATIONS",
@@ -40,31 +40,32 @@
       "vehicle_exit_requires_matching_vehicle_target",
       "transport_exit_requires_matching_transport_target",
       "vehicle_and_public_transport_occupancy_are_mutually_exclusive",
-      "missing_inventory_is_a_domain_rejection_not_an_internal_error"
+      "missing_inventory_is_a_domain_rejection_not_an_internal_error",
+      "checkpoint_event_id_serialized_with_transaction_advisory_lock",
+      "checkpoint_event_replay_bound_to_job_checkpoint_and_observed_position"
     ]
   },
   "tests": {
     "python_compileall": "PASS",
-    "botlab_unit_tests": "30/30 PASS",
+    "botlab_unit_tests": "42/42 PASS (all BotLab, contract, UE integration/source and telemetry tests)",
     "gis_regression_tests": "10/10 PASS",
     "guardian_unit_tests": "12/12 PASS",
-    "backend": "22 PASS / 0 FAIL / 1 SKIP (local mode; live PostgreSQL suite independently passed in CI)",
+    "backend": "22 PASS / 0 FAIL / 1 SKIP",
     "blockout": "PASS",
     "player_foundation": "10/10 PASS",
     "mission_bridge": "12/12 PASS",
     "guardian_quick": "9 PASS / 0 FAIL / 3 limitations",
     "guardian_full_aggregate": "TIMEOUT; not reported as pass",
-    "ue_telemetry": "NOT_APPLICABLE; no Unreal session logs",
+    "ue_telemetry": "NOT_APPLICABLE; no real UE session logs",
     "botlab_and_contract_unit_tests": "32/32 PASS",
     "ue_source_contract_static_tests": "8/8 PASS",
-    "combined_botlab_python_tests": "40/40 PASS",
-    "postgres_integration": "23/23 PASS / 0 FAIL / 0 SKIP (PostgreSQL 16 ephemeral GitHub Actions service; migrations 001-003)",
+    "combined_botlab_python_tests": "42/42 PASS",
+    "postgres_integration": "NOT_RUN; isolated Docker/PostgreSQL runtime unavailable here",
     "unreal_cpp_build": "NOT_RUN; Unreal Engine 5.8 toolchain unavailable here",
-    "ue_project_static_validation": "24/24 PASS (STATIC_ONLY; no compile/UHT/PIE)",
-    "github_actions_botlab_v14": "PASS (run 45053042131)",
-    "github_actions_backend_validation": "PASS (run 45053042163)",
-    "github_actions_postgres_integration": "PASS (run 45053042132)",
-    "postgres_integration_local": "SKIPPED: no PostgreSQL server installed in the local execution runtime"
+    "ue_project_static_validation": "24/24 STATIC PASS",
+    "postgres_repository_contract_tests": "7/7 PASS",
+    "botlab_simulation_seed_20261121": "16000 events; 15592 accepted; 408 rejected; 0 invariant failures",
+    "botlab_simulation_seed_20261122": "16000 events; 15549 accepted; 451 rejected; 0 invariant failures"
   },
   "known_limitations": [
     "Unreal Engine 5.8 C++ compilation/UHT/PIE/NavMesh/Dedicated Server/replication not run in this runtime",
@@ -73,9 +74,9 @@
     "500 concurrent-player load/soak test not run",
     "14 of 303 intents have Python state-transition model; 289 are contract/precondition probes; 18 additional operations are modeled in a separate isolated transactional interaction-contract simulator",
     "Full Guardian aggregate command exceeded this runtime's execution timeout; individual component suites and quick Guardian were run separately",
-    "Unreal source contract tests are static checks only and do not replace UHT/C++ compilation or PIE runtime validation",
-    "Unreal source static validation passed 24/24; actual UE 5.8 compile/UHT/PIE/NavMesh/Dedicated Server/replication remains unrun in this runtime.",
-    "PostgreSQL migrations 001-003 and live integration suite passed in isolated ephemeral PostgreSQL 16 GitHub Actions service (23/23); no user/production database was touched."
+    "PostgreSQL live migrations/restart integration was not run here; only 7 repository contract tests passed and the dedicated Docker QA runner was added",
+    "Unreal project/source validation is static only (24 checks); UHT/C++ compilation, PIE, NavMesh and Dedicated Server runtime remain unverified",
+    "Multiplayer replication and 500 concurrent-player load/soak testing are deferred to the joint Stage 5"
   ],
   "safety_boundaries": [
     "No automatic mutation of player money/ledger, inventory, property, ownership or rewards",
@@ -94,20 +95,19 @@
     "unreal_engine_5_8": "unavailable"
   },
   "ue_project_static_report": "RIDGE_GIS/Data/QA/ridge_ue_project_static_validation.json",
-  "stage_2_4_execution_report": "RIDGE_STAGE_2_4_EXECUTION_REPORT_GE.md",
-  "github_actions": {
-    "head_sha": "b30ffc695cfffcc8b6dda7705c09e2ae648b8cee",
-    "botlab_v14": {
-      "run_id": 45053042131,
-      "status": "success"
-    },
-    "botlab_backend_validation": {
-      "run_id": 45053042163,
-      "status": "success"
-    },
-    "postgresql_integration": {
-      "run_id": 45053042132,
-      "status": "success"
-    }
-  }
+  "second_botlab_report": "RIDGE_GIS/Data/QA/ridge_botlab_report_seed_20261122.json",
+  "postgres_hardening": {
+    "event_id_lock": "transaction-scoped pg_advisory_xact_lock(hashtextextended(event_id, 0))",
+    "replay_binding": [
+      "player_job_id",
+      "checkpoint_key",
+      "observed_x_m",
+      "observed_y_m",
+      "observed_z_m"
+    ],
+    "conflict_code": "SERVER_EVENT_REUSED",
+    "contract_tests": "7/7 PASS",
+    "live_integration": "NOT_RUN; Docker/PostgreSQL unavailable in this runtime"
+  },
+  "stage_2_4_report": "RIDGE_STAGE_2_4_EXECUTION_REPORT_GE.md"
 }
