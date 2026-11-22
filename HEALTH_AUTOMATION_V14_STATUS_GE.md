@@ -126,3 +126,12 @@ Guardian არ ცვლის player wallet/ledger-ს, inventory-ს, propert
 - Unreal project/source wiring checks: **24/24 STATIC_PASS**; C++ compile/UHT/PIE/NavMesh/physics/Dedicated Server remain unrun because UE 5.8 build tools are unavailable in this runtime.
 - The source validator and two regression tests are included; GitHub Actions now runs a focused BotLab/UE static gate.
 - This overlay PR does not claim that a real Unreal session or 500-player load test has run. Multiplayer/load stage 5 remains deferred.
+
+
+## Stage 2–4 completion update — 2026-11-22
+
+- BotLab V14 GitHub Actions: **success** (run 45053042131).
+- BotLab/backend validation GitHub Actions: **success** (run 45053042163).
+- PostgreSQL 16 integration GitHub Actions: **success** (run 45053042132): migrations 001–003 applied to the temporary CI database and **23/23 PASS / 0 FAIL / 0 SKIP**.
+- The earlier backend workflow failure was caused by an over-escaped regex in a contract test; the assertion was corrected and all three workflows passed on the updated branch.
+- The CI database was ephemeral. No user/production database was touched. Unreal Engine 5.8 compile/UHT/PIE remains unrun; stage 5 remains deferred.
