@@ -9,6 +9,9 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   botlab:
     runs-on: ubuntu-latest
@@ -19,7 +22,7 @@ jobs:
           python-version: '3.12'
       - name: Python syntax check
         run: python -m compileall -q Tools/BotLab
-      - name: BotLab regression tests
+      - name: BotLab regression and UE source tests
         run: python -m unittest discover -s Tools/BotLab/tests -p 'test_*.py' -v
       - name: Unreal Engine 5.8 project/source static validation
         run: python Tools/BotLab/validate_ue_project.py --project-root .
@@ -29,3 +32,21 @@ jobs:
         run: python Tools/BotLab/botlab.py --agents 64 --actions 250 --seed 20261122 --report-path /tmp/ridge_botlab_ci_report.json
       - name: Unreal telemetry schema validation
         run: python Tools/BotLab/validate_ue_telemetry.py --project-root . --report-path /tmp/ridge_ue_telemetry_ci_report.json
+
+  backend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Backend syntax check
+        run: |
+          node --check src/server.mjs
+          node --check src/game-service.mjs
+          node --check src/postgres-game-service.mjs
+      - name: Backend and PostgreSQL contract tests
+        run: node --test
