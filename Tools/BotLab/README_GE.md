@@ -72,7 +72,7 @@ npm test --prefix backend
 **შეზღუდვა:** ამ runtime-ში Unreal Engine 5.8 Editor/Build Tool არ არის ხელმისაწვდომი; C++ compile/UHT, PIE, NavMesh bake, Dedicated Server და network replication ტესტები არ შესრულებულა. სანამ UE-ში არ გაეშვება, Guardian telemetry-ს `NOT_APPLICABLE`-ად ტოვებს.
 
 ## V14 ტესტირების დაფიქსირებული შედეგები
-- BotLab unit tests: **28/28 PASS**.
+- BotLab unit tests: **30/30 PASS**.
 - Interaction smoke contract checks: **35/35 PASS**.
 - Interaction randomized stress: **1,200/1,200 invariant check**, 11 injected fault rollback.
 - 303 action intent; 16 synthetic agents; 20 environmental axes; 3,111 pairwise scenario probes.
@@ -89,3 +89,7 @@ npm test --prefix backend
 - PostgreSQL integration ტესტი გამოტოვებულია dedicated development DB-ის არქონის გამო.
 - 500 concurrent-player load/soak ტესტი ჯერ არ ჩატარებულა.
 - ავტომატური აღდგენა არ ცვლის player money, inventory, property, ownership, rewards, database rows, credentials ან authored Unreal assets.
+
+## V14 follow-up — Unreal project static wiring
+
+Run `python Tools/BotLab/validate_ue_project.py --project-root .` to check the UE 5.8 project descriptor, Runtime module, Build.cs dependencies, Game/Editor/Server targets and Bot QA Controller source contracts. Latest result: **24/24 STATIC_PASS**. This is source validation only; it does not replace C++ compilation, UHT, PIE, NavMesh bake or Dedicated Server runtime testing.
