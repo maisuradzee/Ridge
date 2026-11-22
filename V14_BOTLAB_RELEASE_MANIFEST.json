@@ -60,11 +60,13 @@
     "botlab_and_contract_unit_tests": "32/32 PASS",
     "ue_source_contract_static_tests": "8/8 PASS",
     "combined_botlab_python_tests": "42/42 PASS",
-    "postgres_integration": "NOT_RUN; isolated Docker/PostgreSQL runtime unavailable here",
+    "postgres_integration": "PASS in GitHub Actions PostgreSQL 16 service container; migrations 001-003 applied; live backend integration suite passed",
     "unreal_cpp_build": "NOT_RUN; Unreal Engine 5.8 toolchain unavailable here",
     "ue_project_static_validation": "24/24 STATIC PASS",
     "postgres_repository_contract_tests": "7/7 PASS",
-    "botlab_multi_seed_regression": "64000 events / 4 deterministic seeds / 0 invariant failures / 12444 pairwise scenarios"
+    "botlab_multi_seed_regression": "64000 events / 4 deterministic seeds / 0 invariant failures / 12444 pairwise scenarios",
+    "postgres_ci_workflow": "PASS; RIDGE_RUN_POSTGRES_INTEGRATION=YES",
+    "backend_live_postgres_ci": "23/23 PASS / 0 FAIL / 0 SKIP"
   },
   "known_limitations": [
     "Unreal Engine 5.8 C++ compilation/UHT/PIE/NavMesh/Dedicated Server/replication not run in this runtime",
@@ -73,9 +75,9 @@
     "500 concurrent-player load/soak test not run",
     "14 of 303 intents have Python state-transition model; 289 are contract/precondition probes; 18 additional operations are modeled in a separate isolated transactional interaction-contract simulator",
     "Full Guardian aggregate command exceeded this runtime's execution timeout; individual component suites and quick Guardian were run separately",
-    "PostgreSQL live migrations/restart integration was not run here; only 7 repository contract tests passed and the dedicated Docker QA runner was added",
     "Unreal project/source validation is static only (24 checks); UHT/C++ compilation, PIE, NavMesh and Dedicated Server runtime remain unverified",
-    "Multiplayer replication and 500 concurrent-player load/soak testing are deferred to the joint Stage 5"
+    "Multiplayer replication and 500 concurrent-player load/soak testing are deferred to the joint Stage 5",
+    "Local execution runtime lacks Docker/PostgreSQL CLI; live PostgreSQL 16 integration passed in isolated GitHub Actions service container"
   ],
   "safety_boundaries": [
     "No automatic mutation of player money/ledger, inventory, property, ownership or rewards",
@@ -109,5 +111,6 @@
     "live_integration": "NOT_RUN; Docker/PostgreSQL unavailable in this runtime"
   },
   "stage_2_4_report": "RIDGE_STAGE_2_4_EXECUTION_REPORT_GE.md",
-  "seed_matrix_report": "RIDGE_GIS/Data/QA/ridge_botlab_seed_matrix_v14.json"
+  "seed_matrix_report": "RIDGE_GIS/Data/QA/ridge_botlab_seed_matrix_v14.json",
+  "postgres_ci_workflow": ".github/workflows/ridge-postgres-integration.yml"
 }
