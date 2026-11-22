@@ -119,3 +119,10 @@ Guardian არ ცვლის player wallet/ledger-ს, inventory-ს, propert
 ### დარჩენილი გარე შესრულების ბარიერები
 
 ამ execution environment-ში Docker, PostgreSQL CLI და Unreal Engine 5.8 toolchain არ არის ხელმისაწვდომი. ამიტომ PostgreSQL migrations/restart test და Unreal UHT/C++ build/PIE/NavMesh/Server ტესტები რეალურად არ გაშვებულა. ახალი PowerShell runner მომზადებულია RIDGE-ის Windows/Docker გარემოში გასაშვებად. ეს ტესტები PASS-ად არ ითვლება, სანამ შესაბამისი runtime შედეგი არ დაბრუნდება.
+
+## Stage 2–4 follow-up — 2026-11-22
+
+- BotLab unit tests: **30/30 PASS**.
+- Unreal project/source wiring checks: **24/24 STATIC_PASS**; C++ compile/UHT/PIE/NavMesh/physics/Dedicated Server remain unrun because UE 5.8 build tools are unavailable in this runtime.
+- The source validator and two regression tests are included; GitHub Actions now runs a focused BotLab/UE static gate.
+- This overlay PR does not claim that a real Unreal session or 500-player load test has run. Multiplayer/load stage 5 remains deferred.
