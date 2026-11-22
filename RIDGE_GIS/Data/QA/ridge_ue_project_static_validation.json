@@ -5,5 +5,127 @@
   "passed": 24,
   "failed": 0,
   "ue_build_status": "NOT_RUN_STATIC_ONLY",
-  "runtime_status": "NOT_RUN_STATIC_ONLY"
+  "runtime_status": "NOT_RUN_STATIC_ONLY",
+  "checks_detail": [
+    {
+      "id": "uproject_exists",
+      "status": "PASS",
+      "detail": "RIDGE.uproject"
+    },
+    {
+      "id": "uproject_json_valid",
+      "status": "PASS",
+      "detail": "RIDGE.uproject parses as JSON"
+    },
+    {
+      "id": "engine_association_58",
+      "status": "PASS",
+      "detail": "EngineAssociation='5.8'"
+    },
+    {
+      "id": "runtime_module_registered",
+      "status": "PASS",
+      "detail": "RIDGE Runtime module registration"
+    },
+    {
+      "id": "module_build_cs_exists",
+      "status": "PASS",
+      "detail": "Source/RIDGE/RIDGE.Build.cs"
+    },
+    {
+      "id": "required_engine_modules",
+      "status": "PASS",
+      "detail": "all required modules present"
+    },
+    {
+      "id": "all_targets_exist",
+      "status": "PASS",
+      "detail": "Game, Editor and Server targets exist"
+    },
+    {
+      "id": "controller_header_exists",
+      "status": "PASS",
+      "detail": "RidgeBotTestController.h"
+    },
+    {
+      "id": "uht_generated_include_last",
+      "status": "PASS",
+      "detail": "generated.h is the final include"
+    },
+    {
+      "id": "header_declares_UCLASS",
+      "status": "PASS",
+      "detail": "UCLASS(Blueprintable)"
+    },
+    {
+      "id": "header_declares_class_RIDGE_API_ARidgeBotTestController",
+      "status": "PASS",
+      "detail": "class RIDGE_API ARidgeBotTestController"
+    },
+    {
+      "id": "header_declares_StartWaypointRoute",
+      "status": "PASS",
+      "detail": "StartWaypointRoute"
+    },
+    {
+      "id": "header_declares_CancelTestRoute",
+      "status": "PASS",
+      "detail": "CancelTestRoute"
+    },
+    {
+      "id": "header_declares_FinalizeTelemetryCapture",
+      "status": "PASS",
+      "detail": "FinalizeTelemetryCapture"
+    },
+    {
+      "id": "header_declares_OnMoveCompleted",
+      "status": "PASS",
+      "detail": "OnMoveCompleted"
+    },
+    {
+      "id": "controller_cpp_exists",
+      "status": "PASS",
+      "detail": "RidgeBotTestController.cpp"
+    },
+    {
+      "id": "cpp_authority_guard",
+      "status": "PASS",
+      "detail": "source contract present"
+    },
+    {
+      "id": "cpp_path_request_uses_move_request_result",
+      "status": "PASS",
+      "detail": "source contract present"
+    },
+    {
+      "id": "cpp_partial_paths_rejected",
+      "status": "PASS",
+      "detail": "source contract present"
+    },
+    {
+      "id": "cpp_request_id_stale_callback_guard",
+      "status": "PASS",
+      "detail": "source contract present"
+    },
+    {
+      "id": "cpp_stuck_timeout_detection",
+      "status": "PASS",
+      "detail": "source contract present"
+    },
+    {
+      "id": "cpp_jsonl_telemetry_writer",
+      "status": "PASS",
+      "detail": "source contract present"
+    },
+    {
+      "id": "cpp_telemetry_capture_finalizes",
+      "status": "PASS",
+      "detail": "source contract present"
+    },
+    {
+      "id": "cpp_collision_observability",
+      "status": "PASS",
+      "detail": "source contract present"
+    }
+  ]
 }
