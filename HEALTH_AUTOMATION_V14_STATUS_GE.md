@@ -118,9 +118,14 @@ Guardian არ ცვლის player wallet/ledger-ს, inventory-ს, propert
 
 ### დარჩენილი გარე შესრულების ბარიერები
 
-ამ execution environment-ში Docker, PostgreSQL CLI და Unreal Engine 5.8 toolchain არ არის ხელმისაწვდომი. ამიტომ PostgreSQL migrations/restart test და Unreal UHT/C++ build/PIE/NavMesh/Server ტესტები რეალურად არ გაშვებულა. PostgreSQL checkpoint event ID race კი transaction-scoped advisory lock-ით არის დაცული და payload-bound replay regression test-ით შემოწმებული. ახალი PowerShell runner მომზადებულია RIDGE-ის Windows/Docker გარემოში გასაშვებად. ეს ტესტები PASS-ად არ ითვლება, სანამ შესაბამისი runtime შედეგი არ დაბრუნდება.
+ამ execution environment-ში Docker, PostgreSQL CLI და Unreal Engine 5.8 toolchain არ არის ხელმისაწვდომი. ამიტომ PostgreSQL migrations/restart integration რეალურად შესრულდა GitHub Actions-ის იზოლირებულ PostgreSQL 16 service container-ში: migrations 001–003 PASS და live integration suite PASS. ამ runtime-ში Docker/psql არ არის, ამიტომ ადგილობრივი გაშვება არ მომხდარა; Windows Docker runner დამატებულია. Unreal UHT/C++ build/PIE/NavMesh/Server ტესტები კვლავ არ გაშვებულა.
 
 
 ## 8. PostgreSQL event-ID race hardening
 
-`recordJobCheckpoint` transaction-ში event ID-ზე იღებს `pg_advisory_xact_lock(hashtextextended(...))` lock-ს, შემდეგ ამოწმებს უკვე ჩაწერილ event-ს. Replay დასაშვებია მხოლოდ მაშინ, თუ job ID, checkpoint key და observed position ემთხვევა. სხვა payload იღებს `SERVER_EVENT_REUSED` პასუხს. Repository contract suite: 7/7 PASS; live PostgreSQL integration ჯერ SKIP-ია.
+`recordJobCheckpoint` transaction-ში event ID-ზე იღებს `pg_advisory_xact_lock(hashtextextended(...))` lock-ს, შემდეგ ამოწმებს უკვე ჩაწერილ event-ს. Replay დასაშვებია მხოლოდ მაშინ, თუ job ID, checkpoint key და observed position ემთხვევა. სხვა payload იღებს `SERVER_EVENT_REUSED` პასუხს. Repository contract suite: 7/7 PASS; GitHub Actions PostgreSQL 16 live integration suite PASS (migrations 001–003, checkpoint race/replay, one-time reward, balanced ledger and restart persistence).
+
+
+## 9. Live PostgreSQL CI
+
+`.github/workflows/ridge-postgres-integration.yml` PostgreSQL 16 service container-ში ქმნის იზოლირებულ `ridge_dev` მონაცემთა ბაზას, იყენებს migrations 001–003-ს და `RIDGE_RUN_POSTGRES_INTEGRATION=YES` რეჟიმში უშვებს backend-ის სრულ Node test suite-ს. 2026-11-22 workflow run: PASS. Production/Supabase მონაცემებთან კავშირი არ აქვს.
