@@ -9,7 +9,7 @@ V14 ამატებს სინთეზურ მოქმედებე�
 - 18 ტრანზაქციული interaction contract binding
 - 35/35 contract smoke checks
 - 1,200 randomized fault-injection operations / 1,200 invariant checks
-- 28/28 BotLab unit tests
+- 42/42 combined BotLab, UE source and integration Python tests
 
 დეტალური ინსტრუქცია: `Tools/BotLab/README_GE.md`  
 სტატუსი და ტესტების ანგარიში: `HEALTH_AUTOMATION_V14_STATUS_GE.md`  
