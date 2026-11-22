@@ -997,8 +997,7 @@
       "family": "interaction",
       "intent": "operate_terminal",
       "precondition_tags": [
-        "agent_alive",
-        "world_tick"
+        "agent_alive",        "world_tick"
       ],
       "observable_tags": [
         "target_id",
@@ -1997,8 +1996,7 @@
       "intent": "request_rescue",
       "precondition_tags": [
         "agent_alive",
-        "world_tick"
-      ],
+        "world_tick"      ],
       "observable_tags": [
         "health_before",
         "health_after",
@@ -2997,8 +2995,7 @@
         "access_state",
         "lease_state"
       ],
-      "safe_retry": false,
-      "execution_mode": "contract_probe_only"
+      "safe_retry": false,      "execution_mode": "contract_probe_only"
     },
     {
       "id": "property.unlock_property",
@@ -3997,8 +3994,7 @@
       ],
       "observable_tags": [
         "group_id",
-        "membership",
-        "role",
+        "membership",        "role",
         "formation",
         "resource_sharing"
       ],
@@ -4997,8 +4993,7 @@
       "safe_retry": false,
       "execution_mode": "contract_probe_only"
     },
-    {
-      "id": "education.borrow_book",
+    {      "id": "education.borrow_book",
       "family": "education",
       "intent": "borrow_book",
       "precondition_tags": [
