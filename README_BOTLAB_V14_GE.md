@@ -9,7 +9,7 @@ V14 ამატებს სინთეზურ მოქმედებე�
 - 18 ტრანზაქციული interaction contract binding
 - 35/35 contract smoke checks
 - 1,200 randomized fault-injection operations / 1,200 invariant checks
-- 30/30 BotLab unit tests
+- 28/28 BotLab unit tests
 
 დეტალური ინსტრუქცია: `Tools/BotLab/README_GE.md`  
 სტატუსი და ტესტების ანგარიში: `HEALTH_AUTOMATION_V14_STATUS_GE.md`  
@@ -34,6 +34,10 @@ PostgreSQL-ის რეალური, იზოლირებული QA �
 
 ეს ქმნის დროებით PostgreSQL 16 კონტეინერს, იყენებს migrations 001–003-ს, ამოწმებს restart persistence-ს და ბოლოს შლის კონტეინერს. Production/Supabase მონაცემებს არ ეხება.
 
-## UE 5.8 source validation follow-up
+Unreal Engine 5.8 project/source wiring-ის სტატიკური შემოწმება (ეს compile/UHT/PIE ტესტს არ ცვლის):
 
-The project/source wiring validator now reports **24/24 STATIC_PASS**. This is not a compile/UHT/PIE result. Unreal Engine 5.8 runtime validation remains pending in an installed UE environment.
+```powershell
+python Tools/BotLab/validate_ue_project.py --project-root .
+```
+
+მოსალოდნელი სტატიკური შედეგი: `24/24 STATIC PASS`; რეალური UE build/runtime სტატუსი ცალკე უნდა დადასტურდეს.
