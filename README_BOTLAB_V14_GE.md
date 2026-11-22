@@ -41,3 +41,7 @@ python Tools/BotLab/validate_ue_project.py --project-root .
 ```
 
 მოსალოდნელი სტატიკური შედეგი: `24/24 STATIC PASS`; რეალური UE build/runtime სტატუსი ცალკე უნდა დადასტურდეს.
+
+## Multi-seed regression
+
+Four deterministic seeds completed: **64,000 synthetic events / 0 invariant failures**. See `RIDGE_GIS/Data/QA/ridge_botlab_seed_matrix_v14.json`.
