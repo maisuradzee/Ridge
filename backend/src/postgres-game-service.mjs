@@ -285,6 +285,13 @@ export async function createPostgresGameService({ pool, dedicatedServerId = DEFA
       throw new RidgePostgresError(400, 'INVALID_SERVER_EVENT_ID', 'სერვერული მოვლენის იდენტიფიკატორი არასწორია.');
     }
     return inTransaction(pool, async (client) => {
+      // A checkpoint event ID is globally unique across jobs. Serialize the
+      // check-then-insert path so concurrent requests for different jobs cannot
+      // both observe an unused ID and race into a generic unique-constraint error.
+      await client.query(
+        'SELECT pg_advisory_xact_lock(hashtextextended($1, 0))',
+        [serverEventId],
+      );
       const jobResult = await client.query(
         `SELECT pj.id, pj.status, pj.job_definition_id, p.id AS player_id
            FROM ridge.player_jobs pj
@@ -297,15 +304,6 @@ export async function createPostgresGameService({ pool, dedicatedServerId = DEFA
       if (!job) throw new RidgePostgresError(404, 'JOB_NOT_FOUND', 'სამუშაო ვერ მოიძებნა ამ მოთამაშისთვის.');
       if (job.status !== 'accepted') throw new RidgePostgresError(409, 'JOB_NOT_ACTIVE', 'სამუშაო აღარ არის აქტიურ მდგომარეობაში.');
 
-      // Serialize a server event ID across different job rows as well. The
-      // database UNIQUE constraint remains the final guard, while this
-      // transaction-scoped advisory lock classifies concurrent conflicting
-      // reuse deterministically as SERVER_EVENT_REUSED.
-      await client.query(
-        'SELECT pg_advisory_xact_lock(hashtextextended($1, 0))',
-        [serverEventId],
-      );
-
       const priorEvent = await client.query(
         `SELECT e.player_job_id, e.checkpoint_definition_id, d.checkpoint_key,
                 e.observed_x_m, e.observed_y_m, e.observed_z_m
@@ -316,13 +314,13 @@ export async function createPostgresGameService({ pool, dedicatedServerId = DEFA
       );
       if (priorEvent.rows[0]) {
         const prior = priorEvent.rows[0];
-        const observed = observedPosition && [observedPosition.x, observedPosition.y, observedPosition.z];
-        const priorPosition = [prior.observed_x_m, prior.observed_y_m, prior.observed_z_m].map(Number);
-        const samePosition = Array.isArray(observed)
-          && observed.length === 3
-          && observed.every((value, index) => typeof value === 'number' && Number.isFinite(value) && value === priorPosition[index]);
+        const samePosition = observedPosition
+          && [observedPosition.x, observedPosition.y, observedPosition.z].every((value) => typeof value === 'number' && Number.isFinite(value))
+          && Math.abs(Number(prior.observed_x_m) - observedPosition.x) <= 1e-6
+          && Math.abs(Number(prior.observed_y_m) - observedPosition.y) <= 1e-6
+          && Math.abs(Number(prior.observed_z_m) - observedPosition.z) <= 1e-6;
         if (prior.player_job_id !== job.id || prior.checkpoint_key !== checkpointId || !samePosition) {
-          throw new RidgePostgresError(409, 'SERVER_EVENT_REUSED', 'სერვერული მოვლენის ID იგივე payload-ით უნდა განმეორდეს; სხვა სამუშაოსთვის ან სხვა პოზიციისთვის გამოიყენე ახალი ID.');
+          throw new RidgePostgresError(409, 'SERVER_EVENT_REUSED', 'სერვერული მოვლენის ID უკვე სხვა მონაცემებით გამოიყენება.');
         }
         const status = await client.query(
           `SELECT count(*)::integer AS completed_count FROM ridge.player_job_checkpoint_events WHERE player_job_id = $1`,
@@ -332,7 +330,7 @@ export async function createPostgresGameService({ pool, dedicatedServerId = DEFA
           `SELECT count(*)::integer AS required_count FROM ridge.job_checkpoint_definitions WHERE job_definition_id = $1 AND is_active`,
           [job.job_definition_id],
         );
-        return { jobId, checkpointId: prior.checkpoint_key, recorded: true, replayed: true, completedCount: Number(status.rows[0].completed_count), requiredCount: Number(required.rows[0].required_count) };
+        return { jobId, checkpointId: priorEvent.rows[0].checkpoint_key, recorded: true, replayed: true, completedCount: Number(status.rows[0].completed_count), requiredCount: Number(required.rows[0].required_count) };
       }
 
       const progress = await client.query(
