@@ -1,0 +1,31 @@
+name: RIDGE BotLab V14
+
+on:
+  push:
+    branches:
+      - release/botlab-v14
+  pull_request:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  botlab:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Python syntax check
+        run: python -m compileall -q Tools/BotLab
+      - name: BotLab regression tests
+        run: python -m unittest discover -s Tools/BotLab/tests -p 'test_*.py' -v
+      - name: Unreal Engine 5.8 project/source static validation
+        run: python Tools/BotLab/validate_ue_project.py --project-root .
+      - name: Transactional interaction contract smoke and stress suite
+        run: python Tools/BotLab/interaction_contracts.py
+      - name: 16,000-event synthetic decision run
+        run: python Tools/BotLab/botlab.py --agents 64 --actions 250 --seed 20261122 --report-path /tmp/ridge_botlab_ci_report.json
+      - name: Unreal telemetry schema validation
+        run: python Tools/BotLab/validate_ue_telemetry.py --project-root . --report-path /tmp/ridge_ue_telemetry_ci_report.json
