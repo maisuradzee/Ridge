@@ -85,3 +85,13 @@ test('PostgreSQL service initializes only after required migrations and preserve
   assert.equal(world.mode, 'persistent-postgresql');
   assert.equal(seen.length, 6);
 });
+
+test('checkpoint server-event keys are globally serialized and payload-bound', async () => {
+  const source = await readFile(new URL('backend/src/postgres-game-service.mjs', root), 'utf8');
+  const integration = await readFile(new URL('backend/test/postgres-integration.test.mjs', root), 'utf8');
+  assert.match(source, /pg_advisory_xact_lock\\(hashtextextended\\(\\$1, 0\\)\\)/);
+  assert.match(source, /SERVER_EVENT_REUSED/);
+  assert.match(integration, /Promise\\.allSettled/);
+  assert.match(integration, /raceFailure\\.reason\\?\\.code, 'SERVER_EVENT_REUSED'/);
+  assert.match(integration, /recoveredWallet\\.ledgerEntryCount, 1/);
+});
