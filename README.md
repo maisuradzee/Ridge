@@ -64,3 +64,6 @@ See `RIDGE_STAGE_2_4_EXECUTION_REPORT_GE.md` for the 2–4 stage report.
 ## Stage 2–4 CI verification
 
 All three configured GitHub Actions workflows completed successfully on the current BotLab V14 branch. The ephemeral PostgreSQL 16 job applied migrations 001–003 and passed **23/23** backend/PostgreSQL integration tests. This was an isolated CI database, not a production or user database. Unreal Engine 5.8 compilation/UHT/PIE/NavMesh and runtime movement tests remain pending; stage 5 multiplayer/load testing is intentionally deferred.
+
+
+BotLab V14 repeatability verification: **64,000 synthetic events across four deterministic seeds**, 0 invariant failures; 3,111 pairwise environment scenarios per seed. See `RIDGE_GIS/Data/QA/ridge_botlab_seed_matrix_v14.json`. This is synthetic model coverage, not exhaustive human-behavior proof or live Unreal NPC validation.
