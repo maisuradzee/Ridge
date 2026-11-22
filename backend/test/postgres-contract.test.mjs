@@ -51,6 +51,16 @@ test('PostgreSQL repository uses database transactions, row locks and a unique i
   assert.match(source, /ledger_entries/);
 });
 
+test('checkpoint event ID reuse is serialized across jobs and bound to the original payload', async () => {
+  const source = await readFile(new URL('backend/src/postgres-game-service.mjs', root), 'utf8');
+  assert.match(source, /pg_advisory_xact_lock\(hashtextextended\(\$1, 0\)\)/);
+  assert.match(source, /SERVER_EVENT_REUSED/);
+  assert.match(source, /prior\.checkpoint_key !== checkpointId/);
+  assert.match(source, /prior\.observed_x_m/);
+  assert.match(source, /prior\.observed_y_m/);
+  assert.match(source, /prior\.observed_z_m/);
+});
+
 test('server exposes PostgreSQL mode and refuses ephemeral production storage', async () => {
   const server = await readFile(new URL('backend/src/server.mjs', root), 'utf8');
   assert.match(server, /RIDGE_STORAGE/);
@@ -84,14 +94,4 @@ test('PostgreSQL service initializes only after required migrations and preserve
   assert.equal(world.worldTime, '08:00');
   assert.equal(world.mode, 'persistent-postgresql');
   assert.equal(seen.length, 6);
-});
-
-test('checkpoint server-event keys are globally serialized and payload-bound', async () => {
-  const source = await readFile(new URL('backend/src/postgres-game-service.mjs', root), 'utf8');
-  const integration = await readFile(new URL('backend/test/postgres-integration.test.mjs', root), 'utf8');
-  assert.ok(source.includes('pg_advisory_xact_lock(hashtextextended($1, 0))'));
-  assert.ok(source.includes('SERVER_EVENT_REUSED'));
-  assert.ok(integration.includes('Promise.allSettled'));
-  assert.ok(integration.includes("raceFailure.reason?.code, 'SERVER_EVENT_REUSED'"));
-  assert.ok(integration.includes('recoveredWallet.ledgerEntryCount, 1'));
 });
