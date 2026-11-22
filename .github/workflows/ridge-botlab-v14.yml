@@ -28,8 +28,28 @@ jobs:
         run: python Tools/BotLab/validate_ue_project.py --project-root .
       - name: Transactional interaction contract smoke and stress suite
         run: python Tools/BotLab/interaction_contracts.py
-      - name: 16,000-event synthetic decision run
-        run: python Tools/BotLab/botlab.py --agents 64 --actions 250 --seed 20261122 --report-path /tmp/ridge_botlab_ci_report.json
+      - name: Four-seed 64,000-event synthetic decision regression
+        run: |
+          mkdir -p /tmp/ridge_botlab_seeds
+          for seed in 20261121 20261122 20261123 20261124; do
+            python Tools/BotLab/botlab.py --agents 64 --actions 250 --seed "$seed" --report-path "/tmp/ridge_botlab_seeds/seed-$seed.json"
+          done
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          reports = [json.loads(path.read_text()) for path in sorted(Path('/tmp/ridge_botlab_seeds').glob('seed-*.json'))]
+          assert len(reports) == 4, f'expected 4 seed reports, got {len(reports)}'
+          assert sum(item['simulated_events'] for item in reports) == 64000
+          assert all(item['invariant_failure_count'] == 0 for item in reports)
+          assert all(item['agent_state_isolation'] for item in reports)
+          print(json.dumps({
+              'seed_count': len(reports),
+              'simulated_events': sum(item['simulated_events'] for item in reports),
+              'accepted': sum(item['accepted'] for item in reports),
+              'rejected': sum(item['rejected'] for item in reports),
+              'invariant_failures': sum(item['invariant_failure_count'] for item in reports)
+          }, indent=2))
+          PY
       - name: Unreal telemetry schema validation
         run: python Tools/BotLab/validate_ue_telemetry.py --project-root . --report-path /tmp/ridge_ue_telemetry_ci_report.json
 
