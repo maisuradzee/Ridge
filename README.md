@@ -52,3 +52,10 @@ The current release therefore remains **VERIFIED_WITH_LIMITATIONS**, not product
 - [UE movement telemetry validator](Tools/BotLab/validate_ue_telemetry.py)
 - [Interaction contract test suite](Tools/BotLab/tests/test_interaction_contracts.py)
 - [QA reports](RIDGE_GIS/Data/QA/)
+
+
+## V14 follow-up — UE source wiring
+
+The BotLab V14 branch now includes the UE 5.8 project descriptor, Game/Editor/Server target definitions, module dependencies, a 24/24 source-wiring validator, two regression tests and a focused GitHub Actions workflow. This remains static verification only: the actual Unreal toolchain and PIE runtime are not available in this validation environment.
+
+See `RIDGE_STAGE_2_4_EXECUTION_REPORT_GE.md` for the 2–4 stage report.
