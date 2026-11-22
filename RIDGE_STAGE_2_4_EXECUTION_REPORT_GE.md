@@ -24,7 +24,7 @@
 
 ## ეტაპი 4 — Backend და მონაცემთა ბაზა
 
-- Backend Node tests: **22 PASS / 0 FAIL / 1 SKIP**.
+- Backend Node tests locally: **22 PASS / 0 FAIL / 1 SKIP**; dedicated PostgreSQL CI integration: **23/23 PASS / 0 FAIL / 0 SKIP**.
 - PostgreSQL repository contract tests: **7/7 PASS**.
 - Checkpoint event ID ახლა transaction-scoped advisory lock-ით სერიალიზდება; სხვა job/checkpoint/position payload-ით განმეორება იღებს SERVER_EVENT_REUSED-ს.
 - Integration suite გაფართოვდა: checkpoint order/radius, exact replay, conflicting payload, parallel cross-job event ID reuse, parallel one-time reward, balanced ledger და restart persistence.
