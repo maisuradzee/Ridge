@@ -297,15 +297,33 @@ export async function createPostgresGameService({ pool, dedicatedServerId = DEFA
       if (!job) throw new RidgePostgresError(404, 'JOB_NOT_FOUND', 'სამუშაო ვერ მოიძებნა ამ მოთამაშისთვის.');
       if (job.status !== 'accepted') throw new RidgePostgresError(409, 'JOB_NOT_ACTIVE', 'სამუშაო აღარ არის აქტიურ მდგომარეობაში.');
 
+      // Serialize a server event ID across different job rows as well. The
+      // database UNIQUE constraint remains the final guard, while this
+      // transaction-scoped advisory lock classifies concurrent conflicting
+      // reuse deterministically as SERVER_EVENT_REUSED.
+      await client.query(
+        'SELECT pg_advisory_xact_lock(hashtextextended($1, 0))',
+        [serverEventId],
+      );
+
       const priorEvent = await client.query(
-        `SELECT e.player_job_id, e.checkpoint_definition_id, d.checkpoint_key
+        `SELECT e.player_job_id, e.checkpoint_definition_id, d.checkpoint_key,
+                e.observed_x_m, e.observed_y_m, e.observed_z_m
            FROM ridge.player_job_checkpoint_events e
            JOIN ridge.job_checkpoint_definitions d ON d.id = e.checkpoint_definition_id
           WHERE e.server_event_id = $1`,
         [serverEventId],
       );
       if (priorEvent.rows[0]) {
-        if (priorEvent.rows[0].player_job_id !== job.id) throw new RidgePostgresError(409, 'SERVER_EVENT_REUSED', 'სერვერული მოვლენის ID უკვე სხვა სამუშაოში გამოიყენება.');
+        const prior = priorEvent.rows[0];
+        const observed = observedPosition && [observedPosition.x, observedPosition.y, observedPosition.z];
+        const priorPosition = [prior.observed_x_m, prior.observed_y_m, prior.observed_z_m].map(Number);
+        const samePosition = Array.isArray(observed)
+          && observed.length === 3
+          && observed.every((value, index) => typeof value === 'number' && Number.isFinite(value) && value === priorPosition[index]);
+        if (prior.player_job_id !== job.id || prior.checkpoint_key !== checkpointId || !samePosition) {
+          throw new RidgePostgresError(409, 'SERVER_EVENT_REUSED', 'სერვერული მოვლენის ID იგივე payload-ით უნდა განმეორდეს; სხვა სამუშაოსთვის ან სხვა პოზიციისთვის გამოიყენე ახალი ID.');
+        }
         const status = await client.query(
           `SELECT count(*)::integer AS completed_count FROM ridge.player_job_checkpoint_events WHERE player_job_id = $1`,
           [job.id],
@@ -314,7 +332,7 @@ export async function createPostgresGameService({ pool, dedicatedServerId = DEFA
           `SELECT count(*)::integer AS required_count FROM ridge.job_checkpoint_definitions WHERE job_definition_id = $1 AND is_active`,
           [job.job_definition_id],
         );
-        return { jobId, checkpointId: priorEvent.rows[0].checkpoint_key, recorded: true, replayed: true, completedCount: Number(status.rows[0].completed_count), requiredCount: Number(required.rows[0].required_count) };
+        return { jobId, checkpointId: prior.checkpoint_key, recorded: true, replayed: true, completedCount: Number(status.rows[0].completed_count), requiredCount: Number(required.rows[0].required_count) };
       }
 
       const progress = await client.query(
