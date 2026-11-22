@@ -13,53 +13,13 @@
     "contract_probe_only_intents": 289,
     "agents": 64,
     "actions_per_agent": 250,
-    "simulated_events": 64000,
-    "accepted": 62206,
-    "rejected": 1794,
+    "simulated_events": 16000,
+    "accepted": 15592,
+    "rejected": 408,
     "invariant_failures": 0,
     "agent_state_isolation": true,
     "pairwise_scenarios": 3111,
-    "pairwise_invariant_failures": 0,
-    "seed_runs": [
-      {
-        "seed": 20261121,
-        "simulated_events": 16000,
-        "accepted": 15592,
-        "rejected": 408,
-        "invariant_failures": 0,
-        "pairwise_scenarios": 3111,
-        "pairwise_invariant_failures": 0
-      },
-      {
-        "seed": 20261122,
-        "simulated_events": 16000,
-        "accepted": 15549,
-        "rejected": 451,
-        "invariant_failures": 0,
-        "pairwise_scenarios": 3111,
-        "pairwise_invariant_failures": 0
-      },
-      {
-        "seed": 20261123,
-        "simulated_events": 16000,
-        "accepted": 15530,
-        "rejected": 470,
-        "invariant_failures": 0,
-        "pairwise_scenarios": 3111,
-        "pairwise_invariant_failures": 0
-      },
-      {
-        "seed": 20261124,
-        "simulated_events": 16000,
-        "accepted": 15535,
-        "rejected": 465,
-        "invariant_failures": 0,
-        "pairwise_scenarios": 3111,
-        "pairwise_invariant_failures": 0
-      }
-    ],
-    "total_pairwise_scenarios": 12444,
-    "total_pairwise_invariant_failures": 0
+    "pairwise_invariant_failures": 0
   },
   "interaction_contracts": {
     "stateful_operation_bindings": 18,
@@ -100,15 +60,11 @@
     "botlab_and_contract_unit_tests": "32/32 PASS",
     "ue_source_contract_static_tests": "8/8 PASS",
     "combined_botlab_python_tests": "42/42 PASS",
-    "postgres_integration": "23/23 PASS / 0 FAIL / 0 SKIP (PostgreSQL 16 ephemeral GitHub Actions service)",
+    "postgres_integration": "NOT_RUN; isolated Docker/PostgreSQL runtime unavailable here",
     "unreal_cpp_build": "NOT_RUN; Unreal Engine 5.8 toolchain unavailable here",
     "ue_project_static_validation": "24/24 STATIC PASS",
     "postgres_repository_contract_tests": "7/7 PASS",
-    "botlab_simulation_seed_20261121": "16000 events; 15592 accepted; 408 rejected; 0 invariant failures",
-    "botlab_simulation_seed_20261122": "16000 events; 15549 accepted; 451 rejected; 0 invariant failures",
-    "github_actions_botlab_v14": "PASS",
-    "github_actions_backend_validation": "PASS",
-    "github_actions_postgres_integration": "PASS (migrations 001-003; 23/23 tests)"
+    "botlab_multi_seed_regression": "64000 events / 4 deterministic seeds / 0 invariant failures / 12444 pairwise scenarios"
   },
   "known_limitations": [
     "Unreal Engine 5.8 C++ compilation/UHT/PIE/NavMesh/Dedicated Server/replication not run in this runtime",
@@ -119,8 +75,7 @@
     "Full Guardian aggregate command exceeded this runtime's execution timeout; individual component suites and quick Guardian were run separately",
     "PostgreSQL live migrations/restart integration was not run here; only 7 repository contract tests passed and the dedicated Docker QA runner was added",
     "Unreal project/source validation is static only (24 checks); UHT/C++ compilation, PIE, NavMesh and Dedicated Server runtime remain unverified",
-    "Multiplayer replication and 500 concurrent-player load/soak testing are deferred to the joint Stage 5",
-    "PostgreSQL migrations 001-003 and live integration suite passed in isolated ephemeral PostgreSQL 16 GitHub Actions service (23/23); no user/production database was touched."
+    "Multiplayer replication and 500 concurrent-player load/soak testing are deferred to the joint Stage 5"
   ],
   "safety_boundaries": [
     "No automatic mutation of player money/ledger, inventory, property, ownership or rewards",
@@ -154,12 +109,5 @@
     "live_integration": "NOT_RUN; Docker/PostgreSQL unavailable in this runtime"
   },
   "stage_2_4_report": "RIDGE_STAGE_2_4_EXECUTION_REPORT_GE.md",
-  "botlab_seed_matrix_report": "RIDGE_GIS/Data/QA/ridge_botlab_seed_matrix_v14.json",
-  "stage_2_4_execution_report": "RIDGE_STAGE_2_4_EXECUTION_REPORT_GE.md",
-  "stage_status": {
-    "stage_2_unreal_engine_58": "STATIC_PASS_24_OF_24; REAL_ENGINE_BUILD_AND_RUNTIME_NOT_RUN",
-    "stage_3_player_npc_behavior": "30_UNIT_TESTS; 35_CONTRACT_CHECKS; 64000_EVENTS_OVER_4_SEEDS; 0_INVARIANT_FAILURES",
-    "stage_4_backend_database": "POSTGRESQL_16_CI_INTEGRATION_PASS_23_OF_23; LOCAL_NODE_SUITE_22_PASS_1_SKIP",
-    "stage_5_multiplayer_load": "DEFERRED_TO_JOINT_SESSION_PER_USER_INSTRUCTION"
-  }
+  "seed_matrix_report": "RIDGE_GIS/Data/QA/ridge_botlab_seed_matrix_v14.json"
 }
