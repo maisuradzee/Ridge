@@ -1,0 +1,9 @@
+{
+  "schema": "ridge.botlab.ue-project-static-validation.v1",
+  "status": "STATIC_PASS",
+  "checks": 24,
+  "passed": 24,
+  "failed": 0,
+  "ue_build_status": "NOT_RUN_STATIC_ONLY",
+  "runtime_status": "NOT_RUN_STATIC_ONLY"
+}
