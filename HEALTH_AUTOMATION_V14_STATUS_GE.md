@@ -92,7 +92,7 @@ Guardian არ ცვლის player wallet/ledger-ს, inventory-ს, propert
 - `transport.exit` ახლა მოითხოვს, რომ მითითებული ტრანსპორტი ემთხვეოდეს მოთამაშის მიმდინარე ტრანსპორტს.
 - მოთამაშე ვერ ჩაჯდება მანქანაში და საზოგადოებრივ ტრანსპორტში ერთდროულად.
 - inventory-ის არმქონე actor იღებს მკაფიო domain rejection-ს და არა შიდა `KeyError`-ს inventory transfer/crafting ოპერაციებში.
-- დაემატა 4 regression test ზემოაღნიშნული შემთხვევებისთვის და 8 Unreal source contract static test.
+- დაემატა 4 regression test ზემოაღნიშნული შემთხვევებისთვის, 8 Unreal source contract static test და 2 project integration test. დაემატა 24-პუნქტიანი UE project static validator.
 
 ### ახლად შესრულებული ტესტები
 
@@ -100,10 +100,10 @@ Guardian არ ცვლის player wallet/ledger-ს, inventory-ს, propert
 |---|---:|
 | BotLab + interaction + telemetry unit tests | 32/32 PASS |
 | Unreal source contract static tests | 8/8 PASS |
-| გაერთიანებული BotLab Python suite | 40/40 PASS |
+| გაერთიანებული BotLab Python suite | 42/42 PASS |
 | GIS regression | 10/10 PASS |
 | Guardian unit tests | 12/12 PASS |
-| Backend Node tests | 21 PASS / 0 FAIL / 1 SKIP |
+| Backend Node tests | 22 PASS / 0 FAIL / 1 SKIP |
 | BotLab 16,000-event simulation | 16,000; invariant failures = 0 |
 | Interaction contract smoke | 35/35 PASS |
 | Randomized contract stress | 1,200/1,200 invariant checks; 11 fault rollbacks |
@@ -118,20 +118,9 @@ Guardian არ ცვლის player wallet/ledger-ს, inventory-ს, propert
 
 ### დარჩენილი გარე შესრულების ბარიერები
 
-ამ execution environment-ში Docker, PostgreSQL CLI და Unreal Engine 5.8 toolchain არ არის ხელმისაწვდომი. ამიტომ PostgreSQL migrations/restart test და Unreal UHT/C++ build/PIE/NavMesh/Server ტესტები რეალურად არ გაშვებულა. ახალი PowerShell runner მომზადებულია RIDGE-ის Windows/Docker გარემოში გასაშვებად. ეს ტესტები PASS-ად არ ითვლება, სანამ შესაბამისი runtime შედეგი არ დაბრუნდება.
-
-## Stage 2–4 follow-up — 2026-11-22
-
-- BotLab unit tests: **30/30 PASS**.
-- Unreal project/source wiring checks: **24/24 STATIC_PASS**; C++ compile/UHT/PIE/NavMesh/physics/Dedicated Server remain unrun because UE 5.8 build tools are unavailable in this runtime.
-- The source validator and two regression tests are included; GitHub Actions now runs a focused BotLab/UE static gate.
-- This overlay PR does not claim that a real Unreal session or 500-player load test has run. Multiplayer/load stage 5 remains deferred.
+ამ execution environment-ში Docker, PostgreSQL CLI და Unreal Engine 5.8 toolchain არ არის ხელმისაწვდომი. ამიტომ PostgreSQL migrations/restart test და Unreal UHT/C++ build/PIE/NavMesh/Server ტესტები რეალურად არ გაშვებულა. PostgreSQL checkpoint event ID race კი transaction-scoped advisory lock-ით არის დაცული და payload-bound replay regression test-ით შემოწმებული. ახალი PowerShell runner მომზადებულია RIDGE-ის Windows/Docker გარემოში გასაშვებად. ეს ტესტები PASS-ად არ ითვლება, სანამ შესაბამისი runtime შედეგი არ დაბრუნდება.
 
 
-## Stage 2–4 completion update — 2026-11-22
+## 8. PostgreSQL event-ID race hardening
 
-- BotLab V14 GitHub Actions: **success** (run 45053042131).
-- BotLab/backend validation GitHub Actions: **success** (run 45053042163).
-- PostgreSQL 16 integration GitHub Actions: **success** (run 45053042132): migrations 001–003 applied to the temporary CI database and **23/23 PASS / 0 FAIL / 0 SKIP**.
-- The earlier backend workflow failure was caused by an over-escaped regex in a contract test; the assertion was corrected and all three workflows passed on the updated branch.
-- The CI database was ephemeral. No user/production database was touched. Unreal Engine 5.8 compile/UHT/PIE remains unrun; stage 5 remains deferred.
+`recordJobCheckpoint` transaction-ში event ID-ზე იღებს `pg_advisory_xact_lock(hashtextextended(...))` lock-ს, შემდეგ ამოწმებს უკვე ჩაწერილ event-ს. Replay დასაშვებია მხოლოდ მაშინ, თუ job ID, checkpoint key და observed position ემთხვევა. სხვა payload იღებს `SERVER_EVENT_REUSED` პასუხს. Repository contract suite: 7/7 PASS; live PostgreSQL integration ჯერ SKIP-ია.
