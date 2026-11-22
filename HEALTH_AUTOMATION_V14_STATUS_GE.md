@@ -80,3 +80,42 @@ Guardian არ ცვლის player wallet/ledger-ს, inventory-ს, propert
 5. მხოლოდ PASS telemetry და Editor/Server build-ის შემდეგ შეიძლება UE movement subsystem-ის შემდეგი release gate ჩაითვალოს გავლილად.
 
 დეტალური checklist: `Tools/BotLab/UE58_INTEGRATION_CHECKLIST_GE.md`.
+
+
+## 7. დამატებითი აუდიტი და V14 hardening (2026-11-22)
+
+სრული v0.6.0 + BotLab V14 პაკეტი ცალკე ამოარქივდა და შემოწმდა; ZIP integrity check წარმატებით დასრულდა. ეს აუდიტი GitHub-ის მხოლოდ BotLab overlay ფაილებზე არ შემოიფარგლა.
+
+### დამატებითი აღმოჩენა და გამოსწორება
+
+- `vehicle.exit` ახლა მოითხოვს, რომ მოთხოვნაში მითითებული მანქანა ემთხვეოდეს მოთამაშის რეალურ მიმდინარე მანქანას.
+- `transport.exit` ახლა მოითხოვს, რომ მითითებული ტრანსპორტი ემთხვეოდეს მოთამაშის მიმდინარე ტრანსპორტს.
+- მოთამაშე ვერ ჩაჯდება მანქანაში და საზოგადოებრივ ტრანსპორტში ერთდროულად.
+- inventory-ის არმქონე actor იღებს მკაფიო domain rejection-ს და არა შიდა `KeyError`-ს inventory transfer/crafting ოპერაციებში.
+- დაემატა 4 regression test ზემოაღნიშნული შემთხვევებისთვის და 8 Unreal source contract static test.
+
+### ახლად შესრულებული ტესტები
+
+| შემოწმება | შედეგი |
+|---|---:|
+| BotLab + interaction + telemetry unit tests | 32/32 PASS |
+| Unreal source contract static tests | 8/8 PASS |
+| გაერთიანებული BotLab Python suite | 40/40 PASS |
+| GIS regression | 10/10 PASS |
+| Guardian unit tests | 12/12 PASS |
+| Backend Node tests | 21 PASS / 0 FAIL / 1 SKIP |
+| BotLab 16,000-event simulation | 16,000; invariant failures = 0 |
+| Interaction contract smoke | 35/35 PASS |
+| Randomized contract stress | 1,200/1,200 invariant checks; 11 fault rollbacks |
+| Player Foundation / Mission Bridge | 10/10 და 12/12 PASS |
+| Blockout validator | PASS |
+
+### ინტეგრაციისთვის დამატებული ხელსაწყოები
+
+- `.github/workflows/ridge-botlab-validation.yml` — Python BotLab/source-contract და Node backend CI.
+- `Tools/Database/Run-PostgresIntegration.ps1` — დროებითი PostgreSQL 16 QA კონტეინერი, migrations 001–003 და restart-persistence integration test.
+- `database/POSTGRES_QA_RUNBOOK_GE.md` — უსაფრთხო გაშვების ინსტრუქცია.
+
+### დარჩენილი გარე შესრულების ბარიერები
+
+ამ execution environment-ში Docker, PostgreSQL CLI და Unreal Engine 5.8 toolchain არ არის ხელმისაწვდომი. ამიტომ PostgreSQL migrations/restart test და Unreal UHT/C++ build/PIE/NavMesh/Server ტესტები რეალურად არ გაშვებულა. ახალი PowerShell runner მომზადებულია RIDGE-ის Windows/Docker გარემოში გასაშვებად. ეს ტესტები PASS-ად არ ითვლება, სანამ შესაბამისი runtime შედეგი არ დაბრუნდება.

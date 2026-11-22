@@ -1,0 +1,50 @@
+name: RIDGE BotLab and backend validation
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - release/botlab-v14
+
+permissions:
+  contents: read
+
+jobs:
+  botlab-python:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Compile Python sources
+        run: python -m compileall -q Tools/BotLab
+      - name: Run BotLab and Unreal source contract tests
+        run: python -m unittest discover -s Tools/BotLab/tests -p 'test_*.py' -v
+      - name: Run deterministic BotLab simulation
+        run: python Tools/BotLab/botlab.py --agents 64 --actions 250 --seed 20261121
+      - name: Run transactional interaction contracts
+        run: python Tools/BotLab/interaction_contracts.py
+
+  backend-node:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Check backend syntax
+        run: |
+          node --check src/server.mjs
+          node --check src/game-service.mjs
+          node --check src/postgres-game-service.mjs
+      - name: Run backend tests
+        run: node --test

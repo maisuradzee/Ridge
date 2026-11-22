@@ -25,3 +25,11 @@ python Tools/Health/ridge_guardian.py --project-root . --quick
 ```
 
 **Release status: `VERIFIED_WITH_LIMITATIONS`.** Unreal Engine 5.8 compile/UHT/PIE/NavMesh/Dedicated Server/replication ტესტები რეალურ UE გარემოში ჯერ არ ჩატარებულა; telemetry validator შესაბამისად `NOT_APPLICABLE`-ს აბრუნებს, სანამ UE session log არ შეიქმნება.
+
+PostgreSQL-ის რეალური, იზოლირებული QA ტესტისთვის (Windows + Docker Desktop + Node.js 22):
+
+```powershell
+.\Tools\Database\Run-PostgresIntegration.ps1
+```
+
+ეს ქმნის დროებით PostgreSQL 16 კონტეინერს, იყენებს migrations 001–003-ს, ამოწმებს restart persistence-ს და ბოლოს შლის კონტეინერს. Production/Supabase მონაცემებს არ ეხება.

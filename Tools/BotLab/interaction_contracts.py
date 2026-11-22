@@ -243,6 +243,8 @@ class InteractionContractLab:
             return
 
         if op == "inventory.transfer":
+            if actor not in self.state["inventories"]:
+                raise ContractRejected("actor_inventory_unavailable")
             recipient = p.get("recipient")
             item = p.get("item")
             amount = p.get("amount")
@@ -296,6 +298,7 @@ class InteractionContractLab:
             if not vehicle: raise ContractRejected("vehicle_not_found")
             if actor not in vehicle["allowed"]: raise ContractRejected("vehicle_access_denied")
             if self.state["actor_vehicle"].get(actor) is not None: raise ContractRejected("actor_already_in_vehicle")
+            if self.state["actor_transport"].get(actor) is not None: raise ContractRejected("actor_already_on_transport")
             seat = p.get("seat")
             if seat not in vehicle["seats"]: raise ContractRejected("invalid_seat")
             if vehicle["seats"][seat] is not None: raise ContractRejected("seat_occupied")
@@ -306,6 +309,7 @@ class InteractionContractLab:
         if op == "vehicle.exit":
             vehicle_id = self.state["actor_vehicle"].get(actor)
             if not vehicle_id: raise ContractRejected("actor_not_in_vehicle")
+            if target != vehicle_id: raise ContractRejected("vehicle_target_mismatch")
             vehicle = self.state["vehicles"][vehicle_id]
             for seat, occupant in vehicle["seats"].items():
                 if occupant == actor: vehicle["seats"][seat] = None
@@ -318,6 +322,7 @@ class InteractionContractLab:
             if not vehicle["boarding_open"]: raise ContractRejected("boarding_closed")
             if actor not in vehicle["ticket_holders"]: raise ContractRejected("valid_ticket_required")
             if self.state["actor_transport"].get(actor) is not None: raise ContractRejected("actor_already_on_transport")
+            if self.state["actor_vehicle"].get(actor) is not None: raise ContractRejected("actor_already_in_vehicle")
             if len(vehicle["occupants"]) >= vehicle["capacity"]: raise ContractRejected("transport_capacity_exceeded")
             vehicle["occupants"].append(actor)
             self.state["actor_transport"][actor] = target
@@ -326,6 +331,7 @@ class InteractionContractLab:
         if op == "transport.exit":
             transport_id = self.state["actor_transport"].get(actor)
             if not transport_id: raise ContractRejected("actor_not_on_transport")
+            if target != transport_id: raise ContractRejected("transport_target_mismatch")
             vehicle = self.state["transport"][transport_id]
             vehicle["occupants"].remove(actor)
             self.state["actor_transport"][actor] = None
@@ -363,6 +369,8 @@ class InteractionContractLab:
             recipe = self.state["recipes"].get(target)
             if not recipe: raise ContractRejected("recipe_not_found")
             if not recipe["station_online"]: raise ContractRejected("crafting_station_offline")
+            if actor not in self.state["inventories"]:
+                raise ContractRejected("actor_inventory_unavailable")
             inventory = self.state["inventories"][actor]
             for item, quantity in recipe["inputs"].items():
                 if inventory.get(item, 0) < quantity: raise ContractRejected("crafting_inputs_missing")
@@ -411,6 +419,8 @@ class InteractionContractLab:
                 transport = self.state["transport"][transport_id]
                 if transport["occupants"].count(actor) != 1:
                     raise AssertionError(f"transport_occupancy_mismatch:{actor}")
+                if self.state["actor_vehicle"].get(actor) is not None:
+                    raise AssertionError(f"actor_in_vehicle_and_transport:{actor}")
         for transport_id, transport in self.state["transport"].items():
             if len(transport["occupants"]) > transport["capacity"]:
                 raise AssertionError(f"transport_over_capacity:{transport_id}")

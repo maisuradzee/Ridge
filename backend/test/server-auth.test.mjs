@@ -1,0 +1,168 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { spawn } from 'node:child_process';
+import net from 'node:net';
+import { once } from 'node:events';
+import { setTimeout as delay } from 'node:timers/promises';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
+
+const backendDir = path.dirname(fileURLToPath(new URL('../package.json', import.meta.url)));
+
+async function getFreePort() {
+  const socket = net.createServer();
+  socket.listen(0, '127.0.0.1');
+  await once(socket, 'listening');
+  const { port } = socket.address();
+  await new Promise((resolve, reject) => socket.close((error) => error ? reject(error) : resolve()));
+  return port;
+}
+
+async function waitForHealth(url, child) {
+  for (let attempt = 0; attempt < 40; attempt += 1) {
+    if (child.exitCode !== null) throw new Error(`RIDGE API exited early: ${child.exitCode}`);
+    try {
+      const response = await fetch(`${url}/health`);
+      if (response.ok) return;
+    } catch {
+      // Server is still starting.
+    }
+    await delay(50);
+  }
+  throw new Error('RIDGE API did not become healthy in time.');
+}
+
+test('internal checkpoint endpoint rejects untrusted clients', async (t) => {
+  const port = await getFreePort();
+  const baseUrl = `http://127.0.0.1:${port}`;
+  const token = 'local-test-server-token-only';
+  const child = spawn(process.execPath, ['src/server.mjs'], {
+    cwd: backendDir,
+    env: { ...process.env, PORT: String(port), RIDGE_ENV: 'development', RIDGE_STORAGE: 'memory', RIDGE_SERVER_EVENT_TOKEN: token },
+    stdio: 'ignore',
+  });
+  t.after(async () => {
+    if (child.exitCode === null) {
+      child.kill('SIGTERM');
+      await Promise.race([once(child, 'exit'), delay(1500)]);
+    }
+  });
+
+  await waitForHealth(baseUrl, child);
+  const endpoint = `${baseUrl}/v1/internal/jobs/00000000-0000-0000-0000-000000000000/checkpoints`;
+  const body = JSON.stringify({ playerId: 'player-1', checkpointId: 'warehouse_pickup', serverEventId: 'event-http-000001' });
+
+  const missing = await fetch(endpoint, { method: 'POST', headers: { 'content-type': 'application/json' }, body });
+  assert.equal(missing.status, 403);
+  assert.equal((await missing.json()).error.code, 'GAME_SERVER_FORBIDDEN');
+
+  const incorrect = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-ridge-server-token': 'wrong-token' },
+    body,
+  });
+  assert.equal(incorrect.status, 403);
+
+  const trustedButUnknownJob = await fetch(endpoint, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-ridge-server-token': token },
+    body,
+  });
+  assert.equal(trustedButUnknownJob.status, 404);
+  assert.equal((await trustedButUnknownJob.json()).error.code, 'JOB_NOT_FOUND');
+});
+
+test('trusted dedicated-server HTTP flow accepts a delivery, records checkpoints and pays once', async (t) => {
+  const port = await getFreePort();
+  const baseUrl = `http://127.0.0.1:${port}`;
+  const token = 'local-e2e-server-token-only';
+  const playerId = 'player-http-e2e';
+  const child = spawn(process.execPath, ['src/server.mjs'], {
+    cwd: backendDir,
+    env: { ...process.env, PORT: String(port), RIDGE_ENV: 'development', RIDGE_STORAGE: 'memory', RIDGE_SERVER_EVENT_TOKEN: token },
+    stdio: 'ignore',
+  });
+  t.after(async () => {
+    if (child.exitCode === null) {
+      child.kill('SIGTERM');
+      await Promise.race([once(child, 'exit'), delay(1500)]);
+    }
+  });
+  await waitForHealth(baseUrl, child);
+
+  const serverHeaders = { 'content-type': 'application/json', 'x-ridge-server-token': token };
+  const acceptUrl = `${baseUrl}/v1/internal/players/${playerId}/jobs/accept`;
+  const rejectedAccept = await fetch(acceptUrl, {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ definitionId: 'delivery_intro' }),
+  });
+  assert.equal(rejectedAccept.status, 403);
+
+  const acceptedResponse = await fetch(acceptUrl, {
+    method: 'POST', headers: serverHeaders, body: JSON.stringify({ definitionId: 'delivery_intro' }),
+  });
+  assert.equal(acceptedResponse.status, 201);
+  const accepted = await acceptedResponse.json();
+  assert.equal(typeof accepted.completionProof, 'string');
+  assert.equal(accepted.requiredCheckpoints.length, 2);
+
+  const sendCheckpoint = (checkpointId, serverEventId) => fetch(`${baseUrl}/v1/internal/jobs/${accepted.id}/checkpoints`, {
+    method: 'POST', headers: serverHeaders,
+    body: JSON.stringify({ playerId, checkpointId, serverEventId }),
+  });
+
+  const outOfOrder = await sendCheckpoint('delivery_dropoff', 'server01:dropoff:beforepickup');
+  assert.equal(outOfOrder.status, 409);
+  assert.equal((await outOfOrder.json()).error.code, 'CHECKPOINT_OUT_OF_ORDER');
+
+  const pickup = await sendCheckpoint('warehouse_pickup', 'server01:pickup:000001');
+  assert.equal(pickup.status, 200);
+  assert.equal((await pickup.json()).completedCount, 1);
+
+  const duplicatePickup = await sendCheckpoint('warehouse_pickup', 'server01:pickup:000001');
+  assert.equal((await duplicatePickup.json()).replayed, true);
+
+  const dropoff = await sendCheckpoint('delivery_dropoff', 'server01:dropoff:000001');
+  assert.equal(dropoff.status, 200);
+  assert.equal((await dropoff.json()).completedCount, 2);
+
+  // Completion proof is kept on the dedicated server side; the client never calls this route.
+  await delay(1_600);
+  const completeUrl = `${baseUrl}/v1/internal/jobs/${accepted.id}/complete`;
+  const completionBody = JSON.stringify({ playerId, completionProof: accepted.completionProof });
+  const untrustedComplete = await fetch(completeUrl, {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: completionBody,
+  });
+  assert.equal(untrustedComplete.status, 403);
+  const complete = async () => fetch(completeUrl, {
+    method: 'POST', headers: serverHeaders, body: completionBody,
+  });
+  const firstPayment = await complete();
+  assert.equal(firstPayment.status, 200);
+  const firstPaymentBody = await firstPayment.json();
+  assert.equal(firstPaymentBody.reward, '15.00');
+  assert.equal(firstPaymentBody.replayed, false);
+
+  const replayPayment = await complete();
+  const replayPaymentBody = await replayPayment.json();
+  assert.equal(replayPaymentBody.replayed, true);
+  assert.equal(replayPaymentBody.transactionId, firstPaymentBody.transactionId);
+
+  // Dev wallet endpoint remains available for test inspection only.
+  const wallet = await fetch(`${baseUrl}/v1/player/wallet`, { headers: { 'x-ridge-player-id': playerId } });
+  assert.equal((await wallet.json()).balance, '15.00');
+});
+
+test('production mode refuses to start with ephemeral in-memory storage', async () => {
+  const port = await getFreePort();
+  const child = spawn(process.execPath, ['src/server.mjs'], {
+    cwd: backendDir,
+    env: { ...process.env, PORT: String(port), RIDGE_ENV: 'production', RIDGE_STORAGE: 'memory' },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  let output = '';
+  child.stdout.on('data', (chunk) => { output += chunk.toString(); });
+  child.stderr.on('data', (chunk) => { output += chunk.toString(); });
+  const [code] = await once(child, 'exit');
+  assert.equal(code, 1);
+  assert.match(output, /Production mode cannot use ephemeral in-memory game storage/);
+});

@@ -107,6 +107,44 @@ class InteractionContractTests(unittest.TestCase):
         self.assertTrue(report['wallet_value_conserved'])
         self.assertGreater(report['injected_fault_rollbacks'], 0)
 
+
+    def test_vehicle_exit_requires_matching_vehicle_target(self):
+        lab = InteractionContractLab()
+        entered = lab.execute('vehicle.enter', 'player-b', 'car-1', {'seat': 'passenger'})
+        before = copy.deepcopy(lab.state)
+        wrong = lab.execute('vehicle.exit', 'player-b', 'bus-1')
+        self.assertTrue(entered.accepted)
+        self.assertFalse(wrong.accepted)
+        self.assertEqual('vehicle_target_mismatch', wrong.reason)
+        self.assertEqual(before, lab.state)
+
+    def test_transport_exit_requires_matching_transport_target(self):
+        lab = InteractionContractLab()
+        boarded = lab.execute('transport.board', 'player-a', 'bus-1')
+        before = copy.deepcopy(lab.state)
+        wrong = lab.execute('transport.exit', 'player-a', 'bus-2')
+        self.assertTrue(boarded.accepted)
+        self.assertFalse(wrong.accepted)
+        self.assertEqual('transport_target_mismatch', wrong.reason)
+        self.assertEqual(before, lab.state)
+
+    def test_actor_cannot_be_in_vehicle_and_transport_at_once(self):
+        lab = InteractionContractLab()
+        entered = lab.execute('vehicle.enter', 'player-a', 'car-1', {'seat': 'driver'})
+        boarded = lab.execute('transport.board', 'player-a', 'bus-1')
+        self.assertTrue(entered.accepted)
+        self.assertFalse(boarded.accepted)
+        self.assertEqual('actor_already_in_vehicle', boarded.reason)
+        self.assertIsNone(lab.state['actor_transport']['player-a'])
+
+    def test_actor_without_inventory_gets_domain_rejection(self):
+        lab = InteractionContractLab()
+        lab.state['wallets']['player-c'] = 0
+        result = lab.execute('inventory.transfer', 'player-c', 'player-c',
+                             {'recipient': 'player-b', 'item': 'apple', 'amount': 1})
+        self.assertFalse(result.accepted)
+        self.assertEqual('actor_inventory_unavailable', result.reason)
+
     def test_unknown_operation_is_rejected(self):
         lab = InteractionContractLab()
         before = _hash_state(lab.state)

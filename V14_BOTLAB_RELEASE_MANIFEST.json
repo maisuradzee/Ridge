@@ -35,7 +35,13 @@
     "ledger_entries": 154,
     "audit_events": 1200,
     "idempotency_replay_audited": true,
-    "same_key_different_payload_rejected": true
+    "same_key_different_payload_rejected": true,
+    "hardening_cases": [
+      "vehicle_exit_requires_matching_vehicle_target",
+      "transport_exit_requires_matching_transport_target",
+      "vehicle_and_public_transport_occupancy_are_mutually_exclusive",
+      "missing_inventory_is_a_domain_rejection_not_an_internal_error"
+    ]
   },
   "tests": {
     "python_compileall": "PASS",
@@ -48,16 +54,22 @@
     "mission_bridge": "12/12 PASS",
     "guardian_quick": "9 PASS / 0 FAIL / 3 limitations",
     "guardian_full_aggregate": "TIMEOUT; not reported as pass",
-    "ue_telemetry": "NOT_APPLICABLE; no Unreal session logs"
+    "ue_telemetry": "NOT_APPLICABLE; no Unreal session logs",
+    "botlab_and_contract_unit_tests": "32/32 PASS",
+    "ue_source_contract_static_tests": "8/8 PASS",
+    "combined_botlab_python_tests": "40/40 PASS",
+    "postgres_integration": "NOT_RUN; no Docker/PostgreSQL runtime available here",
+    "unreal_cpp_build": "NOT_RUN; Unreal Engine 5.8 toolchain unavailable here"
   },
   "known_limitations": [
     "Unreal Engine 5.8 C++ compilation/UHT/PIE/NavMesh/Dedicated Server/replication not run in this runtime",
     "No completed Unreal BotLab movement telemetry session",
     "GIS tile_manifest and production World Generator source data not present",
-    "PostgreSQL integration test skipped without isolated development database",
     "500 concurrent-player load/soak test not run",
     "14 of 303 intents have Python state-transition model; 289 are contract/precondition probes; 18 additional operations are modeled in a separate isolated transactional interaction-contract simulator",
-    "Full Guardian aggregate command exceeded this runtime's execution timeout; individual component suites and quick Guardian were run separately"
+    "Full Guardian aggregate command exceeded this runtime's execution timeout; individual component suites and quick Guardian were run separately",
+    "PostgreSQL real database migration/restart integration was not run in this runtime because Docker and PostgreSQL binaries are unavailable; a disposable Docker QA runner was added for the project machine",
+    "Unreal source contract tests are static checks only and do not replace UHT/C++ compilation or PIE runtime validation"
   ],
   "safety_boundaries": [
     "No automatic mutation of player money/ledger, inventory, property, ownership or rewards",
@@ -67,5 +79,12 @@
   "primary_report": "RIDGE_GIS/Data/QA/ridge_health_report_v14.json",
   "botlab_report": "RIDGE_GIS/Data/QA/ridge_botlab_report.json",
   "interaction_report": "RIDGE_GIS/Data/QA/ridge_interaction_contract_report.json",
-  "ue_telemetry_report": "RIDGE_GIS/Data/QA/ridge_ue_telemetry_validation.json"
+  "ue_telemetry_report": "RIDGE_GIS/Data/QA/ridge_ue_telemetry_validation.json",
+  "environment": {
+    "python": "3.13.5",
+    "node": "22.16.0",
+    "postgresql_cli": "unavailable",
+    "docker": "unavailable",
+    "unreal_engine_5_8": "unavailable"
+  }
 }

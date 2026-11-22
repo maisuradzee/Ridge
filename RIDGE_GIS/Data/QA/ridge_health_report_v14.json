@@ -1,7 +1,7 @@
 {
   "project": "RIDGE",
   "guardian_version": "14.0",
-  "timestamp": "2026-11-22T10:14:24+00:00",
+  "timestamp": "2026-11-22T17:52:28+00:00",
   "mode": "check",
   "status": "VERIFIED_WITH_LIMITATIONS",
   "verified": false,
@@ -41,10 +41,10 @@
       "id": "python_syntax",
       "status": "PASS",
       "severity": "info",
-      "detail": "Python syntax valid in 22 files",
+      "detail": "Python syntax valid in 23 files",
       "repairable": false,
       "evidence": {
-        "files_checked": 22
+        "files_checked": 23
       }
     },
     {
@@ -55,7 +55,7 @@
       "repairable": false,
       "evidence": {
         "return_code": 0,
-        "output_tail": "BLOCKOUT VALIDATION: PASS\nSB_Ground.obj: 8 vertices, 6 faces, 1 groups, 1 materials\nSB_ParkAndStreetFurniture.obj: 432 vertices, 308 faces, 46 groups, 8 materials\nSB_POI_Proxies.obj: 256 vertices, 160 faces, 16 groups, 3 materials\nSB_Buildings.obj: 744 vertices, 558 faces, 93 groups, 9 materials\nSB_RoadNetwork.obj: 880 vertices, 660 faces, 110 groups, 3 materials"
+        "output_tail": "BLOCKOUT VALIDATION: PASS\nSB_Buildings.obj: 744 vertices, 558 faces, 93 groups, 9 materials\nSB_ParkAndStreetFurniture.obj: 432 vertices, 308 faces, 46 groups, 8 materials\nSB_RoadNetwork.obj: 880 vertices, 660 faces, 110 groups, 3 materials\nSB_Ground.obj: 8 vertices, 6 faces, 1 groups, 1 materials\nSB_POI_Proxies.obj: 256 vertices, 160 faces, 16 groups, 3 materials"
       }
     },
     {
@@ -88,7 +88,7 @@
       "repairable": false,
       "evidence": {
         "return_code": 0,
-        "output_tail": "{\n  \"report\": \"RIDGE_GIS/Data/QA/ridge_botlab_guardian_smoke_report.json\",\n  \"catalog\": \"/mnt/data/ridge_v14_work/RIDGE_Saburtalo_VerticalSlice_v0.6.0/Tools/BotLab/action_catalog.json\",\n  \"events\": 3200,\n  \"catalog_actions\": 303,\n  \"accepted\": 3116,\n  \"rejected\": 84,\n  \"invariant_failures\": 0,\n  \"agent_state_isolation\": true\n}"
+        "output_tail": "{\n  \"report\": \"RIDGE_GIS/Data/QA/ridge_botlab_guardian_smoke_report.json\",\n  \"catalog\": \"/mnt/data/ridge_v14_audit/RIDGE_Saburtalo_VerticalSlice_v0.6.0/Tools/BotLab/action_catalog.json\",\n  \"events\": 3200,\n  \"catalog_actions\": 303,\n  \"accepted\": 3116,\n  \"rejected\": 84,\n  \"invariant_failures\": 0,\n  \"agent_state_isolation\": true\n}"
       }
     },
     {
@@ -99,7 +99,7 @@
       "repairable": false,
       "evidence": {
         "return_code": 0,
-        "output_tail": "{\n  \"schema\": \"ridge.botlab.interaction-contracts.v1\",\n  \"checks\": 35,\n  \"passed\": 35,\n  \"failed\": 0,\n  \"all_passed\": true,\n  \"action_bindings\": {\n    \"binding_count\": 18,\n    \"missing\": {},\n    \"valid\": true\n  },\n  \"randomized_stress\": {\n    \"seed\": 140022,\n    \"iterations\": 1200,\n    \"accepted\": 399,\n    \"rejected\": 801,\n    \"injected_fault_rollbacks\": 11,\n    \"invariant_checks\": 1200,\n    \"wallet_value_conserved\": true,\n    \"ledger_entries\": 154,\n    \"audit_events\": 1200\n  },\n  \"scope_note\": \"Synthetic isolated contract world only; this is not proof that matching Unreal gameplay systems are implemented.\",\n  \"report\": \"/mnt/data/ridge_v14_work/RIDGE_Saburtalo_VerticalSlice_v0.6.0/RIDGE_GIS/Data/QA/ridge_interaction_contract_report.json\"\n}"
+        "output_tail": "{\n  \"schema\": \"ridge.botlab.interaction-contracts.v1\",\n  \"checks\": 35,\n  \"passed\": 35,\n  \"failed\": 0,\n  \"all_passed\": true,\n  \"action_bindings\": {\n    \"binding_count\": 18,\n    \"missing\": {},\n    \"valid\": true\n  },\n  \"randomized_stress\": {\n    \"seed\": 140022,\n    \"iterations\": 1200,\n    \"accepted\": 399,\n    \"rejected\": 801,\n    \"injected_fault_rollbacks\": 11,\n    \"invariant_checks\": 1200,\n    \"wallet_value_conserved\": true,\n    \"ledger_entries\": 154,\n    \"audit_events\": 1200\n  },\n  \"scope_note\": \"Synthetic isolated contract world only; this is not proof that matching Unreal gameplay systems are implemented.\",\n  \"report\": \"/mnt/data/ridge_v14_audit/RIDGE_Saburtalo_VerticalSlice_v0.6.0/RIDGE_GIS/Data/QA/ridge_interaction_contract_report.json\"\n}"
       }
     },
     {
