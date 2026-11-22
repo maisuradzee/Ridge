@@ -1,0 +1,71 @@
+{
+  "project": "RIDGE Saburtalo Vertical Slice v0.6.0",
+  "release": "BotLab V14",
+  "release_date": "2026-11-22",
+  "engine_target": "Unreal Engine 5.8",
+  "release_status": "VERIFIED_WITH_LIMITATIONS",
+  "botlab": {
+    "action_intents": 303,
+    "action_families": 28,
+    "synthetic_archetypes": 16,
+    "environment_axes": 20,
+    "modeled_state_transition_intents": 14,
+    "contract_probe_only_intents": 289,
+    "agents": 64,
+    "actions_per_agent": 250,
+    "simulated_events": 16000,
+    "accepted": 15592,
+    "rejected": 408,
+    "invariant_failures": 0,
+    "agent_state_isolation": true,
+    "pairwise_scenarios": 3111,
+    "pairwise_invariant_failures": 0
+  },
+  "interaction_contracts": {
+    "stateful_operation_bindings": 18,
+    "smoke_checks": 35,
+    "passed": 35,
+    "failed": 0,
+    "randomized_stress_iterations": 1200,
+    "invariant_checks": 1200,
+    "accepted": 399,
+    "rejected": 801,
+    "injected_fault_rollbacks": 11,
+    "wallet_value_conserved": true,
+    "ledger_entries": 154,
+    "audit_events": 1200,
+    "idempotency_replay_audited": true,
+    "same_key_different_payload_rejected": true
+  },
+  "tests": {
+    "python_compileall": "PASS",
+    "botlab_unit_tests": "28/28 PASS",
+    "gis_regression_tests": "10/10 PASS",
+    "guardian_unit_tests": "12/12 PASS",
+    "backend": "21 PASS / 0 FAIL / 1 SKIP",
+    "blockout": "PASS",
+    "player_foundation": "10/10 PASS",
+    "mission_bridge": "12/12 PASS",
+    "guardian_quick": "9 PASS / 0 FAIL / 3 limitations",
+    "guardian_full_aggregate": "TIMEOUT; not reported as pass",
+    "ue_telemetry": "NOT_APPLICABLE; no Unreal session logs"
+  },
+  "known_limitations": [
+    "Unreal Engine 5.8 C++ compilation/UHT/PIE/NavMesh/Dedicated Server/replication not run in this runtime",
+    "No completed Unreal BotLab movement telemetry session",
+    "GIS tile_manifest and production World Generator source data not present",
+    "PostgreSQL integration test skipped without isolated development database",
+    "500 concurrent-player load/soak test not run",
+    "14 of 303 intents have Python state-transition model; 289 are contract/precondition probes; 18 additional operations are modeled in a separate isolated transactional interaction-contract simulator",
+    "Full Guardian aggregate command exceeded this runtime's execution timeout; individual component suites and quick Guardian were run separately"
+  ],
+  "safety_boundaries": [
+    "No automatic mutation of player money/ledger, inventory, property, ownership or rewards",
+    "No automatic mutation of production database, credentials, authored Unreal assets or project settings",
+    "Synthetic interaction model has no production account or database connectivity"
+  ],
+  "primary_report": "RIDGE_GIS/Data/QA/ridge_health_report_v14.json",
+  "botlab_report": "RIDGE_GIS/Data/QA/ridge_botlab_report.json",
+  "interaction_report": "RIDGE_GIS/Data/QA/ridge_interaction_contract_report.json",
+  "ue_telemetry_report": "RIDGE_GIS/Data/QA/ridge_ue_telemetry_validation.json"
+}

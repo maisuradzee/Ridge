@@ -1,0 +1,132 @@
+{
+  "project": "RIDGE",
+  "guardian_version": "14.0",
+  "timestamp": "2026-11-22T10:14:24+00:00",
+  "mode": "check",
+  "status": "VERIFIED_WITH_LIMITATIONS",
+  "verified": false,
+  "summary": {
+    "checks": 12,
+    "passed": 9,
+    "failed": 0,
+    "skipped": 3,
+    "repairs": 0
+  },
+  "checks": [
+    {
+      "id": "project_identity",
+      "status": "PASS",
+      "severity": "info",
+      "detail": "RIDGE project identity valid; engine association 5.8",
+      "repairable": false,
+      "evidence": {}
+    },
+    {
+      "id": "critical_files",
+      "status": "PASS",
+      "severity": "info",
+      "detail": "All required source files are present",
+      "repairable": false,
+      "evidence": {}
+    },
+    {
+      "id": "data_directories",
+      "status": "PASS",
+      "severity": "info",
+      "detail": "Required data folders are present",
+      "repairable": false,
+      "evidence": {}
+    },
+    {
+      "id": "python_syntax",
+      "status": "PASS",
+      "severity": "info",
+      "detail": "Python syntax valid in 22 files",
+      "repairable": false,
+      "evidence": {
+        "files_checked": 22
+      }
+    },
+    {
+      "id": "blockout_validation",
+      "status": "PASS",
+      "severity": "info",
+      "detail": "Automated command passed",
+      "repairable": false,
+      "evidence": {
+        "return_code": 0,
+        "output_tail": "BLOCKOUT VALIDATION: PASS\nSB_Ground.obj: 8 vertices, 6 faces, 1 groups, 1 materials\nSB_ParkAndStreetFurniture.obj: 432 vertices, 308 faces, 46 groups, 8 materials\nSB_POI_Proxies.obj: 256 vertices, 160 faces, 16 groups, 3 materials\nSB_Buildings.obj: 744 vertices, 558 faces, 93 groups, 9 materials\nSB_RoadNetwork.obj: 880 vertices, 660 faces, 110 groups, 3 materials"
+      }
+    },
+    {
+      "id": "player_foundation",
+      "status": "PASS",
+      "severity": "info",
+      "detail": "Automated command passed",
+      "repairable": false,
+      "evidence": {
+        "return_code": 0,
+        "output_tail": "PASS: Character declares server sprint RPC\nPASS: Stamina is owner-only replicated\nPASS: Sprint state is replicated\nPASS: Server changes stamina\nPASS: Camera collision and lag enabled\nPASS: Movement handlers present\nPASS: Visible temporary character proxy present\nPASS: Desktop keyboard and mouse mappings present\nPASS: Editor target exists\nPASS: Dedicated Server target exists\n\nResult: 10/10 static checks passed"
+      }
+    },
+    {
+      "id": "mission_bridge",
+      "status": "PASS",
+      "severity": "info",
+      "detail": "Automated command passed",
+      "repairable": false,
+      "evidence": {
+        "return_code": 0,
+        "output_tail": "PASS: internal accept endpoint requires game-server token\nPASS: internal completion endpoint requires game-server token\nPASS: backend bridge uses server environment token\nPASS: server secret is loaded only after client net-mode is rejected\nPASS: server-side HTTP module dependency exists\nPASS: mission checkpoint actor requires authority\nPASS: checkpoint uses player state identity\nPASS: checkpoint sends server-observed position in metres\nPASS: client mission request is sent to server RPC\nPASS: mission request input is mapped\nPASS: editor checkpoint placement helper exists\nPASS: e2e test uses trusted internal accept and complete\n\nResult: 12/12 static checks passed"
+      }
+    },
+    {
+      "id": "botlab_simulation",
+      "status": "PASS",
+      "severity": "info",
+      "detail": "Automated command passed",
+      "repairable": false,
+      "evidence": {
+        "return_code": 0,
+        "output_tail": "{\n  \"report\": \"RIDGE_GIS/Data/QA/ridge_botlab_guardian_smoke_report.json\",\n  \"catalog\": \"/mnt/data/ridge_v14_work/RIDGE_Saburtalo_VerticalSlice_v0.6.0/Tools/BotLab/action_catalog.json\",\n  \"events\": 3200,\n  \"catalog_actions\": 303,\n  \"accepted\": 3116,\n  \"rejected\": 84,\n  \"invariant_failures\": 0,\n  \"agent_state_isolation\": true\n}"
+      }
+    },
+    {
+      "id": "botlab_interaction_contracts",
+      "status": "PASS",
+      "severity": "info",
+      "detail": "Automated command passed",
+      "repairable": false,
+      "evidence": {
+        "return_code": 0,
+        "output_tail": "{\n  \"schema\": \"ridge.botlab.interaction-contracts.v1\",\n  \"checks\": 35,\n  \"passed\": 35,\n  \"failed\": 0,\n  \"all_passed\": true,\n  \"action_bindings\": {\n    \"binding_count\": 18,\n    \"missing\": {},\n    \"valid\": true\n  },\n  \"randomized_stress\": {\n    \"seed\": 140022,\n    \"iterations\": 1200,\n    \"accepted\": 399,\n    \"rejected\": 801,\n    \"injected_fault_rollbacks\": 11,\n    \"invariant_checks\": 1200,\n    \"wallet_value_conserved\": true,\n    \"ledger_entries\": 154,\n    \"audit_events\": 1200\n  },\n  \"scope_note\": \"Synthetic isolated contract world only; this is not proof that matching Unreal gameplay systems are implemented.\",\n  \"report\": \"/mnt/data/ridge_v14_work/RIDGE_Saburtalo_VerticalSlice_v0.6.0/RIDGE_GIS/Data/QA/ridge_interaction_contract_report.json\"\n}"
+      }
+    },
+    {
+      "id": "ue_movement_telemetry",
+      "status": "NOT_APPLICABLE",
+      "severity": "info",
+      "detail": "No completed Unreal BotLab telemetry session exists yet",
+      "repairable": false,
+      "evidence": {}
+    },
+    {
+      "id": "world_package",
+      "status": "NOT_APPLICABLE",
+      "severity": "info",
+      "detail": "No GIS tile_manifest exists yet; World Generator is waiting for source data",
+      "repairable": false,
+      "evidence": {}
+    },
+    {
+      "id": "unreal_toolchain",
+      "status": "SKIPPED",
+      "severity": "warning",
+      "detail": "Set RIDGE_UE_ROOT to verify Unreal Editor and Build Tool; this runtime is not installed in the current environment",
+      "repairable": false,
+      "evidence": {}
+    }
+  ],
+  "repairs": [],
+  "verification_note": "VERIFIED means only the checks listed here passed. It does not imply Unreal Editor, live PostgreSQL or production multiplayer was tested unless those checks explicitly ran."
+}

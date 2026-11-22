@@ -1,0 +1,5587 @@
+{
+  "schema": "ridge.botlab.catalog.v1",
+  "count": 303,
+  "actions": [
+    {
+      "id": "locomotion.walk",
+      "family": "locomotion",
+      "intent": "walk",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "pawn_possessed",
+        "movement_component"
+      ],
+      "observable_tags": [
+        "position",
+        "velocity",
+        "rotation",
+        "movement_mode",
+        "collision",
+        "ground_contact",
+        "animation"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "locomotion.run",
+      "family": "locomotion",
+      "intent": "run",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "pawn_possessed",
+        "movement_component"
+      ],
+      "observable_tags": [
+        "position",
+        "velocity",
+        "rotation",
+        "movement_mode",
+        "collision",
+        "ground_contact",
+        "animation"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "locomotion.sprint",
+      "family": "locomotion",
+      "intent": "sprint",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "pawn_possessed",
+        "movement_component"
+      ],
+      "observable_tags": [
+        "position",
+        "velocity",
+        "rotation",
+        "movement_mode",
+        "collision",
+        "ground_contact",
+        "animation"
+      ],
+      "safe_retry": false,
+      "execution_mode": "state_transition_model"
+    },
+    {
+      "id": "locomotion.crouch",
+      "family": "locomotion",
+      "intent": "crouch",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "pawn_possessed",
+        "movement_component"
+      ],
+      "observable_tags": [
+        "position",
+        "velocity",
+        "rotation",
+        "movement_mode",
+        "collision",
+        "ground_contact",
+        "animation"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "locomotion.jump",
+      "family": "locomotion",
+      "intent": "jump",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "pawn_possessed",
+        "movement_component"
+      ],
+      "observable_tags": [
+        "position",
+        "velocity",
+        "rotation",
+        "movement_mode",
+        "collision",
+        "ground_contact",
+        "animation"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "locomotion.turn",
+      "family": "locomotion",
+      "intent": "turn",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "pawn_possessed",
+        "movement_component"
+      ],
+      "observable_tags": [
+        "position",
+        "velocity",
+        "rotation",
+        "movement_mode",
+        "collision",
+        "ground_contact",
+        "animation"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "locomotion.sidestep",
+      "family": "locomotion",
+      "intent": "sidestep",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "pawn_possessed",
+        "movement_component"
+      ],
+      "observable_tags": [
+        "position",
+        "velocity",
+        "rotation",
+        "movement_mode",
+        "collision",
+        "ground_contact",
+        "animation"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "locomotion.reverse",
+      "family": "locomotion",
+      "intent": "reverse",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "pawn_possessed",
+        "movement_component"
+      ],
+      "observable_tags": [
+        "position",
+        "velocity",
+        "rotation",
+        "movement_mode",
+        "collision",
+        "ground_contact",
+        "animation"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "locomotion.stop",
+      "family": "locomotion",
+      "intent": "stop",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "pawn_possessed",
+        "movement_component"
+      ],
+      "observable_tags": [
+        "position",
+        "velocity",
+        "rotation",
+        "movement_mode",
+        "collision",
+        "ground_contact",
+        "animation"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "locomotion.pace",
+      "family": "locomotion",
+      "intent": "pace",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "pawn_possessed",
+        "movement_component"
+      ],
+      "observable_tags": [
+        "position",
+        "velocity",
+        "rotation",
+        "movement_mode",
+        "collision",
+        "ground_contact",
+        "animation"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "locomotion.follow_path",
+      "family": "locomotion",
+      "intent": "follow_path",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "pawn_possessed",
+        "movement_component"
+      ],
+      "observable_tags": [
+        "position",
+        "velocity",
+        "rotation",
+        "movement_mode",
+        "collision",
+        "ground_contact",
+        "animation"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "navigation.set_destination",
+      "family": "navigation",
+      "intent": "set_destination",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "pawn_possessed",
+        "movement_component"
+      ],
+      "observable_tags": [
+        "destination",
+        "path_status",
+        "waypoint",
+        "replan_count",
+        "stuck_duration"
+      ],
+      "safe_retry": false,
+      "execution_mode": "state_transition_model"
+    },
+    {
+      "id": "navigation.replan_route",
+      "family": "navigation",
+      "intent": "replan_route",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "pawn_possessed",
+        "movement_component"
+      ],
+      "observable_tags": [
+        "destination",
+        "path_status",
+        "waypoint",
+        "replan_count",
+        "stuck_duration"
+      ],
+      "safe_retry": false,
+      "execution_mode": "state_transition_model"
+    },
+    {
+      "id": "navigation.take_detour",
+      "family": "navigation",
+      "intent": "take_detour",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "pawn_possessed",
+        "movement_component"
+      ],
+      "observable_tags": [
+        "destination",
+        "path_status",
+        "waypoint",
+        "replan_count",
+        "stuck_duration"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "navigation.backtrack",
+      "family": "navigation",
+      "intent": "backtrack",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "pawn_possessed",
+        "movement_component"
+      ],
+      "observable_tags": [
+        "destination",
+        "path_status",
+        "waypoint",
+        "replan_count",
+        "stuck_duration"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "navigation.wait_for_path",
+      "family": "navigation",
+      "intent": "wait_for_path",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "pawn_possessed",
+        "movement_component"
+      ],
+      "observable_tags": [
+        "destination",
+        "path_status",
+        "waypoint",
+        "replan_count",
+        "stuck_duration"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "navigation.ask_directions",
+      "family": "navigation",
+      "intent": "ask_directions",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "pawn_possessed",
+        "movement_component"
+      ],
+      "observable_tags": [
+        "destination",
+        "path_status",
+        "waypoint",
+        "replan_count",
+        "stuck_duration"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "navigation.follow_signage",
+      "family": "navigation",
+      "intent": "follow_signage",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "pawn_possessed",
+        "movement_component"
+      ],
+      "observable_tags": [
+        "destination",
+        "path_status",
+        "waypoint",
+        "replan_count",
+        "stuck_duration"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "navigation.choose_landmark",
+      "family": "navigation",
+      "intent": "choose_landmark",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "pawn_possessed",
+        "movement_component"
+      ],
+      "observable_tags": [
+        "destination",
+        "path_status",
+        "waypoint",
+        "replan_count",
+        "stuck_duration"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "navigation.avoid_hazard",
+      "family": "navigation",
+      "intent": "avoid_hazard",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "pawn_possessed",
+        "movement_component"
+      ],
+      "observable_tags": [
+        "destination",
+        "path_status",
+        "waypoint",
+        "replan_count",
+        "stuck_duration"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "navigation.approach_goal",
+      "family": "navigation",
+      "intent": "approach_goal",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "pawn_possessed",
+        "movement_component"
+      ],
+      "observable_tags": [
+        "destination",
+        "path_status",
+        "waypoint",
+        "replan_count",
+        "stuck_duration"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "navigation.abandon_route",
+      "family": "navigation",
+      "intent": "abandon_route",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "pawn_possessed",
+        "movement_component"
+      ],
+      "observable_tags": [
+        "destination",
+        "path_status",
+        "waypoint",
+        "replan_count",
+        "stuck_duration"
+      ],
+      "safe_retry": false,
+      "execution_mode": "state_transition_model"
+    },
+    {
+      "id": "terrain.climb_slope",
+      "family": "terrain",
+      "intent": "climb_slope",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "pawn_possessed",
+        "movement_component"
+      ],
+      "observable_tags": [
+        "surface_type",
+        "slope",
+        "fall_distance",
+        "movement_mode",
+        "damage"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "terrain.descend_slope",
+      "family": "terrain",
+      "intent": "descend_slope",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "pawn_possessed",
+        "movement_component"
+      ],
+      "observable_tags": [
+        "surface_type",
+        "slope",
+        "fall_distance",
+        "movement_mode",
+        "damage"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "terrain.step_over",
+      "family": "terrain",
+      "intent": "step_over",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "pawn_possessed",
+        "movement_component"
+      ],
+      "observable_tags": [
+        "surface_type",
+        "slope",
+        "fall_distance",
+        "movement_mode",
+        "damage"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "terrain.vault_obstacle",
+      "family": "terrain",
+      "intent": "vault_obstacle",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "pawn_possessed",
+        "movement_component"
+      ],
+      "observable_tags": [
+        "surface_type",
+        "slope",
+        "fall_distance",
+        "movement_mode",
+        "damage"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "terrain.crawl_under",
+      "family": "terrain",
+      "intent": "crawl_under",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "pawn_possessed",
+        "movement_component"
+      ],
+      "observable_tags": [
+        "surface_type",
+        "slope",
+        "fall_distance",
+        "movement_mode",
+        "damage"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "terrain.balance_edge",
+      "family": "terrain",
+      "intent": "balance_edge",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "pawn_possessed",
+        "movement_component"
+      ],
+      "observable_tags": [
+        "surface_type",
+        "slope",
+        "fall_distance",
+        "movement_mode",
+        "damage"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "terrain.cross_shallow_water",
+      "family": "terrain",
+      "intent": "cross_shallow_water",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "pawn_possessed",
+        "movement_component"
+      ],
+      "observable_tags": [
+        "surface_type",
+        "slope",
+        "fall_distance",
+        "movement_mode",
+        "damage"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "terrain.swim",
+      "family": "terrain",
+      "intent": "swim",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "pawn_possessed",
+        "movement_component"
+      ],
+      "observable_tags": [
+        "surface_type",
+        "slope",
+        "fall_distance",
+        "movement_mode",
+        "damage"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "terrain.wade",
+      "family": "terrain",
+      "intent": "wade",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "pawn_possessed",
+        "movement_component"
+      ],
+      "observable_tags": [
+        "surface_type",
+        "slope",
+        "fall_distance",
+        "movement_mode",
+        "damage"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "terrain.slide",
+      "family": "terrain",
+      "intent": "slide",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "pawn_possessed",
+        "movement_component"
+      ],
+      "observable_tags": [
+        "surface_type",
+        "slope",
+        "fall_distance",
+        "movement_mode",
+        "damage"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "terrain.recover_from_fall",
+      "family": "terrain",
+      "intent": "recover_from_fall",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "pawn_possessed",
+        "movement_component"
+      ],
+      "observable_tags": [
+        "surface_type",
+        "slope",
+        "fall_distance",
+        "movement_mode",
+        "damage"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "environment.seek_shelter",
+      "family": "environment",
+      "intent": "seek_shelter",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "weather",
+        "temperature",
+        "visibility",
+        "shelter_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "environment.leave_shelter",
+      "family": "environment",
+      "intent": "leave_shelter",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "weather",
+        "temperature",
+        "visibility",
+        "shelter_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "environment.warm_up",
+      "family": "environment",
+      "intent": "warm_up",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "weather",
+        "temperature",
+        "visibility",
+        "shelter_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "environment.cool_down",
+      "family": "environment",
+      "intent": "cool_down",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "weather",
+        "temperature",
+        "visibility",
+        "shelter_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "environment.protect_from_rain",
+      "family": "environment",
+      "intent": "protect_from_rain",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "weather",
+        "temperature",
+        "visibility",
+        "shelter_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "environment.avoid_wind",
+      "family": "environment",
+      "intent": "avoid_wind",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "weather",
+        "temperature",
+        "visibility",
+        "shelter_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "environment.cross_ice",
+      "family": "environment",
+      "intent": "cross_ice",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "weather",
+        "temperature",
+        "visibility",
+        "shelter_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "environment.avoid_heat",
+      "family": "environment",
+      "intent": "avoid_heat",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "weather",
+        "temperature",
+        "visibility",
+        "shelter_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "environment.use_lighting",
+      "family": "environment",
+      "intent": "use_lighting",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "weather",
+        "temperature",
+        "visibility",
+        "shelter_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "environment.adapt_to_dark",
+      "family": "environment",
+      "intent": "adapt_to_dark",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "weather",
+        "temperature",
+        "visibility",
+        "shelter_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "environment.inspect_weather",
+      "family": "environment",
+      "intent": "inspect_weather",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "weather",
+        "temperature",
+        "visibility",
+        "shelter_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "interaction.inspect_object",
+      "family": "interaction",
+      "intent": "inspect_object",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "target_id",
+        "interaction_result",
+        "access_result",
+        "object_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "interaction.open_door",
+      "family": "interaction",
+      "intent": "open_door",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "access_policy_allows"
+      ],
+      "observable_tags": [
+        "target_id",
+        "interaction_result",
+        "access_result",
+        "object_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "interaction.close_door",
+      "family": "interaction",
+      "intent": "close_door",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "target_id",
+        "interaction_result",
+        "access_result",
+        "object_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "interaction.lock_door",
+      "family": "interaction",
+      "intent": "lock_door",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "target_id",
+        "interaction_result",
+        "access_result",
+        "object_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "interaction.unlock_door",
+      "family": "interaction",
+      "intent": "unlock_door",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "access_policy_allows"
+      ],
+      "observable_tags": [
+        "target_id",
+        "interaction_result",
+        "access_result",
+        "object_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "interaction.knock_door",
+      "family": "interaction",
+      "intent": "knock_door",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "target_id",
+        "interaction_result",
+        "access_result",
+        "object_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "interaction.use_switch",
+      "family": "interaction",
+      "intent": "use_switch",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "target_id",
+        "interaction_result",
+        "access_result",
+        "object_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "interaction.operate_terminal",
+      "family": "interaction",
+      "intent": "operate_terminal",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "target_id",
+        "interaction_result",
+        "access_result",
+        "object_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "interaction.sit",
+      "family": "interaction",
+      "intent": "sit",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "target_id",
+        "interaction_result",
+        "access_result",
+        "object_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "interaction.stand",
+      "family": "interaction",
+      "intent": "stand",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "target_id",
+        "interaction_result",
+        "access_result",
+        "object_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "interaction.pick_up_object",
+      "family": "interaction",
+      "intent": "pick_up_object",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "target_id",
+        "interaction_result",
+        "access_result",
+        "object_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "interaction.put_down_object",
+      "family": "interaction",
+      "intent": "put_down_object",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "target_id",
+        "interaction_result",
+        "access_result",
+        "object_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "inventory.open_inventory",
+      "family": "inventory",
+      "intent": "open_inventory",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "item_id",
+        "owner_id",
+        "quantity",
+        "durability",
+        "transaction_id"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "inventory.equip_item",
+      "family": "inventory",
+      "intent": "equip_item",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "item_id",
+        "owner_id",
+        "quantity",
+        "durability",
+        "transaction_id"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "inventory.unequip_item",
+      "family": "inventory",
+      "intent": "unequip_item",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "item_id",
+        "owner_id",
+        "quantity",
+        "durability",
+        "transaction_id"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "inventory.consume_item",
+      "family": "inventory",
+      "intent": "consume_item",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "required_resource_available"
+      ],
+      "observable_tags": [
+        "item_id",
+        "owner_id",
+        "quantity",
+        "durability",
+        "transaction_id"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "inventory.drop_item",
+      "family": "inventory",
+      "intent": "drop_item",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "item_id",
+        "owner_id",
+        "quantity",
+        "durability",
+        "transaction_id"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "inventory.transfer_item",
+      "family": "inventory",
+      "intent": "transfer_item",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "item_id",
+        "owner_id",
+        "quantity",
+        "durability",
+        "transaction_id"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "inventory.sort_items",
+      "family": "inventory",
+      "intent": "sort_items",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "item_id",
+        "owner_id",
+        "quantity",
+        "durability",
+        "transaction_id"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "inventory.inspect_item",
+      "family": "inventory",
+      "intent": "inspect_item",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "item_id",
+        "owner_id",
+        "quantity",
+        "durability",
+        "transaction_id"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "inventory.repair_item",
+      "family": "inventory",
+      "intent": "repair_item",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "required_resource_available"
+      ],
+      "observable_tags": [
+        "item_id",
+        "owner_id",
+        "quantity",
+        "durability",
+        "transaction_id"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "inventory.discard_item",
+      "family": "inventory",
+      "intent": "discard_item",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "item_id",
+        "owner_id",
+        "quantity",
+        "durability",
+        "transaction_id"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "inventory.store_item",
+      "family": "inventory",
+      "intent": "store_item",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "item_id",
+        "owner_id",
+        "quantity",
+        "durability",
+        "transaction_id"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "economy.check_balance",
+      "family": "economy",
+      "intent": "check_balance",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "valid_account_or_asset"
+      ],
+      "observable_tags": [
+        "ledger_id",
+        "balance_before",
+        "balance_after",
+        "currency_delta",
+        "idempotency_key"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "economy.pay_invoice",
+      "family": "economy",
+      "intent": "pay_invoice",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "valid_account_or_asset"
+      ],
+      "observable_tags": [
+        "ledger_id",
+        "balance_before",
+        "balance_after",
+        "currency_delta",
+        "idempotency_key"
+      ],
+      "safe_retry": false,
+      "execution_mode": "state_transition_model"
+    },
+    {
+      "id": "economy.withdraw_cash",
+      "family": "economy",
+      "intent": "withdraw_cash",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "valid_account_or_asset"
+      ],
+      "observable_tags": [
+        "ledger_id",
+        "balance_before",
+        "balance_after",
+        "currency_delta",
+        "idempotency_key"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "economy.deposit_cash",
+      "family": "economy",
+      "intent": "deposit_cash",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "valid_account_or_asset"
+      ],
+      "observable_tags": [
+        "ledger_id",
+        "balance_before",
+        "balance_after",
+        "currency_delta",
+        "idempotency_key"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "economy.transfer_money",
+      "family": "economy",
+      "intent": "transfer_money",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "valid_account_or_asset"
+      ],
+      "observable_tags": [
+        "ledger_id",
+        "balance_before",
+        "balance_after",
+        "currency_delta",
+        "idempotency_key"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "economy.buy_goods",
+      "family": "economy",
+      "intent": "buy_goods",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "valid_account_or_asset"
+      ],
+      "observable_tags": [
+        "ledger_id",
+        "balance_before",
+        "balance_after",
+        "currency_delta",
+        "idempotency_key"
+      ],
+      "safe_retry": false,
+      "execution_mode": "state_transition_model"
+    },
+    {
+      "id": "economy.sell_goods",
+      "family": "economy",
+      "intent": "sell_goods",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "valid_account_or_asset"
+      ],
+      "observable_tags": [
+        "ledger_id",
+        "balance_before",
+        "balance_after",
+        "currency_delta",
+        "idempotency_key"
+      ],
+      "safe_retry": false,
+      "execution_mode": "state_transition_model"
+    },
+    {
+      "id": "economy.compare_prices",
+      "family": "economy",
+      "intent": "compare_prices",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "valid_account_or_asset"
+      ],
+      "observable_tags": [
+        "ledger_id",
+        "balance_before",
+        "balance_after",
+        "currency_delta",
+        "idempotency_key"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "economy.negotiate_price",
+      "family": "economy",
+      "intent": "negotiate_price",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "valid_account_or_asset"
+      ],
+      "observable_tags": [
+        "ledger_id",
+        "balance_before",
+        "balance_after",
+        "currency_delta",
+        "idempotency_key"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "economy.request_refund",
+      "family": "economy",
+      "intent": "request_refund",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "valid_account_or_asset"
+      ],
+      "observable_tags": [
+        "ledger_id",
+        "balance_before",
+        "balance_after",
+        "currency_delta",
+        "idempotency_key"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "economy.review_transaction",
+      "family": "economy",
+      "intent": "review_transaction",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "valid_account_or_asset"
+      ],
+      "observable_tags": [
+        "ledger_id",
+        "balance_before",
+        "balance_after",
+        "currency_delta",
+        "idempotency_key"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "economy.cancel_purchase",
+      "family": "economy",
+      "intent": "cancel_purchase",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "valid_account_or_asset"
+      ],
+      "observable_tags": [
+        "ledger_id",
+        "balance_before",
+        "balance_after",
+        "currency_delta",
+        "idempotency_key"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "social.greet",
+      "family": "social",
+      "intent": "greet",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "social_context_valid",
+        "consent_and_authority_rules"
+      ],
+      "observable_tags": [
+        "participants",
+        "consent",
+        "dialogue_intent",
+        "response_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "state_transition_model"
+    },
+    {
+      "id": "social.introduce_self",
+      "family": "social",
+      "intent": "introduce_self",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "social_context_valid",
+        "consent_and_authority_rules"
+      ],
+      "observable_tags": [
+        "participants",
+        "consent",
+        "dialogue_intent",
+        "response_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "social.ask_question",
+      "family": "social",
+      "intent": "ask_question",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "social_context_valid",
+        "consent_and_authority_rules"
+      ],
+      "observable_tags": [
+        "participants",
+        "consent",
+        "dialogue_intent",
+        "response_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "social.answer_question",
+      "family": "social",
+      "intent": "answer_question",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "social_context_valid",
+        "consent_and_authority_rules"
+      ],
+      "observable_tags": [
+        "participants",
+        "consent",
+        "dialogue_intent",
+        "response_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "social.offer_help",
+      "family": "social",
+      "intent": "offer_help",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "social_context_valid",
+        "consent_and_authority_rules"
+      ],
+      "observable_tags": [
+        "participants",
+        "consent",
+        "dialogue_intent",
+        "response_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "social.request_help",
+      "family": "social",
+      "intent": "request_help",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "social_context_valid",
+        "consent_and_authority_rules"
+      ],
+      "observable_tags": [
+        "participants",
+        "consent",
+        "dialogue_intent",
+        "response_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "social.thank_person",
+      "family": "social",
+      "intent": "thank_person",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "social_context_valid",
+        "consent_and_authority_rules"
+      ],
+      "observable_tags": [
+        "participants",
+        "consent",
+        "dialogue_intent",
+        "response_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "social.apologize",
+      "family": "social",
+      "intent": "apologize",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "social_context_valid",
+        "consent_and_authority_rules"
+      ],
+      "observable_tags": [
+        "participants",
+        "consent",
+        "dialogue_intent",
+        "response_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "social.decline_request",
+      "family": "social",
+      "intent": "decline_request",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "social_context_valid",
+        "consent_and_authority_rules"
+      ],
+      "observable_tags": [
+        "participants",
+        "consent",
+        "dialogue_intent",
+        "response_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "social.invite_person",
+      "family": "social",
+      "intent": "invite_person",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "social_context_valid",
+        "consent_and_authority_rules"
+      ],
+      "observable_tags": [
+        "participants",
+        "consent",
+        "dialogue_intent",
+        "response_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "social.leave_conversation",
+      "family": "social",
+      "intent": "leave_conversation",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "social_context_valid",
+        "consent_and_authority_rules"
+      ],
+      "observable_tags": [
+        "participants",
+        "consent",
+        "dialogue_intent",
+        "response_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "conflict.deescalate",
+      "family": "conflict",
+      "intent": "deescalate",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "social_context_valid",
+        "consent_and_authority_rules"
+      ],
+      "observable_tags": [
+        "threat_state",
+        "distance",
+        "authority_state",
+        "escalation_level"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "conflict.set_boundary",
+      "family": "conflict",
+      "intent": "set_boundary",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "social_context_valid",
+        "consent_and_authority_rules"
+      ],
+      "observable_tags": [
+        "threat_state",
+        "distance",
+        "authority_state",
+        "escalation_level"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "conflict.retreat",
+      "family": "conflict",
+      "intent": "retreat",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "social_context_valid",
+        "consent_and_authority_rules"
+      ],
+      "observable_tags": [
+        "threat_state",
+        "distance",
+        "authority_state",
+        "escalation_level"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "conflict.call_authority",
+      "family": "conflict",
+      "intent": "call_authority",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "social_context_valid",
+        "consent_and_authority_rules"
+      ],
+      "observable_tags": [
+        "threat_state",
+        "distance",
+        "authority_state",
+        "escalation_level"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "conflict.report_incident",
+      "family": "conflict",
+      "intent": "report_incident",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "social_context_valid",
+        "consent_and_authority_rules"
+      ],
+      "observable_tags": [
+        "threat_state",
+        "distance",
+        "authority_state",
+        "escalation_level"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "conflict.block_path",
+      "family": "conflict",
+      "intent": "block_path",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "social_context_valid",
+        "consent_and_authority_rules"
+      ],
+      "observable_tags": [
+        "threat_state",
+        "distance",
+        "authority_state",
+        "escalation_level"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "conflict.challenge_claim",
+      "family": "conflict",
+      "intent": "challenge_claim",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "social_context_valid",
+        "consent_and_authority_rules"
+      ],
+      "observable_tags": [
+        "threat_state",
+        "distance",
+        "authority_state",
+        "escalation_level"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "conflict.defend_self",
+      "family": "conflict",
+      "intent": "defend_self",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "social_context_valid",
+        "consent_and_authority_rules"
+      ],
+      "observable_tags": [
+        "threat_state",
+        "distance",
+        "authority_state",
+        "escalation_level"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "conflict.disengage",
+      "family": "conflict",
+      "intent": "disengage",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "social_context_valid",
+        "consent_and_authority_rules"
+      ],
+      "observable_tags": [
+        "threat_state",
+        "distance",
+        "authority_state",
+        "escalation_level"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "conflict.mediate_dispute",
+      "family": "conflict",
+      "intent": "mediate_dispute",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "social_context_valid",
+        "consent_and_authority_rules"
+      ],
+      "observable_tags": [
+        "threat_state",
+        "distance",
+        "authority_state",
+        "escalation_level"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "conflict.record_evidence",
+      "family": "conflict",
+      "intent": "record_evidence",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "social_context_valid",
+        "consent_and_authority_rules"
+      ],
+      "observable_tags": [
+        "threat_state",
+        "distance",
+        "authority_state",
+        "escalation_level"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "care.check_injuries",
+      "family": "care",
+      "intent": "check_injuries",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "health_before",
+        "health_after",
+        "resource_use",
+        "medical_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "care.apply_first_aid",
+      "family": "care",
+      "intent": "apply_first_aid",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "health_before",
+        "health_after",
+        "resource_use",
+        "medical_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "care.seek_medical_help",
+      "family": "care",
+      "intent": "seek_medical_help",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "health_before",
+        "health_after",
+        "resource_use",
+        "medical_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "care.assist_injured",
+      "family": "care",
+      "intent": "assist_injured",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "health_before",
+        "health_after",
+        "resource_use",
+        "medical_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "care.request_rescue",
+      "family": "care",
+      "intent": "request_rescue",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "health_before",
+        "health_after",
+        "resource_use",
+        "medical_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "care.rest",
+      "family": "care",
+      "intent": "rest",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "health_before",
+        "health_after",
+        "resource_use",
+        "medical_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "state_transition_model"
+    },
+    {
+      "id": "care.drink_water",
+      "family": "care",
+      "intent": "drink_water",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "health_before",
+        "health_after",
+        "resource_use",
+        "medical_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "care.eat_food",
+      "family": "care",
+      "intent": "eat_food",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "health_before",
+        "health_after",
+        "resource_use",
+        "medical_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "care.manage_fatigue",
+      "family": "care",
+      "intent": "manage_fatigue",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "health_before",
+        "health_after",
+        "resource_use",
+        "medical_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "state_transition_model"
+    },
+    {
+      "id": "care.protect_companion",
+      "family": "care",
+      "intent": "protect_companion",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "health_before",
+        "health_after",
+        "resource_use",
+        "medical_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "care.report_emergency",
+      "family": "care",
+      "intent": "report_emergency",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "health_before",
+        "health_after",
+        "resource_use",
+        "medical_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "work.clock_in",
+      "family": "work",
+      "intent": "clock_in",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "objective_or_shift_state_valid"
+      ],
+      "observable_tags": [
+        "shift_id",
+        "task_id",
+        "completion_state",
+        "reward_reference"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "work.clock_out",
+      "family": "work",
+      "intent": "clock_out",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "objective_or_shift_state_valid"
+      ],
+      "observable_tags": [
+        "shift_id",
+        "task_id",
+        "completion_state",
+        "reward_reference"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "work.accept_shift",
+      "family": "work",
+      "intent": "accept_shift",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "objective_or_shift_state_valid"
+      ],
+      "observable_tags": [
+        "shift_id",
+        "task_id",
+        "completion_state",
+        "reward_reference"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "work.decline_shift",
+      "family": "work",
+      "intent": "decline_shift",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "objective_or_shift_state_valid"
+      ],
+      "observable_tags": [
+        "shift_id",
+        "task_id",
+        "completion_state",
+        "reward_reference"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "work.perform_task",
+      "family": "work",
+      "intent": "perform_task",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "objective_or_shift_state_valid"
+      ],
+      "observable_tags": [
+        "shift_id",
+        "task_id",
+        "completion_state",
+        "reward_reference"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "work.request_break",
+      "family": "work",
+      "intent": "request_break",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "objective_or_shift_state_valid"
+      ],
+      "observable_tags": [
+        "shift_id",
+        "task_id",
+        "completion_state",
+        "reward_reference"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "work.ask_supervisor",
+      "family": "work",
+      "intent": "ask_supervisor",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "objective_or_shift_state_valid"
+      ],
+      "observable_tags": [
+        "shift_id",
+        "task_id",
+        "completion_state",
+        "reward_reference"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "work.deliver_package",
+      "family": "work",
+      "intent": "deliver_package",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "objective_or_shift_state_valid"
+      ],
+      "observable_tags": [
+        "shift_id",
+        "task_id",
+        "completion_state",
+        "reward_reference"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "work.collect_supplies",
+      "family": "work",
+      "intent": "collect_supplies",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "objective_or_shift_state_valid"
+      ],
+      "observable_tags": [
+        "shift_id",
+        "task_id",
+        "completion_state",
+        "reward_reference"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "work.report_completion",
+      "family": "work",
+      "intent": "report_completion",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "objective_or_shift_state_valid"
+      ],
+      "observable_tags": [
+        "shift_id",
+        "task_id",
+        "completion_state",
+        "reward_reference"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "work.change_work_plan",
+      "family": "work",
+      "intent": "change_work_plan",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "objective_or_shift_state_valid"
+      ],
+      "observable_tags": [
+        "shift_id",
+        "task_id",
+        "completion_state",
+        "reward_reference"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "missions.view_objective",
+      "family": "missions",
+      "intent": "view_objective",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "objective_or_shift_state_valid"
+      ],
+      "observable_tags": [
+        "mission_id",
+        "objective_state",
+        "reward_state",
+        "evidence_reference"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "missions.accept_mission",
+      "family": "missions",
+      "intent": "accept_mission",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "objective_or_shift_state_valid"
+      ],
+      "observable_tags": [
+        "mission_id",
+        "objective_state",
+        "reward_state",
+        "evidence_reference"
+      ],
+      "safe_retry": false,
+      "execution_mode": "state_transition_model"
+    },
+    {
+      "id": "missions.decline_mission",
+      "family": "missions",
+      "intent": "decline_mission",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "objective_or_shift_state_valid"
+      ],
+      "observable_tags": [
+        "mission_id",
+        "objective_state",
+        "reward_state",
+        "evidence_reference"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "missions.track_objective",
+      "family": "missions",
+      "intent": "track_objective",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "objective_or_shift_state_valid"
+      ],
+      "observable_tags": [
+        "mission_id",
+        "objective_state",
+        "reward_state",
+        "evidence_reference"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "missions.complete_objective",
+      "family": "missions",
+      "intent": "complete_objective",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "objective_or_shift_state_valid",
+        "objective_completed"
+      ],
+      "observable_tags": [
+        "mission_id",
+        "objective_state",
+        "reward_state",
+        "evidence_reference"
+      ],
+      "safe_retry": false,
+      "execution_mode": "state_transition_model"
+    },
+    {
+      "id": "missions.fail_objective",
+      "family": "missions",
+      "intent": "fail_objective",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "objective_or_shift_state_valid"
+      ],
+      "observable_tags": [
+        "mission_id",
+        "objective_state",
+        "reward_state",
+        "evidence_reference"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "missions.pause_mission",
+      "family": "missions",
+      "intent": "pause_mission",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "objective_or_shift_state_valid"
+      ],
+      "observable_tags": [
+        "mission_id",
+        "objective_state",
+        "reward_state",
+        "evidence_reference"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "missions.resume_mission",
+      "family": "missions",
+      "intent": "resume_mission",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "objective_or_shift_state_valid"
+      ],
+      "observable_tags": [
+        "mission_id",
+        "objective_state",
+        "reward_state",
+        "evidence_reference"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "missions.abandon_mission",
+      "family": "missions",
+      "intent": "abandon_mission",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "objective_or_shift_state_valid"
+      ],
+      "observable_tags": [
+        "mission_id",
+        "objective_state",
+        "reward_state",
+        "evidence_reference"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "missions.submit_evidence",
+      "family": "missions",
+      "intent": "submit_evidence",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "objective_or_shift_state_valid"
+      ],
+      "observable_tags": [
+        "mission_id",
+        "objective_state",
+        "reward_state",
+        "evidence_reference"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "missions.claim_reward",
+      "family": "missions",
+      "intent": "claim_reward",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "objective_or_shift_state_valid",
+        "objective_completed"
+      ],
+      "observable_tags": [
+        "mission_id",
+        "objective_state",
+        "reward_state",
+        "evidence_reference"
+      ],
+      "safe_retry": false,
+      "execution_mode": "state_transition_model"
+    },
+    {
+      "id": "vehicles.approach_vehicle",
+      "family": "vehicles",
+      "intent": "approach_vehicle",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "vehicle_or_transport_available"
+      ],
+      "observable_tags": [
+        "vehicle_id",
+        "speed",
+        "steering",
+        "brake",
+        "collision",
+        "occupancy"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "vehicles.enter_vehicle",
+      "family": "vehicles",
+      "intent": "enter_vehicle",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "vehicle_or_transport_available"
+      ],
+      "observable_tags": [
+        "vehicle_id",
+        "speed",
+        "steering",
+        "brake",
+        "collision",
+        "occupancy"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "vehicles.exit_vehicle",
+      "family": "vehicles",
+      "intent": "exit_vehicle",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "vehicle_or_transport_available"
+      ],
+      "observable_tags": [
+        "vehicle_id",
+        "speed",
+        "steering",
+        "brake",
+        "collision",
+        "occupancy"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "vehicles.start_engine",
+      "family": "vehicles",
+      "intent": "start_engine",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "vehicle_or_transport_available"
+      ],
+      "observable_tags": [
+        "vehicle_id",
+        "speed",
+        "steering",
+        "brake",
+        "collision",
+        "occupancy"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "vehicles.stop_engine",
+      "family": "vehicles",
+      "intent": "stop_engine",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "vehicle_or_transport_available"
+      ],
+      "observable_tags": [
+        "vehicle_id",
+        "speed",
+        "steering",
+        "brake",
+        "collision",
+        "occupancy"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "vehicles.drive_forward",
+      "family": "vehicles",
+      "intent": "drive_forward",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "vehicle_or_transport_available"
+      ],
+      "observable_tags": [
+        "vehicle_id",
+        "speed",
+        "steering",
+        "brake",
+        "collision",
+        "occupancy"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "vehicles.reverse_vehicle",
+      "family": "vehicles",
+      "intent": "reverse_vehicle",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "vehicle_or_transport_available"
+      ],
+      "observable_tags": [
+        "vehicle_id",
+        "speed",
+        "steering",
+        "brake",
+        "collision",
+        "occupancy"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "vehicles.turn_vehicle",
+      "family": "vehicles",
+      "intent": "turn_vehicle",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "vehicle_or_transport_available"
+      ],
+      "observable_tags": [
+        "vehicle_id",
+        "speed",
+        "steering",
+        "brake",
+        "collision",
+        "occupancy"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "vehicles.brake_vehicle",
+      "family": "vehicles",
+      "intent": "brake_vehicle",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "vehicle_or_transport_available"
+      ],
+      "observable_tags": [
+        "vehicle_id",
+        "speed",
+        "steering",
+        "brake",
+        "collision",
+        "occupancy"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "vehicles.park_vehicle",
+      "family": "vehicles",
+      "intent": "park_vehicle",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "vehicle_or_transport_available"
+      ],
+      "observable_tags": [
+        "vehicle_id",
+        "speed",
+        "steering",
+        "brake",
+        "collision",
+        "occupancy"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "vehicles.refuel_vehicle",
+      "family": "vehicles",
+      "intent": "refuel_vehicle",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "vehicle_or_transport_available",
+        "required_resource_available"
+      ],
+      "observable_tags": [
+        "vehicle_id",
+        "speed",
+        "steering",
+        "brake",
+        "collision",
+        "occupancy"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "transport.hail_taxi",
+      "family": "transport",
+      "intent": "hail_taxi",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "vehicle_or_transport_available"
+      ],
+      "observable_tags": [
+        "route_id",
+        "schedule_state",
+        "ticket_state",
+        "boarding_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "transport.board_bus",
+      "family": "transport",
+      "intent": "board_bus",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "vehicle_or_transport_available"
+      ],
+      "observable_tags": [
+        "route_id",
+        "schedule_state",
+        "ticket_state",
+        "boarding_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "transport.exit_bus",
+      "family": "transport",
+      "intent": "exit_bus",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "vehicle_or_transport_available"
+      ],
+      "observable_tags": [
+        "route_id",
+        "schedule_state",
+        "ticket_state",
+        "boarding_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "transport.buy_ticket",
+      "family": "transport",
+      "intent": "buy_ticket",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "vehicle_or_transport_available"
+      ],
+      "observable_tags": [
+        "route_id",
+        "schedule_state",
+        "ticket_state",
+        "boarding_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "transport.validate_ticket",
+      "family": "transport",
+      "intent": "validate_ticket",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "vehicle_or_transport_available"
+      ],
+      "observable_tags": [
+        "route_id",
+        "schedule_state",
+        "ticket_state",
+        "boarding_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "transport.wait_for_transport",
+      "family": "transport",
+      "intent": "wait_for_transport",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "vehicle_or_transport_available"
+      ],
+      "observable_tags": [
+        "route_id",
+        "schedule_state",
+        "ticket_state",
+        "boarding_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "transport.change_line",
+      "family": "transport",
+      "intent": "change_line",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "vehicle_or_transport_available"
+      ],
+      "observable_tags": [
+        "route_id",
+        "schedule_state",
+        "ticket_state",
+        "boarding_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "transport.request_stop",
+      "family": "transport",
+      "intent": "request_stop",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "vehicle_or_transport_available"
+      ],
+      "observable_tags": [
+        "route_id",
+        "schedule_state",
+        "ticket_state",
+        "boarding_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "transport.plan_transit",
+      "family": "transport",
+      "intent": "plan_transit",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "vehicle_or_transport_available"
+      ],
+      "observable_tags": [
+        "route_id",
+        "schedule_state",
+        "ticket_state",
+        "boarding_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "transport.miss_connection",
+      "family": "transport",
+      "intent": "miss_connection",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "vehicle_or_transport_available"
+      ],
+      "observable_tags": [
+        "route_id",
+        "schedule_state",
+        "ticket_state",
+        "boarding_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "transport.report_delay",
+      "family": "transport",
+      "intent": "report_delay",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "vehicle_or_transport_available"
+      ],
+      "observable_tags": [
+        "route_id",
+        "schedule_state",
+        "ticket_state",
+        "boarding_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "property.inspect_property",
+      "family": "property",
+      "intent": "inspect_property",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "valid_account_or_asset"
+      ],
+      "observable_tags": [
+        "property_id",
+        "owner_id",
+        "access_state",
+        "lease_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "property.enter_property",
+      "family": "property",
+      "intent": "enter_property",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "valid_account_or_asset",
+        "access_policy_allows"
+      ],
+      "observable_tags": [
+        "property_id",
+        "owner_id",
+        "access_state",
+        "lease_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "property.leave_property",
+      "family": "property",
+      "intent": "leave_property",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "valid_account_or_asset"
+      ],
+      "observable_tags": [
+        "property_id",
+        "owner_id",
+        "access_state",
+        "lease_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "property.lock_property",
+      "family": "property",
+      "intent": "lock_property",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "valid_account_or_asset"
+      ],
+      "observable_tags": [
+        "property_id",
+        "owner_id",
+        "access_state",
+        "lease_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "property.unlock_property",
+      "family": "property",
+      "intent": "unlock_property",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "valid_account_or_asset"
+      ],
+      "observable_tags": [
+        "property_id",
+        "owner_id",
+        "access_state",
+        "lease_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "property.rent_property",
+      "family": "property",
+      "intent": "rent_property",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "valid_account_or_asset"
+      ],
+      "observable_tags": [
+        "property_id",
+        "owner_id",
+        "access_state",
+        "lease_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "property.pay_rent",
+      "family": "property",
+      "intent": "pay_rent",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "valid_account_or_asset"
+      ],
+      "observable_tags": [
+        "property_id",
+        "owner_id",
+        "access_state",
+        "lease_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "property.report_damage",
+      "family": "property",
+      "intent": "report_damage",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "valid_account_or_asset"
+      ],
+      "observable_tags": [
+        "property_id",
+        "owner_id",
+        "access_state",
+        "lease_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "property.request_maintenance",
+      "family": "property",
+      "intent": "request_maintenance",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "valid_account_or_asset"
+      ],
+      "observable_tags": [
+        "property_id",
+        "owner_id",
+        "access_state",
+        "lease_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "property.place_furniture",
+      "family": "property",
+      "intent": "place_furniture",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "valid_account_or_asset"
+      ],
+      "observable_tags": [
+        "property_id",
+        "owner_id",
+        "access_state",
+        "lease_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "property.remove_furniture",
+      "family": "property",
+      "intent": "remove_furniture",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "valid_account_or_asset"
+      ],
+      "observable_tags": [
+        "property_id",
+        "owner_id",
+        "access_state",
+        "lease_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "utilities.check_power",
+      "family": "utilities",
+      "intent": "check_power",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "valid_account_or_asset"
+      ],
+      "observable_tags": [
+        "service_id",
+        "meter_reading",
+        "outage_state",
+        "repair_ticket"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "utilities.switch_power",
+      "family": "utilities",
+      "intent": "switch_power",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "valid_account_or_asset"
+      ],
+      "observable_tags": [
+        "service_id",
+        "meter_reading",
+        "outage_state",
+        "repair_ticket"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "utilities.check_water",
+      "family": "utilities",
+      "intent": "check_water",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "valid_account_or_asset"
+      ],
+      "observable_tags": [
+        "service_id",
+        "meter_reading",
+        "outage_state",
+        "repair_ticket"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "utilities.use_water",
+      "family": "utilities",
+      "intent": "use_water",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "valid_account_or_asset"
+      ],
+      "observable_tags": [
+        "service_id",
+        "meter_reading",
+        "outage_state",
+        "repair_ticket"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "utilities.report_outage",
+      "family": "utilities",
+      "intent": "report_outage",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "valid_account_or_asset"
+      ],
+      "observable_tags": [
+        "service_id",
+        "meter_reading",
+        "outage_state",
+        "repair_ticket"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "utilities.read_meter",
+      "family": "utilities",
+      "intent": "read_meter",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "valid_account_or_asset"
+      ],
+      "observable_tags": [
+        "service_id",
+        "meter_reading",
+        "outage_state",
+        "repair_ticket"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "utilities.pay_utility_bill",
+      "family": "utilities",
+      "intent": "pay_utility_bill",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "valid_account_or_asset"
+      ],
+      "observable_tags": [
+        "service_id",
+        "meter_reading",
+        "outage_state",
+        "repair_ticket"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "utilities.conserve_energy",
+      "family": "utilities",
+      "intent": "conserve_energy",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "valid_account_or_asset"
+      ],
+      "observable_tags": [
+        "service_id",
+        "meter_reading",
+        "outage_state",
+        "repair_ticket"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "utilities.inspect_heating",
+      "family": "utilities",
+      "intent": "inspect_heating",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "valid_account_or_asset"
+      ],
+      "observable_tags": [
+        "service_id",
+        "meter_reading",
+        "outage_state",
+        "repair_ticket"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "utilities.request_utility_repair",
+      "family": "utilities",
+      "intent": "request_utility_repair",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "valid_account_or_asset"
+      ],
+      "observable_tags": [
+        "service_id",
+        "meter_reading",
+        "outage_state",
+        "repair_ticket"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "utilities.restore_service",
+      "family": "utilities",
+      "intent": "restore_service",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "valid_account_or_asset"
+      ],
+      "observable_tags": [
+        "service_id",
+        "meter_reading",
+        "outage_state",
+        "repair_ticket"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "crafting.inspect_recipe",
+      "family": "crafting",
+      "intent": "inspect_recipe",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "recipe_id",
+        "inputs",
+        "outputs",
+        "station_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "crafting.gather_material",
+      "family": "crafting",
+      "intent": "gather_material",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "recipe_id",
+        "inputs",
+        "outputs",
+        "station_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "crafting.combine_materials",
+      "family": "crafting",
+      "intent": "combine_materials",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "recipe_id",
+        "inputs",
+        "outputs",
+        "station_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "crafting.craft_item",
+      "family": "crafting",
+      "intent": "craft_item",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "recipe_id",
+        "inputs",
+        "outputs",
+        "station_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "crafting.cancel_crafting",
+      "family": "crafting",
+      "intent": "cancel_crafting",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "recipe_id",
+        "inputs",
+        "outputs",
+        "station_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "crafting.upgrade_item",
+      "family": "crafting",
+      "intent": "upgrade_item",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "recipe_id",
+        "inputs",
+        "outputs",
+        "station_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "crafting.dismantle_item",
+      "family": "crafting",
+      "intent": "dismantle_item",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "recipe_id",
+        "inputs",
+        "outputs",
+        "station_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "crafting.queue_crafting",
+      "family": "crafting",
+      "intent": "queue_crafting",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "recipe_id",
+        "inputs",
+        "outputs",
+        "station_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "crafting.collect_crafted_item",
+      "family": "crafting",
+      "intent": "collect_crafted_item",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "recipe_id",
+        "inputs",
+        "outputs",
+        "station_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "crafting.repair_equipment",
+      "family": "crafting",
+      "intent": "repair_equipment",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "recipe_id",
+        "inputs",
+        "outputs",
+        "station_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "crafting.check_tool_condition",
+      "family": "crafting",
+      "intent": "check_tool_condition",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "recipe_id",
+        "inputs",
+        "outputs",
+        "station_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "information.read_notice",
+      "family": "information",
+      "intent": "read_notice",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "source_id",
+        "confidence",
+        "freshness",
+        "contradictions"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "information.check_map",
+      "family": "information",
+      "intent": "check_map",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "source_id",
+        "confidence",
+        "freshness",
+        "contradictions"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "information.search_area",
+      "family": "information",
+      "intent": "search_area",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "source_id",
+        "confidence",
+        "freshness",
+        "contradictions"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "information.inspect_clue",
+      "family": "information",
+      "intent": "inspect_clue",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "source_id",
+        "confidence",
+        "freshness",
+        "contradictions"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "information.compare_options",
+      "family": "information",
+      "intent": "compare_options",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "source_id",
+        "confidence",
+        "freshness",
+        "contradictions"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "information.verify_information",
+      "family": "information",
+      "intent": "verify_information",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "source_id",
+        "confidence",
+        "freshness",
+        "contradictions"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "information.ask_witness",
+      "family": "information",
+      "intent": "ask_witness",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "source_id",
+        "confidence",
+        "freshness",
+        "contradictions"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "information.review_history",
+      "family": "information",
+      "intent": "review_history",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "source_id",
+        "confidence",
+        "freshness",
+        "contradictions"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "information.check_schedule",
+      "family": "information",
+      "intent": "check_schedule",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "source_id",
+        "confidence",
+        "freshness",
+        "contradictions"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "information.check_rules",
+      "family": "information",
+      "intent": "check_rules",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "source_id",
+        "confidence",
+        "freshness",
+        "contradictions"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "information.report_unknown",
+      "family": "information",
+      "intent": "report_unknown",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "source_id",
+        "confidence",
+        "freshness",
+        "contradictions"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "communication.send_message",
+      "family": "communication",
+      "intent": "send_message",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "message_id",
+        "delivery_state",
+        "recipient_consent",
+        "retry_count"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "communication.receive_message",
+      "family": "communication",
+      "intent": "receive_message",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "message_id",
+        "delivery_state",
+        "recipient_consent",
+        "retry_count"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "communication.make_call",
+      "family": "communication",
+      "intent": "make_call",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "message_id",
+        "delivery_state",
+        "recipient_consent",
+        "retry_count"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "communication.answer_call",
+      "family": "communication",
+      "intent": "answer_call",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "message_id",
+        "delivery_state",
+        "recipient_consent",
+        "retry_count"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "communication.ignore_call",
+      "family": "communication",
+      "intent": "ignore_call",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "message_id",
+        "delivery_state",
+        "recipient_consent",
+        "retry_count"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "communication.share_location",
+      "family": "communication",
+      "intent": "share_location",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "message_id",
+        "delivery_state",
+        "recipient_consent",
+        "retry_count"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "communication.send_request",
+      "family": "communication",
+      "intent": "send_request",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "message_id",
+        "delivery_state",
+        "recipient_consent",
+        "retry_count"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "communication.broadcast_alert",
+      "family": "communication",
+      "intent": "broadcast_alert",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "message_id",
+        "delivery_state",
+        "recipient_consent",
+        "retry_count"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "communication.mute_channel",
+      "family": "communication",
+      "intent": "mute_channel",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "message_id",
+        "delivery_state",
+        "recipient_consent",
+        "retry_count"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "communication.change_channel",
+      "family": "communication",
+      "intent": "change_channel",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "message_id",
+        "delivery_state",
+        "recipient_consent",
+        "retry_count"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "communication.confirm_message",
+      "family": "communication",
+      "intent": "confirm_message",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "message_id",
+        "delivery_state",
+        "recipient_consent",
+        "retry_count"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "group.join_group",
+      "family": "group",
+      "intent": "join_group",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "social_context_valid",
+        "consent_and_authority_rules"
+      ],
+      "observable_tags": [
+        "group_id",
+        "membership",
+        "role",
+        "formation",
+        "resource_sharing"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "group.leave_group",
+      "family": "group",
+      "intent": "leave_group",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "social_context_valid",
+        "consent_and_authority_rules"
+      ],
+      "observable_tags": [
+        "group_id",
+        "membership",
+        "role",
+        "formation",
+        "resource_sharing"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "group.follow_leader",
+      "family": "group",
+      "intent": "follow_leader",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "social_context_valid",
+        "consent_and_authority_rules"
+      ],
+      "observable_tags": [
+        "group_id",
+        "membership",
+        "role",
+        "formation",
+        "resource_sharing"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "group.lead_group",
+      "family": "group",
+      "intent": "lead_group",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "social_context_valid",
+        "consent_and_authority_rules"
+      ],
+      "observable_tags": [
+        "group_id",
+        "membership",
+        "role",
+        "formation",
+        "resource_sharing"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "group.wait_for_member",
+      "family": "group",
+      "intent": "wait_for_member",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "social_context_valid",
+        "consent_and_authority_rules"
+      ],
+      "observable_tags": [
+        "group_id",
+        "membership",
+        "role",
+        "formation",
+        "resource_sharing"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "group.split_group",
+      "family": "group",
+      "intent": "split_group",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "social_context_valid",
+        "consent_and_authority_rules"
+      ],
+      "observable_tags": [
+        "group_id",
+        "membership",
+        "role",
+        "formation",
+        "resource_sharing"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "group.regroup",
+      "family": "group",
+      "intent": "regroup",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "social_context_valid",
+        "consent_and_authority_rules"
+      ],
+      "observable_tags": [
+        "group_id",
+        "membership",
+        "role",
+        "formation",
+        "resource_sharing"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "group.assign_role",
+      "family": "group",
+      "intent": "assign_role",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "social_context_valid",
+        "consent_and_authority_rules"
+      ],
+      "observable_tags": [
+        "group_id",
+        "membership",
+        "role",
+        "formation",
+        "resource_sharing"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "group.share_resource",
+      "family": "group",
+      "intent": "share_resource",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "social_context_valid",
+        "consent_and_authority_rules"
+      ],
+      "observable_tags": [
+        "group_id",
+        "membership",
+        "role",
+        "formation",
+        "resource_sharing"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "group.vote_decision",
+      "family": "group",
+      "intent": "vote_decision",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "social_context_valid",
+        "consent_and_authority_rules"
+      ],
+      "observable_tags": [
+        "group_id",
+        "membership",
+        "role",
+        "formation",
+        "resource_sharing"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "group.resolve_group_disagreement",
+      "family": "group",
+      "intent": "resolve_group_disagreement",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "social_context_valid",
+        "consent_and_authority_rules"
+      ],
+      "observable_tags": [
+        "group_id",
+        "membership",
+        "role",
+        "formation",
+        "resource_sharing"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "emergency.evacuate",
+      "family": "emergency",
+      "intent": "evacuate",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "incident_id",
+        "hazard_distance",
+        "evacuation_state",
+        "responder_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "emergency.shelter_in_place",
+      "family": "emergency",
+      "intent": "shelter_in_place",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "incident_id",
+        "hazard_distance",
+        "evacuation_state",
+        "responder_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "emergency.avoid_fire",
+      "family": "emergency",
+      "intent": "avoid_fire",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "incident_id",
+        "hazard_distance",
+        "evacuation_state",
+        "responder_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "emergency.avoid_flood",
+      "family": "emergency",
+      "intent": "avoid_flood",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "incident_id",
+        "hazard_distance",
+        "evacuation_state",
+        "responder_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "emergency.avoid_traffic",
+      "family": "emergency",
+      "intent": "avoid_traffic",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "incident_id",
+        "hazard_distance",
+        "evacuation_state",
+        "responder_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "emergency.call_emergency_service",
+      "family": "emergency",
+      "intent": "call_emergency_service",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "incident_id",
+        "hazard_distance",
+        "evacuation_state",
+        "responder_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "emergency.guide_bystander",
+      "family": "emergency",
+      "intent": "guide_bystander",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "incident_id",
+        "hazard_distance",
+        "evacuation_state",
+        "responder_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "emergency.secure_area",
+      "family": "emergency",
+      "intent": "secure_area",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "incident_id",
+        "hazard_distance",
+        "evacuation_state",
+        "responder_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "emergency.follow_official_instruction",
+      "family": "emergency",
+      "intent": "follow_official_instruction",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "incident_id",
+        "hazard_distance",
+        "evacuation_state",
+        "responder_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "emergency.request_status_update",
+      "family": "emergency",
+      "intent": "request_status_update",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "incident_id",
+        "hazard_distance",
+        "evacuation_state",
+        "responder_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "emergency.assist_evacuation",
+      "family": "emergency",
+      "intent": "assist_evacuation",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "incident_id",
+        "hazard_distance",
+        "evacuation_state",
+        "responder_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "stealth.move_quietly",
+      "family": "stealth",
+      "intent": "move_quietly",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "pawn_possessed",
+        "movement_component"
+      ],
+      "observable_tags": [
+        "noise_level",
+        "visibility",
+        "cover_state",
+        "detection_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "stealth.hide",
+      "family": "stealth",
+      "intent": "hide",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "pawn_possessed",
+        "movement_component"
+      ],
+      "observable_tags": [
+        "noise_level",
+        "visibility",
+        "cover_state",
+        "detection_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "stealth.observe_unnoticed",
+      "family": "stealth",
+      "intent": "observe_unnoticed",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "pawn_possessed",
+        "movement_component"
+      ],
+      "observable_tags": [
+        "noise_level",
+        "visibility",
+        "cover_state",
+        "detection_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "stealth.avoid_detection",
+      "family": "stealth",
+      "intent": "avoid_detection",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "pawn_possessed",
+        "movement_component"
+      ],
+      "observable_tags": [
+        "noise_level",
+        "visibility",
+        "cover_state",
+        "detection_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "accessibility.use_ramp",
+      "family": "accessibility",
+      "intent": "use_ramp",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "control_scheme",
+        "route_accessibility",
+        "interaction_reach",
+        "assistance_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "accessibility.use_elevator",
+      "family": "accessibility",
+      "intent": "use_elevator",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "control_scheme",
+        "route_accessibility",
+        "interaction_reach",
+        "assistance_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "accessibility.request_accessible_route",
+      "family": "accessibility",
+      "intent": "request_accessible_route",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "control_scheme",
+        "route_accessibility",
+        "interaction_reach",
+        "assistance_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "accessibility.adjust_move_speed",
+      "family": "accessibility",
+      "intent": "adjust_move_speed",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "control_scheme",
+        "route_accessibility",
+        "interaction_reach",
+        "assistance_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "accessibility.use_assistance_device",
+      "family": "accessibility",
+      "intent": "use_assistance_device",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "control_scheme",
+        "route_accessibility",
+        "interaction_reach",
+        "assistance_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "accessibility.request_interaction_help",
+      "family": "accessibility",
+      "intent": "request_interaction_help",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "control_scheme",
+        "route_accessibility",
+        "interaction_reach",
+        "assistance_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "accessibility.choose_step_free_path",
+      "family": "accessibility",
+      "intent": "choose_step_free_path",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "control_scheme",
+        "route_accessibility",
+        "interaction_reach",
+        "assistance_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "accessibility.pause_for_accessibility",
+      "family": "accessibility",
+      "intent": "pause_for_accessibility",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "control_scheme",
+        "route_accessibility",
+        "interaction_reach",
+        "assistance_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "accessibility.reorient_camera",
+      "family": "accessibility",
+      "intent": "reorient_camera",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "control_scheme",
+        "route_accessibility",
+        "interaction_reach",
+        "assistance_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "digital_systems.open_ui",
+      "family": "digital_systems",
+      "intent": "open_ui",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "request_id",
+        "request_state",
+        "retry_count",
+        "idempotency_key"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "digital_systems.close_ui",
+      "family": "digital_systems",
+      "intent": "close_ui",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "request_id",
+        "request_state",
+        "retry_count",
+        "idempotency_key"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "digital_systems.retry_request",
+      "family": "digital_systems",
+      "intent": "retry_request",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "request_id",
+        "request_state",
+        "retry_count",
+        "idempotency_key"
+      ],
+      "safe_retry": true,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "digital_systems.cancel_request",
+      "family": "digital_systems",
+      "intent": "cancel_request",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "request_id",
+        "request_state",
+        "retry_count",
+        "idempotency_key"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "digital_systems.inspect_error",
+      "family": "digital_systems",
+      "intent": "inspect_error",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "request_id",
+        "request_state",
+        "retry_count",
+        "idempotency_key"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "digital_systems.refresh_data",
+      "family": "digital_systems",
+      "intent": "refresh_data",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "request_id",
+        "request_state",
+        "retry_count",
+        "idempotency_key"
+      ],
+      "safe_retry": true,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "digital_systems.reconnect_service",
+      "family": "digital_systems",
+      "intent": "reconnect_service",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "request_id",
+        "request_state",
+        "retry_count",
+        "idempotency_key"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "digital_systems.report_bug",
+      "family": "digital_systems",
+      "intent": "report_bug",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "request_id",
+        "request_state",
+        "retry_count",
+        "idempotency_key"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "digital_systems.confirm_action",
+      "family": "digital_systems",
+      "intent": "confirm_action",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "request_id",
+        "request_state",
+        "retry_count",
+        "idempotency_key"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "daily_routine.wake_up",
+      "family": "daily_routine",
+      "intent": "wake_up",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "safe_location_and_required_fixture"
+      ],
+      "observable_tags": [
+        "routine_id",
+        "fixture_id",
+        "hygiene_state",
+        "schedule_state",
+        "resource_use"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "daily_routine.sleep",
+      "family": "daily_routine",
+      "intent": "sleep",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "safe_location_and_required_fixture"
+      ],
+      "observable_tags": [
+        "routine_id",
+        "fixture_id",
+        "hygiene_state",
+        "schedule_state",
+        "resource_use"
+      ],
+      "safe_retry": false,
+      "execution_mode": "state_transition_model"
+    },
+    {
+      "id": "daily_routine.shower",
+      "family": "daily_routine",
+      "intent": "shower",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "safe_location_and_required_fixture"
+      ],
+      "observable_tags": [
+        "routine_id",
+        "fixture_id",
+        "hygiene_state",
+        "schedule_state",
+        "resource_use"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "daily_routine.wash_hands",
+      "family": "daily_routine",
+      "intent": "wash_hands",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "safe_location_and_required_fixture"
+      ],
+      "observable_tags": [
+        "routine_id",
+        "fixture_id",
+        "hygiene_state",
+        "schedule_state",
+        "resource_use"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "daily_routine.brush_teeth",
+      "family": "daily_routine",
+      "intent": "brush_teeth",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "safe_location_and_required_fixture"
+      ],
+      "observable_tags": [
+        "routine_id",
+        "fixture_id",
+        "hygiene_state",
+        "schedule_state",
+        "resource_use"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "daily_routine.use_toilet",
+      "family": "daily_routine",
+      "intent": "use_toilet",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "safe_location_and_required_fixture"
+      ],
+      "observable_tags": [
+        "routine_id",
+        "fixture_id",
+        "hygiene_state",
+        "schedule_state",
+        "resource_use"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "daily_routine.change_clothes",
+      "family": "daily_routine",
+      "intent": "change_clothes",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "safe_location_and_required_fixture"
+      ],
+      "observable_tags": [
+        "routine_id",
+        "fixture_id",
+        "hygiene_state",
+        "schedule_state",
+        "resource_use"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "daily_routine.cook_meal",
+      "family": "daily_routine",
+      "intent": "cook_meal",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "safe_location_and_required_fixture"
+      ],
+      "observable_tags": [
+        "routine_id",
+        "fixture_id",
+        "hygiene_state",
+        "schedule_state",
+        "resource_use"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "daily_routine.clean_room",
+      "family": "daily_routine",
+      "intent": "clean_room",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "safe_location_and_required_fixture"
+      ],
+      "observable_tags": [
+        "routine_id",
+        "fixture_id",
+        "hygiene_state",
+        "schedule_state",
+        "resource_use"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "daily_routine.wash_clothes",
+      "family": "daily_routine",
+      "intent": "wash_clothes",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "safe_location_and_required_fixture"
+      ],
+      "observable_tags": [
+        "routine_id",
+        "fixture_id",
+        "hygiene_state",
+        "schedule_state",
+        "resource_use"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "daily_routine.manage_schedule",
+      "family": "daily_routine",
+      "intent": "manage_schedule",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "safe_location_and_required_fixture"
+      ],
+      "observable_tags": [
+        "routine_id",
+        "fixture_id",
+        "hygiene_state",
+        "schedule_state",
+        "resource_use"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "education.attend_class",
+      "family": "education",
+      "intent": "attend_class",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "learning_context_or_material_available"
+      ],
+      "observable_tags": [
+        "course_id",
+        "lesson_id",
+        "progress",
+        "assessment_state",
+        "learning_resource"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "education.study_topic",
+      "family": "education",
+      "intent": "study_topic",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "learning_context_or_material_available"
+      ],
+      "observable_tags": [
+        "course_id",
+        "lesson_id",
+        "progress",
+        "assessment_state",
+        "learning_resource"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "education.practice_skill",
+      "family": "education",
+      "intent": "practice_skill",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "learning_context_or_material_available"
+      ],
+      "observable_tags": [
+        "course_id",
+        "lesson_id",
+        "progress",
+        "assessment_state",
+        "learning_resource"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "education.take_assessment",
+      "family": "education",
+      "intent": "take_assessment",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "learning_context_or_material_available"
+      ],
+      "observable_tags": [
+        "course_id",
+        "lesson_id",
+        "progress",
+        "assessment_state",
+        "learning_resource"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "education.ask_instructor",
+      "family": "education",
+      "intent": "ask_instructor",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "learning_context_or_material_available"
+      ],
+      "observable_tags": [
+        "course_id",
+        "lesson_id",
+        "progress",
+        "assessment_state",
+        "learning_resource"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "education.collaborate_project",
+      "family": "education",
+      "intent": "collaborate_project",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "learning_context_or_material_available"
+      ],
+      "observable_tags": [
+        "course_id",
+        "lesson_id",
+        "progress",
+        "assessment_state",
+        "learning_resource"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "education.borrow_book",
+      "family": "education",
+      "intent": "borrow_book",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "learning_context_or_material_available"
+      ],
+      "observable_tags": [
+        "course_id",
+        "lesson_id",
+        "progress",
+        "assessment_state",
+        "learning_resource"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "education.return_book",
+      "family": "education",
+      "intent": "return_book",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "learning_context_or_material_available"
+      ],
+      "observable_tags": [
+        "course_id",
+        "lesson_id",
+        "progress",
+        "assessment_state",
+        "learning_resource"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "education.enroll_course",
+      "family": "education",
+      "intent": "enroll_course",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "learning_context_or_material_available"
+      ],
+      "observable_tags": [
+        "course_id",
+        "lesson_id",
+        "progress",
+        "assessment_state",
+        "learning_resource"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "education.skip_class",
+      "family": "education",
+      "intent": "skip_class",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "learning_context_or_material_available"
+      ],
+      "observable_tags": [
+        "course_id",
+        "lesson_id",
+        "progress",
+        "assessment_state",
+        "learning_resource"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "education.request_tutoring",
+      "family": "education",
+      "intent": "request_tutoring",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "learning_context_or_material_available"
+      ],
+      "observable_tags": [
+        "course_id",
+        "lesson_id",
+        "progress",
+        "assessment_state",
+        "learning_resource"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "civic_law.check_local_rules",
+      "family": "civic_law",
+      "intent": "check_local_rules",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "jurisdiction_and_process_valid"
+      ],
+      "observable_tags": [
+        "jurisdiction",
+        "procedure_id",
+        "submission_id",
+        "deadline",
+        "decision_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "civic_law.submit_application",
+      "family": "civic_law",
+      "intent": "submit_application",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "jurisdiction_and_process_valid"
+      ],
+      "observable_tags": [
+        "jurisdiction",
+        "procedure_id",
+        "submission_id",
+        "deadline",
+        "decision_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "civic_law.renew_document",
+      "family": "civic_law",
+      "intent": "renew_document",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "jurisdiction_and_process_valid"
+      ],
+      "observable_tags": [
+        "jurisdiction",
+        "procedure_id",
+        "submission_id",
+        "deadline",
+        "decision_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "civic_law.report_hazard",
+      "family": "civic_law",
+      "intent": "report_hazard",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "jurisdiction_and_process_valid"
+      ],
+      "observable_tags": [
+        "jurisdiction",
+        "procedure_id",
+        "submission_id",
+        "deadline",
+        "decision_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "civic_law.request_public_service",
+      "family": "civic_law",
+      "intent": "request_public_service",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "jurisdiction_and_process_valid"
+      ],
+      "observable_tags": [
+        "jurisdiction",
+        "procedure_id",
+        "submission_id",
+        "deadline",
+        "decision_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "civic_law.attend_public_meeting",
+      "family": "civic_law",
+      "intent": "attend_public_meeting",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "jurisdiction_and_process_valid"
+      ],
+      "observable_tags": [
+        "jurisdiction",
+        "procedure_id",
+        "submission_id",
+        "deadline",
+        "decision_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "civic_law.file_complaint",
+      "family": "civic_law",
+      "intent": "file_complaint",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "jurisdiction_and_process_valid"
+      ],
+      "observable_tags": [
+        "jurisdiction",
+        "procedure_id",
+        "submission_id",
+        "deadline",
+        "decision_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "civic_law.respond_to_notice",
+      "family": "civic_law",
+      "intent": "respond_to_notice",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "jurisdiction_and_process_valid"
+      ],
+      "observable_tags": [
+        "jurisdiction",
+        "procedure_id",
+        "submission_id",
+        "deadline",
+        "decision_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "civic_law.request_legal_aid",
+      "family": "civic_law",
+      "intent": "request_legal_aid",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "jurisdiction_and_process_valid"
+      ],
+      "observable_tags": [
+        "jurisdiction",
+        "procedure_id",
+        "submission_id",
+        "deadline",
+        "decision_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "civic_law.comply_with_inspection",
+      "family": "civic_law",
+      "intent": "comply_with_inspection",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "jurisdiction_and_process_valid"
+      ],
+      "observable_tags": [
+        "jurisdiction",
+        "procedure_id",
+        "submission_id",
+        "deadline",
+        "decision_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "civic_law.appeal_decision",
+      "family": "civic_law",
+      "intent": "appeal_decision",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "jurisdiction_and_process_valid"
+      ],
+      "observable_tags": [
+        "jurisdiction",
+        "procedure_id",
+        "submission_id",
+        "deadline",
+        "decision_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "animals.approach_animal",
+      "family": "animals",
+      "intent": "approach_animal",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "animal_present_and_welfare_rules"
+      ],
+      "observable_tags": [
+        "animal_id",
+        "welfare_state",
+        "owner_consent",
+        "food_water_state",
+        "vet_reference"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "animals.feed_animal",
+      "family": "animals",
+      "intent": "feed_animal",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "animal_present_and_welfare_rules"
+      ],
+      "observable_tags": [
+        "animal_id",
+        "welfare_state",
+        "owner_consent",
+        "food_water_state",
+        "vet_reference"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "animals.give_water_animal",
+      "family": "animals",
+      "intent": "give_water_animal",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "animal_present_and_welfare_rules"
+      ],
+      "observable_tags": [
+        "animal_id",
+        "welfare_state",
+        "owner_consent",
+        "food_water_state",
+        "vet_reference"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "animals.walk_pet",
+      "family": "animals",
+      "intent": "walk_pet",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "animal_present_and_welfare_rules"
+      ],
+      "observable_tags": [
+        "animal_id",
+        "welfare_state",
+        "owner_consent",
+        "food_water_state",
+        "vet_reference"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "animals.groom_animal",
+      "family": "animals",
+      "intent": "groom_animal",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "animal_present_and_welfare_rules"
+      ],
+      "observable_tags": [
+        "animal_id",
+        "welfare_state",
+        "owner_consent",
+        "food_water_state",
+        "vet_reference"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "animals.clean_animal_area",
+      "family": "animals",
+      "intent": "clean_animal_area",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "animal_present_and_welfare_rules"
+      ],
+      "observable_tags": [
+        "animal_id",
+        "welfare_state",
+        "owner_consent",
+        "food_water_state",
+        "vet_reference"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "animals.seek_vet",
+      "family": "animals",
+      "intent": "seek_vet",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "animal_present_and_welfare_rules"
+      ],
+      "observable_tags": [
+        "animal_id",
+        "welfare_state",
+        "owner_consent",
+        "food_water_state",
+        "vet_reference"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "animals.transport_animal",
+      "family": "animals",
+      "intent": "transport_animal",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "animal_present_and_welfare_rules"
+      ],
+      "observable_tags": [
+        "animal_id",
+        "welfare_state",
+        "owner_consent",
+        "food_water_state",
+        "vet_reference"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "animals.train_animal",
+      "family": "animals",
+      "intent": "train_animal",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "animal_present_and_welfare_rules"
+      ],
+      "observable_tags": [
+        "animal_id",
+        "welfare_state",
+        "owner_consent",
+        "food_water_state",
+        "vet_reference"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "animals.calm_animal",
+      "family": "animals",
+      "intent": "calm_animal",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "animal_present_and_welfare_rules"
+      ],
+      "observable_tags": [
+        "animal_id",
+        "welfare_state",
+        "owner_consent",
+        "food_water_state",
+        "vet_reference"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "animals.report_stray_animal",
+      "family": "animals",
+      "intent": "report_stray_animal",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "animal_present_and_welfare_rules"
+      ],
+      "observable_tags": [
+        "animal_id",
+        "welfare_state",
+        "owner_consent",
+        "food_water_state",
+        "vet_reference"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "emergency.safely_wait_for_responder",
+      "family": "emergency",
+      "intent": "safely_wait_for_responder",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "incident_id",
+        "hazard_distance",
+        "evacuation_state",
+        "responder_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "navigation.choose_alternate_entrance",
+      "family": "navigation",
+      "intent": "choose_alternate_entrance",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "pawn_possessed",
+        "movement_component"
+      ],
+      "observable_tags": [
+        "destination",
+        "path_status",
+        "waypoint",
+        "replan_count",
+        "stuck_duration"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "social.ask_for_consent_before_assistance",
+      "family": "social",
+      "intent": "ask_for_consent_before_assistance",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick",
+        "social_context_valid",
+        "consent_and_authority_rules"
+      ],
+      "observable_tags": [
+        "participants",
+        "consent",
+        "dialogue_intent",
+        "response_state"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    },
+    {
+      "id": "digital_systems.verify_idempotent_retry",
+      "family": "digital_systems",
+      "intent": "verify_idempotent_retry",
+      "precondition_tags": [
+        "agent_alive",
+        "world_tick"
+      ],
+      "observable_tags": [
+        "request_id",
+        "request_state",
+        "retry_count",
+        "idempotency_key"
+      ],
+      "safe_retry": false,
+      "execution_mode": "contract_probe_only"
+    }
+  ]
+}
