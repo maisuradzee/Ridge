@@ -57,3 +57,13 @@ python Tools\Health\ridge_guardian.py --project-root . --quick
 - PIE და Dedicated Server-ზე ცალ-ცალკე გაიარა მინიმუმ თითო route.
 
 **შენიშვნა:** ეს QA harness არ ცვლის production NPC AI-ს და არც მტკიცებულებაა, რომ სრული თამაშის მოძრაობის ყველა მექანიკა უკვე იმპლემენტირებულია.
+
+## 5. New login subsystem and build-runner static verification — 2026-11-23
+
+The project validator now includes the client login subsystem:
+- UHT generated header is checked as the final include;
+- BlueprintCallable entry point and BlueprintAssignable result event are required;
+- gateway Bearer request, ticket/attempt UUID and expiry validation, ClientTravel, exact loopback HTTP allowlist and absence of internal service credentials are checked;
+- Http module dependency and the non-secret development Gateway URL are required.
+
+CI on commit `55b2f1ccfe59cd3d97be1d941efc53d942406c77` reports **37/37 STATIC_PASS** and **77/77** source/regression checks PASS. It does not execute UBT/UHT. Run the PowerShell build script on the UE 5.8 workstation to produce the first real compile report.

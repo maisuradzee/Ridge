@@ -260,3 +260,19 @@ Branch head 6075bb5a640a22561016848d6f0169035b9c7eca passed:
 Evidence: [Stage 5](https://github.com/maisuradzee/Ridge/actions/runs/45139177332) · [PostgreSQL](https://github.com/maisuradzee/Ridge/actions/runs/45139177246).
 
 The load profile remains in-memory API traffic, not connected Unreal Engine clients. UBT/UHT, provider authorization/PKCE UI, packaged client login, true server travel/replication and encrypted game transport remain open.
+
+
+### UE 5.8 Game/Editor/Server build gate — source verified (2026-11-23)
+
+The local PowerShell build runner now checks the installed UE 5.8 version and builds the main `RIDGE` Game target and `RIDGEEditor` by default. Pass `-BuildDedicatedServer` to include `RIDGEServer`. Each target records its own log and a JSON build report under the QA directory. This runner has not yet been executed against the user's local Unreal installation.
+
+The project static validator now reports **37/37 checks PASS**, including:
+- all Game/Editor/Server target files and Http/Json module dependencies;
+- client login UHT generated-header ordering, Blueprint entrypoint and result delegate;
+- OIDC gateway Bearer request, ticket/attempt/expiry validation and ClientTravel;
+- loopback-only development HTTP allowlist and no client-embedded service credentials;
+- checked-in non-secret loopback Gateway configuration.
+
+Latest CI on commit `55b2f1ccfe59cd3d97be1d941efc53d942406c77`: source regression **77/77 PASS**, validator **37/37 STATIC_PASS**, load unit **6/6**, backend Node **55 PASS / 0 FAIL / 2 SKIP**, virtual API **6,995 req / 0 errors / 437.31 req/s**, p95 **0.72 ms**. PostgreSQL 16 migrations 001–006/live suite **57 PASS / 0 FAIL / 0 SKIP**.
+
+Evidence: [Stage 5](https://github.com/maisuradzee/Ridge/actions/runs/45145350622) · [PostgreSQL 16](https://github.com/maisuradzee/Ridge/actions/runs/45145350554).

@@ -255,3 +255,20 @@ On branch head 6075bb5a640a22561016848d6f0169035b9c7eca:
 - [PostgreSQL 16 integration, migrations 001–006](https://github.com/maisuradzee/Ridge/actions/runs/45139177246): **57 PASS / 0 FAIL / 0 SKIP**
 
 This verifies source/static contracts and API/backend integration only. UBT/UHT, external OIDC provider UI/PKCE, packaged client travel, encrypted Unreal game transport and true 500-player Unreal soak remain open.
+
+
+### UE 5.8 local build gate — source/static verified
+
+`Tools/BotLab/Run-UE58BotLabBuild.ps1` now builds `RIDGE` Game and `RIDGEEditor` by default; `-BuildDedicatedServer` adds `RIDGEServer`. It checks the installed Engine version, writes per-target logs and produces a machine-readable JSON build report. The static project validator now has 37 checks, including the client session login subsystem's UHT include ordering, Blueprint entry/event, Bearer gateway request, ticket/expiry validation, ClientTravel wiring, loopback HTTP allowlist and absence of server/gateway secrets.
+
+Latest commit `55b2f1ccfe59cd3d97be1d941efc53d942406c77`:
+- Python/BotLab/Unreal source regression: **77/77 PASS**
+- Unreal project validator: **37/37 STATIC_PASS**
+- Load-runner tests: **6/6 PASS**
+- Backend Node: **55 PASS / 0 FAIL / 2 SKIP**
+- 500 virtual-user in-memory development API: **6,995 requests / 0 failures / 437.31 req/s**, p50 **0.41 ms**, p95 **0.72 ms**, p99 **2.50 ms**, max **7.33 ms**, max in-flight **6**
+- PostgreSQL 16 migrations 001–006/live suite: **57 PASS / 0 FAIL / 0 SKIP**
+
+CI: [Stage 5](https://github.com/maisuradzee/Ridge/actions/runs/45145350622) · [PostgreSQL 16](https://github.com/maisuradzee/Ridge/actions/runs/45145350554).
+
+The build script has **not** been run against a local Unreal Engine installation; UBT/UHT and runtime remain unverified until executed on the UE 5.8 workstation. See `Tools/BotLab/UE58_INTEGRATION_CHECKLIST_GE.md`.

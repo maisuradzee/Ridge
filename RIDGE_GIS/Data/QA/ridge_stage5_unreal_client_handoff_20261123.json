@@ -1,23 +1,22 @@
 {
-  "schema": "ridge.stage5.unreal-client-session-handoff.v3",
+  "schema": "ridge.stage5.ue58-build-gate-and-login-validation.v4",
   "date": "2026-11-23",
-  "testedSourceCommit": "6075bb5a640a22561016848d6f0169035b9c7eca",
-  "latestBranchHeadAtVerification": "6075bb5a640a22561016848d6f0169035b9c7eca",
+  "testedCommit": "55b2f1ccfe59cd3d97be1d941efc53d942406c77",
   "workflow": {
     "stage5": {
-      "id": 45139177332,
+      "id": 45145350622,
       "result": "success",
-      "url": "https://github.com/maisuradzee/Ridge/actions/runs/45139177332",
-      "pythonBotlabUnrealSource": "75/75 PASS",
-      "unrealProjectStatic": "STATIC_PASS",
+      "url": "https://github.com/maisuradzee/Ridge/actions/runs/45145350622",
+      "pythonBotlabUnrealSource": "77/77 PASS",
+      "ueProjectStatic": "37/37 STATIC_PASS",
       "ueUbtUht": "NOT_RUN",
       "loadRunnerUnit": "6/6 PASS",
       "backendNode": "55 PASS / 0 FAIL / 2 SKIP"
     },
     "postgres": {
-      "id": 45139177246,
+      "id": 45145350554,
       "result": "success",
-      "url": "https://github.com/maisuradzee/Ridge/actions/runs/45139177246",
+      "url": "https://github.com/maisuradzee/Ridge/actions/runs/45145350554",
       "migrations": [
         "001_initial_schema.sql",
         "002_job_checkpoints.sql",
@@ -37,15 +36,33 @@
     "rampSeconds": 3,
     "totalRequests": 6995,
     "failedRequests": 0,
-    "requestsPerSecond": 437.18,
+    "requestsPerSecond": 437.31,
     "latencyMs": {
-      "p50": 0.55,
-      "p95": 0.93,
-      "p99": 1.46,
-      "max": 4.78
+      "p50": 0.41,
+      "p95": 0.72,
+      "p99": 2.5,
+      "max": 7.33
     },
     "maxObservedInFlightRequests": 6,
     "notAnUnrealNetworkLoadTest": true
+  },
+  "ue58BuildRunner": {
+    "script": "Tools/BotLab/Run-UE58BotLabBuild.ps1",
+    "defaultTargets": [
+      "RIDGE",
+      "RIDGEEditor"
+    ],
+    "optionalTargets": [
+      "RIDGEServer"
+    ],
+    "flag": "-BuildDedicatedServer",
+    "outputs": [
+      "per-target build logs",
+      "RIDGE_GIS/Data/QA/ridge_ue58_build_report.json"
+    ],
+    "checksInstalledEngineIs": "5.8",
+    "actualBuildExecuted": false,
+    "reason": "CI environment has no Unreal Engine installation; run on the UE 5.8 workstation."
   },
   "clientHandoff": {
     "subsystem": "URidgeSessionLoginSubsystem",
@@ -73,8 +90,8 @@
     "providerUiOrPkce": "NOT_IMPLEMENTED"
   },
   "backendDatabaseVerification": {
-    "verifiedCommit": "6075bb5a640a22561016848d6f0169035b9c7eca",
-    "workflowId": 45139177246,
+    "verifiedCommit": "55b2f1ccfe59cd3d97be1d941efc53d942406c77",
+    "workflowId": 45145350554,
     "result": "success",
     "migrations": [
       "001_initial_schema.sql",
@@ -87,13 +104,13 @@
     "liveIntegration": "57 PASS / 0 FAIL / 0 SKIP"
   },
   "outstanding": [
-    "Provider authorization-code/PKCE UI and retrieval/refresh of a real OIDC access token",
-    "Packaged Unreal login screen caller",
-    "UE 5.8 UBT/UHT compile",
-    "Two-client PIE and actual ClientTravel -> PreLogin -> PostLogin join",
-    "Encrypted Unreal game transport for the bearer join ticket",
-    "Reconnect/disconnect runtime behavior",
-    "True 500-CCU Unreal network soak and replication profiling"
+    "Execute RIDGE Game + Editor UBT/UHT build on installed UE 5.8",
+    "Execute RIDGEServer build using -BuildDedicatedServer",
+    "Run two-client PIE and actual ClientTravel -> PreLogin -> PostLogin join",
+    "Implement actual identity-provider authorization-code/PKCE login and token refresh",
+    "Enable/verify encrypted Unreal game transport for bearer join tickets",
+    "Run disconnect/reconnect and per-instance credential rotation runtime checks",
+    "Run true 500-CCU Unreal network soak with replication profiling"
   ],
   "priorHardening": {
     "productionBindAllowed": [
