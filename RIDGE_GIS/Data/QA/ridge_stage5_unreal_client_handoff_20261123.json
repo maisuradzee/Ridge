@@ -1,0 +1,97 @@
+{
+  "schema": "ridge.stage5.unreal-client-session-handoff.v1",
+  "date": "2026-11-23",
+  "commit": "f689c702c267a90486f329850d2b790131bb5a82",
+  "workflow": {
+    "id": 45138435495,
+    "result": "success",
+    "url": "https://github.com/maisuradzee/Ridge/actions/runs/45138435495",
+    "pythonBotlabUnrealSource": "74/74 PASS",
+    "unrealProjectStatic": "STATIC_PASS",
+    "ueUbtUht": "NOT_RUN",
+    "loadRunnerUnit": "6/6 PASS",
+    "backendNode": "55 PASS / 0 FAIL / 2 SKIP"
+  },
+  "apiPreflight": {
+    "environment": "development",
+    "storage": "memory-ephemeral",
+    "virtualUsers": 500,
+    "durationSeconds": 15,
+    "rampSeconds": 3,
+    "totalRequests": 6996,
+    "failedRequests": 0,
+    "requestsPerSecond": 437.15,
+    "latencyMs": {
+      "p50": 0.39,
+      "p95": 0.71,
+      "p99": 2.62,
+      "max": 6.49
+    },
+    "maxObservedInFlightRequests": 7,
+    "notAnUnrealNetworkLoadTest": true
+  },
+  "clientHandoff": {
+    "subsystem": "URidgeSessionLoginSubsystem",
+    "gatewayRoute": "POST /v1/gateway/session",
+    "oidcAccessTokenProvidedBy": "external identity-provider client integration",
+    "bearerHeader": "Authorization",
+    "validates": [
+      "server host",
+      "server port",
+      "256-bit join ticket format",
+      "claimAttemptId UUID",
+      "ticket expiry"
+    ],
+    "travel": "APlayerController::ClientTravel",
+    "clientContainsNoInternalServiceCredentials": true,
+    "productionRequiresHttps": true,
+    "developmentHttpAllowedOnlyForExactLoopbackAuthorities": [
+      "127.0.0.1",
+      "localhost",
+      "[::1]"
+    ],
+    "connectUrlOrTicketLogged": false
+  },
+  "backendDatabaseVerification": {
+    "verifiedCommit": "e2df4c454c332e9362d7e44ca4044a3f16c8058c",
+    "workflowId": 45137196583,
+    "result": "success",
+    "migrations": [
+      "001_initial_schema.sql",
+      "002_job_checkpoints.sql",
+      "003_postgres_runtime.sql",
+      "004_session_registry.sql",
+      "005_session_join_tickets.sql",
+      "006_dedicated_server_credentials.sql"
+    ],
+    "liveIntegration": "57 PASS / 0 FAIL / 0 SKIP",
+    "note": "Client handoff commit changes no backend or SQL migration files."
+  },
+  "outstanding": [
+    "Provider authorization-code/PKCE UI and retrieval of a real OIDC access token",
+    "Packaged Unreal client caller wiring",
+    "UE 5.8 UBT/UHT compile",
+    "Two-client PIE and actual ClientTravel -> PreLogin -> PostLogin join",
+    "Encrypted Unreal game transport for the bearer join ticket",
+    "Reconnect/disconnect runtime behavior",
+    "True 500-CCU Unreal network soak and replication profiling"
+  ],
+  "priorHardening": {
+    "productionBindAllowed": [
+      "loopback",
+      "RFC1918 IPv4",
+      "IPv6 ULA"
+    ],
+    "productionBindRejected": [
+      "wildcard",
+      "public IPv4",
+      "global IPv6",
+      "unspecified IPv6"
+    ],
+    "postgresReadinessRequires": [
+      "ridge.dedicated_servers",
+      "ridge.player_sessions",
+      "ridge.dedicated_server_credentials"
+    ]
+  }
+}

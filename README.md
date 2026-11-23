@@ -224,3 +224,10 @@ Real UE 5.8 build/runtime, actual identity provider deployment, secret manager r
 
 
 Client login transport accepts HTTPS or exact loopback-only HTTP in development; public/prefix-lookalike HTTP origins are rejected. See `docs/61_UNREAL_CLIENT_SESSION_HANDOFF_GE.md`.
+
+
+### Client OIDC-to-Dedicated-Server travel — Stage 5 source verified
+
+The new URidgeSessionLoginSubsystem posts the provider-issued OIDC Bearer token to the public Gateway, validates the short-lived shard ticket and stable claim attempt, then starts APlayerController::ClientTravel. Client code has no internal service tokens. It permits HTTPS in production and exact loopback-only HTTP for local development.
+
+CI: [Stage 5 Preflight](https://github.com/maisuradzee/Ridge/actions/runs/45138435495) — **74/74 source/regression**, UE static **PASS**, **6/6** load unit, backend **55 PASS / 0 FAIL / 2 SKIP**, API preflight **6,996 requests / 0 errors / 437.15 req/s**, p95 **0.71 ms**. This is not UBT/UHT or a real UE travel/network test. See docs/61_UNREAL_CLIENT_SESSION_HANDOFF_GE.md.

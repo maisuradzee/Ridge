@@ -192,3 +192,17 @@ CI static source contracts cover the URL, Bearer header, region request, ticket/
 ## 11. Client Gateway transport allowlist
 
 The client login subsystem accepts HTTPS Gateway URLs in every build. Plain HTTP is allowed only for exact loopback authorities: `127.0.0.1`, `localhost` or `[::1]`, optionally followed by a valid numeric port. Prefix lookalikes such as `localhost.attacker.example`, URL user-info, paths, query strings and fragments are rejected for the development HTTP exception. The gateway base URL is read from `Config/DefaultGame.ini`; the checked-in value is a loopback development default and must be overridden in packaged production configuration.
+
+
+## 12. Client-to-shard source verification — 2026-11-23
+
+The client-side URidgeSessionLoginSubsystem is now included in source. The Stage 5 workflow on revision f689c702c267a90486f329850d2b790131bb5a82 passed:
+
+- [Stage 5 Multiplayer Preflight](https://github.com/maisuradzee/Ridge/actions/runs/45138435495): **SUCCESS**
+- Python/BotLab/Unreal source regression: **74/74 PASS**
+- UE project static validator: **STATIC_PASS** (UBT/UHT not run)
+- Load runner: **6/6 PASS**
+- Backend Node regression: **55 PASS / 0 FAIL / 2 SKIP**
+- 500 virtual-user development API preflight: **6,996 requests / 0 failures / 437.15 req/s**, p95 **0.71 ms**
+
+The source contract verifies the HTTPS OIDC request, gateway response validation, exact loopback-only HTTP development exception, absence of internal service credentials in the client subsystem and ClientTravel call. It does not prove a packaged UE client or live join.

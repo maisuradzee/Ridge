@@ -228,3 +228,14 @@ Latest commit `e2df4c454c332e9362d7e44ca4044a3f16c8058c`: Python source regressi
 Evidence: [Stage 5 CI](https://github.com/maisuradzee/Ridge/actions/runs/45137196624) · [PostgreSQL 16 integration](https://github.com/maisuradzee/Ridge/actions/runs/45137196583).
 
 No claim is made that UE 5.8 UBT/UHT/PIE, actual provider tenant/auth-code flow, TLS reverse proxy deployment, encrypted game transport or 500 connected Unreal players have been verified.
+
+
+### Unreal client-to-shard handoff — source/static verified (2026-11-23)
+
+URidgeSessionLoginSubsystem accepts a provider-issued OIDC access token from the caller, posts the region to the public /v1/gateway/session endpoint over HTTPS, validates host/port/ticket/claimAttemptId/expiry, then calls APlayerController::ClientTravel with the one-time join options. It contains no gateway, Dedicated Server or provisioning service credentials. The default Gateway URL is loopback-only development configuration.
+
+Stage 5 workflow on f689c702c267a90486f329850d2b790131bb5a82: source regression **74/74 PASS**, UE static **STATIC_PASS**, load unit **6/6 PASS**, backend Node **55 PASS / 0 FAIL / 2 SKIP**, 500 virtual-user API preflight **6,996 requests / 0 errors / 437.15 req/s**, p95 **0.71 ms**.
+
+Evidence: [Stage 5 CI](https://github.com/maisuradzee/Ridge/actions/runs/45138435495). PostgreSQL migrations 001–006/live backend **57/57 PASS** were verified on previous backend-only revision e2df4c454c332e9362d7e44ca4044a3f16c8058c; the client-only change adds no backend or migration changes.
+
+Provider UI/PKCE, packaged client wiring, UE 5.8 UBT/UHT, two-client PIE, actual ClientTravel/PreLogin join, encrypted game transport and 500 connected Unreal client capacity remain unverified.
