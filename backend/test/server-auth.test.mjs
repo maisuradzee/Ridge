@@ -238,7 +238,9 @@ test('trusted gateway issues one-time join tickets and only the assigned shard c
 
   const legacyClaimUrl = baseUrl + '/v1/internal/shards/' + serverId + '/players/' + playerId + '/claim';
   const legacyClaim = await fetch(legacyClaimUrl, {
-    method: 'POST', headers: serverHeaders, body: JSON.stringify({ sessionId: allocation.sessionId }),
+    method: 'POST',
+    headers: { ...serverHeaders, 'x-ridge-player-id': 'legacy-route-probe' },
+    body: JSON.stringify({ sessionId: allocation.sessionId }),
   });
   assert.equal(legacyClaim.status, 404);
 
