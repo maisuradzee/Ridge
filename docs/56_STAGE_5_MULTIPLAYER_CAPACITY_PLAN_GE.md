@@ -276,3 +276,16 @@ The project static validator now reports **37/37 checks PASS**, including:
 Latest CI on commit `55b2f1ccfe59cd3d97be1d941efc53d942406c77`: source regression **77/77 PASS**, validator **37/37 STATIC_PASS**, load unit **6/6**, backend Node **55 PASS / 0 FAIL / 2 SKIP**, virtual API **6,995 req / 0 errors / 437.31 req/s**, p95 **0.72 ms**. PostgreSQL 16 migrations 001–006/live suite **57 PASS / 0 FAIL / 0 SKIP**.
 
 Evidence: [Stage 5](https://github.com/maisuradzee/Ridge/actions/runs/45145350622) · [PostgreSQL 16](https://github.com/maisuradzee/Ridge/actions/runs/45145350554).
+
+
+### Concurrent login / ticket integrity hardening — latest verified (2026-11-23)
+
+- A repeated or concurrent public Gateway request for a player with a reused allocated session is rejected as `409 PLAYER_SESSION_LOGIN_PENDING`; no new ticket is issued.
+- Memory and PostgreSQL session registries refuse to overwrite a ticket that has not expired, returning `SESSION_JOIN_TICKET_ALREADY_ISSUED`.
+- PostgreSQL selects the allocation row `FOR UPDATE` and checks the ticket expiry before writing a new ticket hash, preventing simultaneous issuance races across API processes.
+- The integration test sends two overlapping public OIDC session requests and asserts one HTTP 201 plus one HTTP 409; the successful ticket remains claimable.
+- PostgreSQL live integration asserts that a second issuance cannot invalidate the first ticket.
+
+Verified on source commit `88b5b2da02c1b5109e5fcc04ffd905bcbba29e25`: Stage 5 **77/77 source PASS**, validator **37/37 STATIC_PASS**, backend **55 PASS / 0 FAIL / 2 SKIP**, virtual API **6,995 requests / 0 errors / 437.43 req/s**, PostgreSQL migrations 001–006 and live suite **57 PASS / 0 FAIL / 0 SKIP**.
+
+Evidence: [Stage 5](https://github.com/maisuradzee/Ridge/actions/runs/45146481336) · [PostgreSQL](https://github.com/maisuradzee/Ridge/actions/runs/45146481678).

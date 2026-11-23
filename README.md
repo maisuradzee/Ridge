@@ -272,3 +272,12 @@ Latest commit `55b2f1ccfe59cd3d97be1d941efc53d942406c77`:
 CI: [Stage 5](https://github.com/maisuradzee/Ridge/actions/runs/45145350622) · [PostgreSQL 16](https://github.com/maisuradzee/Ridge/actions/runs/45145350554).
 
 The build script has **not** been run against a local Unreal Engine installation; UBT/UHT and runtime remain unverified until executed on the UE 5.8 workstation. See `Tools/BotLab/UE58_INTEGRATION_CHECKLIST_GE.md`.
+
+
+### Concurrent login and join-ticket replacement guard — verified
+
+A second concurrent login for an account with an allocated/in-flight session now receives **409 PLAYER_SESSION_LOGIN_PENDING**; it cannot replace the first request's join ticket. The session registry independently rejects issuing another ticket while the existing ticket remains unexpired (**SESSION_JOIN_TICKET_ALREADY_ISSUED**). The PostgreSQL implementation checks this under a row lock.
+
+Latest Stage 5 run on source commit 88b5b2da02c1b5109e5fcc04ffd905bcbba29e25: **77/77 source**, UE static **37/37**, load unit **6/6**, backend **55 PASS / 0 FAIL / 2 SKIP**, API preflight **6,995 requests / 0 errors / 437.43 req/s**. PostgreSQL migrations 001–006/live suite: **57 PASS / 0 FAIL / 0 SKIP**.
+
+Evidence: [Stage 5](https://github.com/maisuradzee/Ridge/actions/runs/45146481336) · [PostgreSQL 16](https://github.com/maisuradzee/Ridge/actions/runs/45146481678).

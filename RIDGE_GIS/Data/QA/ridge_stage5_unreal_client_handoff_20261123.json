@@ -1,22 +1,22 @@
 {
-  "schema": "ridge.stage5.ue58-build-gate-and-login-validation.v4",
+  "schema": "ridge.stage5.concurrent-login-ticket-integrity.v5",
   "date": "2026-11-23",
-  "testedCommit": "55b2f1ccfe59cd3d97be1d941efc53d942406c77",
+  "testedCommit": "88b5b2da02c1b5109e5fcc04ffd905bcbba29e25",
   "workflow": {
     "stage5": {
-      "id": 45145350622,
+      "id": 45146481336,
       "result": "success",
-      "url": "https://github.com/maisuradzee/Ridge/actions/runs/45145350622",
+      "url": "https://github.com/maisuradzee/Ridge/actions/runs/45146481336",
       "pythonBotlabUnrealSource": "77/77 PASS",
-      "ueProjectStatic": "37/37 STATIC_PASS",
+      "unrealProjectStatic": "37/37 STATIC_PASS",
       "ueUbtUht": "NOT_RUN",
       "loadRunnerUnit": "6/6 PASS",
       "backendNode": "55 PASS / 0 FAIL / 2 SKIP"
     },
     "postgres": {
-      "id": 45145350554,
+      "id": 45146481678,
       "result": "success",
-      "url": "https://github.com/maisuradzee/Ridge/actions/runs/45145350554",
+      "url": "https://github.com/maisuradzee/Ridge/actions/runs/45146481678",
       "migrations": [
         "001_initial_schema.sql",
         "002_job_checkpoints.sql",
@@ -36,15 +36,30 @@
     "rampSeconds": 3,
     "totalRequests": 6995,
     "failedRequests": 0,
-    "requestsPerSecond": 437.31,
+    "requestsPerSecond": 437.43,
     "latencyMs": {
-      "p50": 0.41,
-      "p95": 0.72,
-      "p99": 2.5,
-      "max": 7.33
+      "p50": 0.36,
+      "p95": 0.59,
+      "p99": 1.39,
+      "max": 8.41
     },
     "maxObservedInFlightRequests": 6,
     "notAnUnrealNetworkLoadTest": true
+  },
+  "concurrentLoginGuard": {
+    "overlappingOidcRequestsPerAccount": {
+      "expected": "one HTTP 201 and one HTTP 409",
+      "errorCode": "PLAYER_SESSION_LOGIN_PENDING",
+      "tested": true
+    },
+    "registryActiveTicketReplacement": {
+      "allowed": false,
+      "errorCode": "SESSION_JOIN_TICKET_ALREADY_ISSUED"
+    },
+    "memoryRegistry": "tested",
+    "postgresRegistry": "tested",
+    "postgresSessionRowLock": "FOR UPDATE",
+    "originalSuccessfulTicketRemainsClaimable": true
   },
   "ue58BuildRunner": {
     "script": "Tools/BotLab/Run-UE58BotLabBuild.ps1",
@@ -90,8 +105,8 @@
     "providerUiOrPkce": "NOT_IMPLEMENTED"
   },
   "backendDatabaseVerification": {
-    "verifiedCommit": "55b2f1ccfe59cd3d97be1d941efc53d942406c77",
-    "workflowId": 45145350554,
+    "verifiedCommit": "88b5b2da02c1b5109e5fcc04ffd905bcbba29e25",
+    "workflowId": 45146481678,
     "result": "success",
     "migrations": [
       "001_initial_schema.sql",
@@ -106,11 +121,11 @@
   "outstanding": [
     "Execute RIDGE Game + Editor UBT/UHT build on installed UE 5.8",
     "Execute RIDGEServer build using -BuildDedicatedServer",
-    "Run two-client PIE and actual ClientTravel -> PreLogin -> PostLogin join",
-    "Implement actual identity-provider authorization-code/PKCE login and token refresh",
-    "Enable/verify encrypted Unreal game transport for bearer join tickets",
-    "Run disconnect/reconnect and per-instance credential rotation runtime checks",
-    "Run true 500-CCU Unreal network soak with replication profiling"
+    "Actual identity-provider authorization-code/PKCE and token refresh",
+    "Two-client PIE and live ClientTravel -> PreLogin -> PostLogin join",
+    "Encrypted Unreal game transport for bearer join ticket",
+    "Reconnect/disconnect runtime and credential rotation while draining",
+    "True 500-CCU Unreal network soak and replication profiling"
   ],
   "priorHardening": {
     "productionBindAllowed": [

@@ -152,3 +152,12 @@ The backend now exposes `POST /v1/gateway/session`. It accepts a verified OIDC J
 Production requires `RIDGE_OIDC_ISSUER`, `RIDGE_OIDC_AUDIENCE`, `RIDGE_OIDC_JWKS_URL`, PostgreSQL storage and a trusted HTTPS reverse proxy (`RIDGE_TRUST_PROXY=true`). The reverse proxy must overwrite X-Forwarded-Proto and the Node listener must not be publicly reachable. The actual provider's authorization-code/redirect/MFA/account-recovery setup is not supplied by the repository; it must be configured at deployment.
 
 Runbook: `docs/59_PUBLIC_OIDC_GATEWAY_GE.md`.
+
+
+## 10. Concurrent gateway retries and one-ticket-per-active-attempt
+
+An allocated player session may have at most one unexpired join ticket. A second public Gateway request which reuses that pending allocation receives `409 PLAYER_SESSION_LOGIN_PENDING`; it must not be used to issue another ticket. At the registry layer, a second ticket issuance before the first ticket expires is rejected as `SESSION_JOIN_TICKET_ALREADY_ISSUED`.
+
+For PostgreSQL this check occurs after selecting the session row `FOR UPDATE`, so concurrent API processes cannot both replace the ticket. After expiry or explicit session cleanup, a fresh login attempt may allocate a new session/ticket.
+
+The concurrent OIDC integration test requires exactly one request to return 201 and one to return 409, then claims the first ticket successfully. Latest source/DB CI: [Stage 5](https://github.com/maisuradzee/Ridge/actions/runs/45146481336) and [PostgreSQL 16](https://github.com/maisuradzee/Ridge/actions/runs/45146481678).

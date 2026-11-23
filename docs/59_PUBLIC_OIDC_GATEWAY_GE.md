@@ -107,7 +107,8 @@ The server binds \`ridgeJoinTicket\` and \`ridgeClaimAttemptId\` in \`PreLoginAs
 | 201 | — | session reserved and join ticket issued; connect immediately |
 | 400 | \`INVALID_JSON_BODY\`, \`HTTPS_REQUIRED\` | correct request format or transport |
 | 401 | \`OIDC_TOKEN_INVALID\` | authenticate again; do not retry the same invalid token |
-| 409 | \`PLAYER_SESSION_ALREADY_CONNECTED\` | existing live session; resolve reconnect/duplicate client before another login |
+| 409 | `PLAYER_SESSION_ALREADY_CONNECTED`, `PLAYER_SESSION_LOGIN_PENDING` | account is already connected or has an in-flight allocated login; do not start a parallel request |
+| 409 (internal issuance) | `SESSION_JOIN_TICKET_ALREADY_ISSUED` | this allocation already has an unexpired ticket; keep the original attempt and do not replace its bearer credential |
 | 503 | \`OIDC_NOT_CONFIGURED\`, \`OIDC_IDENTITY_SERVICE_UNAVAILABLE\`, \`NO_AVAILABLE_SHARD\` | service/configuration/capacity unavailable; retry with backoff or show service unavailable |
 
 The endpoint uses \`Cache-Control: no-store\`. Do not cache session responses or tickets in shared caches.
@@ -226,3 +227,15 @@ The full client source contract, including Blueprint UI entry point and event, i
 - [PostgreSQL 16](https://github.com/maisuradzee/Ridge/actions/runs/45139177246): migrations 001–006, live suite **57 PASS / 0 FAIL / 0 SKIP**.
 
 No claim is made that UBT/UHT, provider authorization-code/PKCE, real client travel, transport encryption or Unreal 500-CCU load has been executed.
+
+
+## 14. Concurrent login and ticket replacement protection — 2026-11-23
+
+The public Gateway rejects a second request for an existing allocated session as `409 PLAYER_SESSION_LOGIN_PENDING`. It does not issue a second ticket for that same allocation. The session registry separately enforces that a valid, unexpired ticket cannot be overwritten (`SESSION_JOIN_TICKET_ALREADY_ISSUED`); PostgreSQL checks this while holding the session row lock.
+
+The integration test overlaps two signed OIDC session requests for the same subject and verifies exactly one HTTP 201 and one HTTP 409. It then claims the successful request's ticket to prove it remained valid.
+
+Latest verification on source commit `88b5b2da02c1b5109e5fcc04ffd905bcbba29e25`:
+- [Stage 5 Multiplayer Preflight](https://github.com/maisuradzee/Ridge/actions/runs/45146481336): **77/77 source PASS**, UE static **37/37**, load unit **6/6**, backend **55 PASS / 0 FAIL / 2 SKIP**.
+- 500 virtual API users: **6,995 requests / 0 failures / 437.43 req/s**.
+- [PostgreSQL 16](https://github.com/maisuradzee/Ridge/actions/runs/45146481678): migrations 001–006, live suite **57 PASS / 0 FAIL / 0 SKIP**.

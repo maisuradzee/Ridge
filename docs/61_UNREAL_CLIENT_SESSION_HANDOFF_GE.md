@@ -148,3 +148,8 @@ On branch head 6075bb5a640a22561016848d6f0169035b9c7eca:
 - PostgreSQL 16 migrations 001–006 and live integration: [SUCCESS](https://github.com/maisuradzee/Ridge/actions/runs/45139177246), **57 PASS / 0 FAIL / 0 SKIP**
 
 The Blueprint entry point, Blueprint result delegate and no-service-secret contract are included in the passing 75 source regression tests. These are source/static gates, not a UBT/UHT build or actual UE client login.
+
+
+## 9. Pending login response
+
+When the Gateway responds with `409 PLAYER_SESSION_LOGIN_PENDING`, another connection attempt for this account is already in progress. The client should not automatically start a parallel session or overwrite the join options. Wait for the active travel attempt; if its response was lost, the existing short lease/ticket must expire before a new allocation can be attempted.
