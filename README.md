@@ -99,14 +99,14 @@ The separate Stage 5 branch now contains a PostgreSQL-backed Dedicated Server re
 
 Validation: Stage 5 CI **SUCCESS** (Python 52/52, UE static 24/24, load unit 6/6, backend Node 33/33); PostgreSQL 16 live integration **35/35 PASS**, migrations 001–004; 500 virtual-user API preflight **6,994 requests / 0 errors / 437.23 req/s** against memory-only development storage.
 
-This still does not prove 500 connected Unreal players. Player login/authentication, per-server credentials, client join tickets, Unreal registration/heartbeat wiring, real UE 5.8 runtime, cross-shard transfer, and real 500-CCU soak remain open.
+This still does not prove 500 connected Unreal players. OIDC gateway and client join-ticket source flow are implemented and CI-verified; actual provider tenant/PKCE/MFA setup, per-server credentials, real UE 5.8 runtime, encrypted game transport, cross-shard transfer, and true 500-CCU soak remain open.
 
 
 ### Unreal Dedicated Server control-plane wiring
 
 The Stage 5 branch adds GameMode-driven shard registration on startup, 15-second heartbeat updates, and an offline heartbeat during EndPlay. Production mode now requires an HTTPS backend URL and an explicitly advertised non-loopback server host. See docs/57_UNREAL_DEDICATED_SERVER_REGISTRATION_GE.md.
 
-This is source-level integration only until the Editor/Server targets compile and the server + two clients pass a real UE 5.8 network test. Player login/session allocation, signed join tickets, per-server credentials, reconnect and shard transfer remain open gates.
+This is source-level integration only until the Editor/Server targets compile and the server + two clients pass a real UE 5.8 network test. OIDC-backed session allocation and signed join-ticket source flow are implemented; actual provider setup, per-server credentials, reconnect soak and shard transfer remain open gates.
 
 
 ### Dedicated Server registration — static CI verified (2026-11-23)
@@ -124,14 +124,14 @@ This is source-contract verification, not a real UE build. Unreal Engine 5.8 UBT
 
 Stage 5 backend adds migration 005 for short-lived, single-use join tickets. The gateway receives a random 256-bit Base64URL ticket, while PostgreSQL stores only its SHA-256 digest. Tickets are bound to a specific shard, expire within 30 seconds (and never outlive their session lease), allow same-attempt idempotent retry, and reject reuse from another connection attempt. The legacy direct claim route is removed.
 
-See docs/58_JOIN_TICKET_AND_PRELOGIN_FLOW_GE.md. This is not yet a full account login: verified identity-provider/gateway integration and Unreal PreLoginAsync/PostLogin/Logout wiring remain open.
+See docs/58_JOIN_TICKET_AND_PRELOGIN_FLOW_GE.md and docs/59_PUBLIC_OIDC_GATEWAY_GE.md. Provider-agnostic OIDC JWT verification and public session ticket issuance are implemented; actual provider tenant/authorization-code/PKCE and live UE 5.8 runtime remain open.
 
 
 ### Unreal join-ticket enforcement
 
 The Stage 5 Unreal GameMode source now binds one-time tickets to UE 5.8 PreLoginAsync -> InitNewPlayer -> PostLogin and releases sessions on Logout. Canonical backend identity is stored privately on the server-side PlayerState; the replicated RidgePublicId remains a separate public game identifier. Unverified connections are rejected/kicked.
 
-Session allocation and ticket issuance now require a separate RIDGE_GATEWAY_TOKEN; shard operations retain RIDGE_SERVER_EVENT_TOKEN. The gateway implementation and account identity provider remain open. The bearer ticket is carried in the UE login options, so production also requires verified encrypted game-connection transport.
+Session allocation and ticket issuance use a separate RIDGE_GATEWAY_TOKEN; shard operations retain RIDGE_SERVER_EVENT_TOKEN. The provider-agnostic OIDC gateway is implemented, but the real provider tenant and authorization-code/PKCE/MFA account lifecycle remain deployment work. The bearer ticket is carried in UE login options, so production also requires verified encrypted game-connection transport.
 
 See docs/58_JOIN_TICKET_AND_PRELOGIN_FLOW_GE.md. C++ UBT/UHT and live UE 5.8 two-client runtime have not yet been executed.
 

@@ -73,16 +73,23 @@ Windows გარემოში Unreal Engine 5.8-ის ზუსტი instal
 
 Static CI ამოწმებს მხოლოდ source contract-ს. ის არ ადასტურებს C++ compilation/UHT/PIE, რეალურ UDP reachability-ს, reconnect-ს ან actor replication-ს.
 
-## 5. ჯერ კიდევ დაუმთავრებელი integration
+## 5. მიმდინარე login/session ინტეგრაცია და დარჩენილი სამუშაო
 
-ამ increment-ში Dedicated Server-ს შეუძლია თავის თავზე registration/heartbeat lifecycle-ის მართვა. თუმცა player-facing flow ჯერ ბოლომდე არ არის მიბმული:
-- verified player authentication და signed join ticket;
-- PreLogin/PostLogin-ში player session allocation და server-scoped claim;
-- disconnect-ზე release და crash recovery;
+Stage 5-ის შემდეგი increment-ები უკვე ამატებს player-facing session entry-ს:
+- `POST /v1/gateway/session` იღებს provider-agnostic OIDC RS256 JWT-ს, ამოწმებს signature/issuer/audience/expiry-ს და issuer + subject-იდან ქმნის canonical backend Player ID-ს;
+- gateway ირჩევს healthy shard-ს, გასცემს 256-bit ერთჯერად join ticket-ს და სტაბილურ `claimAttemptId`-ს;
+- Unreal GameMode-ის `PreLoginAsync -> InitNewPlayer -> PostLogin` source flow ამოწმებს ticket-ს, აბამს canonical Player ID-ს server-only PlayerState-ში და უარყოფს დაუდასტურებელ კავშირებს;
+- `Logout` session-ს ათავისუფლებს; 15-წამიანი shard heartbeat და 45-წამიანი freshness window stale/offline shard-ების გამოყოფას უზრუნველყოფს; offline heartbeat აქტიურ session-ებს expired მდგომარეობაში გადაიყვანს.
+
+დარჩენილი integration/production gates:
+- რეალური OIDC provider tenant-ის კონფიგურაცია, authorization-code/redirect/PKCE, MFA, account recovery და account linking;
+- UE 5.8 UBT/UHT compile და Dedicated Server + ორი client-ის PIE/runtime შემოწმება;
+- initial Unreal connection options-ში bearer ticket-ის დაცვა შესაბამისი UE network encryption/transport security-ით;
+- per-server credentials, rotation/revocation და audit;
 - cross-region/cross-shard transfer;
-- per-server credentials და credential rotation.
+- reconnect/disconnect soak და 500 რეალურად დაკავშირებული Unreal player-ის capacity test.
 
-სესიის registry ამ ოპერაციებისთვის უკვე არსებობს. მისი public API მხოლოდ trusted internal server token-ით არის ხელმისაწვდომი; client-მა პირდაპირ არ უნდა გამოიძახოს.
+Public session gateway და client-იდან წამოსული ticket flow აღწერილია `docs/58_JOIN_TICKET_AND_PRELOGIN_FLOW_GE.md` და `docs/59_PUBLIC_OIDC_GATEWAY_GE.md` დოკუმენტებში. Internal shard/player endpoints კვლავ მხოლოდ შესაბამისი trusted gateway ან Dedicated Server credential-ით უნდა გამოიძახონ; client-ს პირდაპირი წვდომა არ ეძლევა.
 
 ## 6. მიღების კრიტერიუმები
 
