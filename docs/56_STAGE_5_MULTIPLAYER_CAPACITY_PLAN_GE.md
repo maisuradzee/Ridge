@@ -239,3 +239,12 @@ Stage 5 workflow on f689c702c267a90486f329850d2b790131bb5a82: source regression 
 Evidence: [Stage 5 CI](https://github.com/maisuradzee/Ridge/actions/runs/45138435495). PostgreSQL migrations 001–006/live backend **57/57 PASS** were verified on previous backend-only revision e2df4c454c332e9362d7e44ca4044a3f16c8058c; the client-only change adds no backend or migration changes.
 
 Provider UI/PKCE, packaged client wiring, UE 5.8 UBT/UHT, two-client PIE, actual ClientTravel/PreLogin join, encrypted game transport and 500 connected Unreal client capacity remain unverified.
+
+
+### Blueprint-accessible client login entry point — latest CI (2026-11-23)
+
+URidgeSessionLoginSubsystem exposes a BlueprintCallable RequestAndConnectFromBlueprint function and BlueprintAssignable OnLoginAttemptCompleted event for the future login UI. The caller supplies a provider-issued access token; the subsystem requests a one-time session from the public OIDC Gateway, validates the ticket and starts ClientTravel. It does not implement the identity-provider browser/PKCE UI or token refresh.
+
+Revision 4ce132707cb64ed53c34ec2d60aefec57dda5532: **75/75** source/regression PASS, UE static PASS, load unit 6/6 PASS, backend Node 55 PASS / 0 FAIL / 2 SKIP; 500 virtual-user in-memory API preflight **6,997 requests / 0 errors / 437.38 req/s**, p95 **0.49 ms**.
+
+Evidence: [Stage 5 CI](https://github.com/maisuradzee/Ridge/actions/runs/45138993647). The separate PostgreSQL backend suite has previously passed migrations 001–006 with 57/57 tests. UBT/UHT, packaged client, provider UI, two-client PIE and actual game transport remain unverified.

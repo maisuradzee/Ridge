@@ -1,12 +1,12 @@
 {
-  "schema": "ridge.stage5.unreal-client-session-handoff.v1",
+  "schema": "ridge.stage5.unreal-client-session-handoff.v2",
   "date": "2026-11-23",
-  "commit": "f689c702c267a90486f329850d2b790131bb5a82",
+  "commit": "4ce132707cb64ed53c34ec2d60aefec57dda5532",
   "workflow": {
-    "id": 45138435495,
+    "id": 45138993647,
     "result": "success",
-    "url": "https://github.com/maisuradzee/Ridge/actions/runs/45138435495",
-    "pythonBotlabUnrealSource": "74/74 PASS",
+    "url": "https://github.com/maisuradzee/Ridge/actions/runs/45138993647",
+    "pythonBotlabUnrealSource": "75/75 PASS",
     "unrealProjectStatic": "STATIC_PASS",
     "ueUbtUht": "NOT_RUN",
     "loadRunnerUnit": "6/6 PASS",
@@ -18,14 +18,14 @@
     "virtualUsers": 500,
     "durationSeconds": 15,
     "rampSeconds": 3,
-    "totalRequests": 6996,
+    "totalRequests": 6997,
     "failedRequests": 0,
-    "requestsPerSecond": 437.15,
+    "requestsPerSecond": 437.38,
     "latencyMs": {
-      "p50": 0.39,
-      "p95": 0.71,
-      "p99": 2.62,
-      "max": 6.49
+      "p50": 0.22,
+      "p95": 0.49,
+      "p99": 1.38,
+      "max": 8.8
     },
     "maxObservedInFlightRequests": 7,
     "notAnUnrealNetworkLoadTest": true
@@ -50,7 +50,10 @@
       "localhost",
       "[::1]"
     ],
-    "connectUrlOrTicketLogged": false
+    "connectUrlOrTicketLogged": false,
+    "blueprintCallable": "RequestAndConnectFromBlueprint",
+    "blueprintAssignable": "OnLoginAttemptCompleted",
+    "providerUiOrPkce": "NOT_IMPLEMENTED"
   },
   "backendDatabaseVerification": {
     "verifiedCommit": "e2df4c454c332e9362d7e44ca4044a3f16c8058c",

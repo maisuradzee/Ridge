@@ -206,3 +206,12 @@ The client-side URidgeSessionLoginSubsystem is now included in source. The Stage
 - 500 virtual-user development API preflight: **6,996 requests / 0 failures / 437.15 req/s**, p95 **0.71 ms**
 
 The source contract verifies the HTTPS OIDC request, gateway response validation, exact loopback-only HTTP development exception, absence of internal service credentials in the client subsystem and ClientTravel call. It does not prove a packaged UE client or live join.
+
+
+## 13. Blueprint login screen integration contract
+
+URidgeSessionLoginSubsystem now exposes a BlueprintCallable method, RequestAndConnectFromBlueprint, and a BlueprintAssignable OnLoginAttemptCompleted result event. A login widget can bind the result event and pass the provider-issued OIDC access token, selected region and local PlayerController. The method starts the Gateway request; the event indicates whether ClientTravel was started, not whether the Dedicated Server later accepted the player.
+
+The actual provider sign-in UI, authorization-code/PKCE, refresh-token lifecycle and MFA remain the responsibility of the selected identity-provider integration. Do not persist or log the JWT or join ticket.
+
+CI revision 4ce132707cb64ed53c34ec2d60aefec57dda5532: [SUCCESS](https://github.com/maisuradzee/Ridge/actions/runs/45138993647), source regression **75/75 PASS**, UE static **PASS**, load unit **6/6 PASS**, backend **55 PASS / 0 FAIL / 2 SKIP**, 500 virtual-user API preflight **6,997 requests / 0 errors / 437.38 req/s**, p95 **0.49 ms**. This is not UE UBT/UHT or a real network login.

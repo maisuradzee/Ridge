@@ -234,3 +234,10 @@ CI: [Stage 5 Preflight](https://github.com/maisuradzee/Ridge/actions/runs/451384
 
 
 The client subsystem also exposes a Blueprint-callable UI entry point and a Blueprint-assignable result event, while leaving provider token acquisition/refresh to the selected identity-provider integration.
+
+
+### Blueprint login UI entry point — verified source contract
+
+The client session subsystem now exposes RequestAndConnectFromBlueprint plus OnLoginAttemptCompleted. The future login widget can submit a provider-issued OIDC token and receive the result through a Blueprint event; provider sign-in/PKCE and token refresh remain provider integration work.
+
+Latest Stage 5 CI: [SUCCESS](https://github.com/maisuradzee/Ridge/actions/runs/45138993647) — Python/Unreal source **75/75 PASS**, UE static **PASS**, load unit **6/6 PASS**, backend Node **55 PASS / 0 FAIL / 2 SKIP**, 500 virtual API preflight **6,997 requests / 0 errors / 437.38 req/s**, p95 **0.49 ms**. UBT/UHT and real UE runtime are not proven.

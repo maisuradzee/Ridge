@@ -111,3 +111,25 @@ The GameInstance subsystem exposes a Blueprint-callable wrapper for the login UI
 - When bTravelStarted is true, the client travel request has started. It is not confirmation that the Dedicated Server accepted PreLogin; show final in-game state only after the server session is established.
 
 The subsystem does not present provider UI and does not acquire or refresh the OIDC token itself. The caller remains responsible for securely obtaining a token for the RIDGE API audience and refreshing/re-authenticating before expiry. Do not store the access token in SaveGame or log it. The delegate message is safe for UI display and intentionally excludes credential values.
+
+
+## 8. Blueprint login entry and CI result — 2026-11-23
+
+The subsystem now exposes:
+- BlueprintCallable: RequestAndConnectFromBlueprint(OidcAccessToken, Region, LocalPlayerController)
+- BlueprintAssignable: OnLoginAttemptCompleted(bTravelStarted, Message)
+
+Bind the event before calling the method. The token must already have been obtained from the chosen identity-provider client integration and must be issued for the RIDGE API audience. The event reports whether the client travel request was started; only the Dedicated Server can confirm the actual join after PreLogin/PostLogin.
+
+Stage 5 CI on revision 4ce132707cb64ed53c34ec2d60aefec57dda5532: [SUCCESS](https://github.com/maisuradzee/Ridge/actions/runs/45138993647).
+
+- Python/BotLab/Unreal source regression: **75/75 PASS**
+- Unreal project static validator: **STATIC_PASS**; UBT/UHT **NOT RUN**
+- Load runner unit: **6/6 PASS**
+- Backend Node: **55 PASS / 0 FAIL / 2 SKIP**
+- 500 virtual API preflight: **6,997 requests / 0 errors / 437.38 req/s**
+- p50 **0.22 ms**, p95 **0.49 ms**, p99 **1.38 ms**, max **8.8 ms**, max in-flight **7**
+
+PostgreSQL migration/live integration is unchanged by the client-only login UI wrapper. The previous backend verification remains: migrations 001–006, **57 PASS / 0 FAIL / 0 SKIP**, on revision e2df4c454c332e9362d7e44ca4044a3f16c8058c.
+
+Still not verified: external OIDC login/PKCE UI, a real token from the selected identity provider, packaged client invocation, UBT/UHT, actual ClientTravel-to-PreLogin network join, encrypted game transport and true Unreal CCU load.
