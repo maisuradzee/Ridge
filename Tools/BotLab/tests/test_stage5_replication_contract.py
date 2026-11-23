@@ -80,7 +80,7 @@ class Stage5ReplicationContractTests(unittest.TestCase):
         self.assertIn('TEXT("RIDGE_ENV")', self.backend_bridge)
         self.assertIn('TEXT("RIDGE_API_BASE_URL")', self.backend_bridge)
         self.assertIn('TEXT("RIDGE_SERVER_HOST")', self.backend_bridge)
-        self.assertIn("cannot advertise a loopback host", self.backend_bridge)
+        self.assertIn("refusing to advertise a loopback address", self.backend_bridge)
         self.assertIn("bShutdownRequested", self.backend_header)
         self.assertIn('Self->SendShardHeartbeat(0, TEXT("offline"))', self.backend_bridge)
         self.assertIn("refusing to send the server token", self.backend_bridge)
