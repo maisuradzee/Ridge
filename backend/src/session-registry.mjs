@@ -143,8 +143,8 @@ function createMemoryRegistry({ clock, leaseMs, heartbeatTtlMs }) {
       const existing = servers.get(registration.serverId);
       const activeConnected = connectedReservations(registration.serverId);
       const activeAllocated = allocatedReservations(registration.serverId, now);
-      if (activeConnected + activeAllocated > registration.maxPlayers) {
-        fail(409, 'SHARD_CAPACITY_BELOW_ACTIVE_SESSIONS', 'ახალი capacity აქტიურ სესიებზე ნაკლებია.');
+      if (existing && activeConnected + activeAllocated > 0) {
+        fail(409, 'SHARD_INSTANCE_ID_IN_USE', 'აქტიური სესიების მქონე shard instance ID ხელახლა არ გამოიყენება.');
       }
       const server = {
         ...registration,
@@ -184,6 +184,9 @@ function createMemoryRegistry({ clock, leaseMs, heartbeatTtlMs }) {
         const leaseValid = existing.status === 'connected' ||
           (existing.leaseExpiresAt !== null && existing.leaseExpiresAt > now);
         if (leaseValid && serverIsLive(existingServer, now, heartbeatTtlMs)) {
+          if (existingServer.region !== selectedRegion) {
+            fail(409, 'SESSION_REGION_TRANSFER_REQUIRED', 'აქტიური სესიის სხვა რეგიონში გადატანა ცალკე transfer პროცესს მოითხოვს.');
+          }
           return publicAllocation(existing, existingServer, true);
         }
         expireSession(existing);
@@ -353,10 +356,10 @@ function createPostgresRegistry({ pool, clock, leaseMs, heartbeatTtlMs }) {
         'port = EXCLUDED.port, max_players = EXCLUDED.max_players, protocol_version = EXCLUDED.protocol_version, ' +
         "current_players = 0, status = 'ready', last_heartbeat_at = clock_timestamp(), updated_at = clock_timestamp() " +
         'WHERE (SELECT count(*) FROM ridge.player_sessions WHERE server_id = EXCLUDED.server_id ' +
-        "AND status IN ('allocated', 'connected')) <= EXCLUDED.max_players " +
+        "AND status IN ('allocated', 'connected')) = 0 " +
         'RETURNING server_id, region, host, port, protocol_version, max_players, current_players, status, last_heartbeat_at';
       const result = await pool.query(sql, [r.serverId, r.region, r.host, r.port, r.maxPlayers, r.protocolVersion]);
-      if (!result.rows[0]) fail(409, 'SHARD_CAPACITY_BELOW_ACTIVE_SESSIONS', 'ახალი capacity აქტიურ სესიებზე ნაკლებია.');
+      if (!result.rows[0]) fail(409, 'SHARD_INSTANCE_ID_IN_USE', 'აქტიური სესიების მქონე shard instance ID ხელახლა არ გამოიყენება.');
       const row = result.rows[0];
       return { ...publicServer(fromServerRow(row)), lastHeartbeatAt: new Date(row.last_heartbeat_at).toISOString() };
     },
@@ -404,6 +407,9 @@ function createPostgresRegistry({ pool, clock, leaseMs, heartbeatTtlMs }) {
             (row.lease_expires_at && new Date(row.lease_expires_at).getTime() > clock());
           const oldServer = { status: row.server_status, lastHeartbeatAt: row.last_heartbeat_at };
           if (leaseValid && serverIsLive(oldServer, clock(), heartbeatTtlMs)) {
+            if (row.region !== selectedRegion) {
+              fail(409, 'SESSION_REGION_TRANSFER_REQUIRED', 'აქტიური სესიის სხვა რეგიონში გადატანა ცალკე transfer პროცესს მოითხოვს.');
+            }
             const existingSession = fromSessionRow(row);
             const existingServer = {
               serverId: row.server_id, region: row.region, host: row.host, port: row.port,

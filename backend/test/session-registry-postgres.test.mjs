@@ -44,8 +44,24 @@ test('PostgreSQL session registry serializes shard capacity, reuses leases, clai
     assert.ok(rejected.every((item) => item.reason.code === 'NO_AVAILABLE_SHARD'));
     assert.ok(allocations.every((item) => item.server.serverId === serverId));
 
+    await assert.rejects(
+      registry.registerServer({
+        serverId,
+        region: 'ge-tbilisi',
+        host: '127.0.0.1',
+        port: 20_000 + Math.floor(Math.random() * 1_000),
+        maxPlayers: 4,
+        protocolVersion: 'ridge-0.6',
+      }),
+      (error) => error.code === 'SHARD_INSTANCE_ID_IN_USE',
+    );
+
     const firstPlayer = allocations[0].playerId;
     const first = allocations[0];
+    await assert.rejects(
+      registry.allocatePlayer(firstPlayer, 'ge-batumi'),
+      (error) => error.code === 'SESSION_REGION_TRANSFER_REQUIRED',
+    );
     const replay = await registry.allocatePlayer(firstPlayer, 'ge-tbilisi');
     assert.equal(replay.sessionId, first.sessionId);
     assert.equal(replay.reused, true);

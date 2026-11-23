@@ -129,3 +129,65 @@ GitHub Actions run #1 დასრულდა SUCCESS-ით:
 Load test შესრულდა 500 ლოგიკური virtual-user session-ით, 15-წამიანი ფანჯრით, 3-წამიანი ramp-up-ით და 1,000 ms think-time-ით. სამიზნე იყო მხოლოდ development API და memory-ephemeral storage; production და PostgreSQL არ გამოუყენებია. სრული JSON summary ინახება `RIDGE_GIS/Data/QA/ridge_stage5_api_preflight_20261123.json`-ში; ორიგინალი workflow artifact ხელმისაწვდომია [აქ](https://github.com/maisuradzee/Ridge/actions/runs/45125101490/artifacts/14794939132).
 
 **მნიშვნელოვანი შეზღუდვა:** 500 virtual user არ ნიშნავს 500 ერთდროულად დაკავშირებულ Unreal მოთამაშეს. ამ ტესტში მაქსიმუმ 9 ერთდროული HTTP მოთხოვნა დაფიქსირდა. შესაბამისად, ეს ადასტურებს მხოლოდ development API-ის მსუბუქი read-only workload-ის გავლას. Unreal replication, Dedicated Server runtime, რეალური shard capacity და 500-CCU soak gate კვლავ ღიაა.
+
+
+## 8. Dedicated Server registry and player session leases — Stage 5 increment
+
+Migration `database/migrations/004_session_registry.sql` introduces two isolated tables:
+
+- `ridge.dedicated_servers`: instance ID, region, advertised host/port, protocol version, maximum/live player counts, status and last heartbeat.
+- `ridge.player_sessions`: player-to-shard reservation, session ID, lease expiry, connected/released/expired state.
+
+The backend exposes private, game-server-token-protected routes:
+
+| Method | Route | Purpose |
+|---|---|---|
+| POST | `/v1/internal/shards/register` | Register a Dedicated Server process |
+| POST | `/v1/internal/shards/{serverId}/heartbeat` | Update live player count and ready/draining/offline state |
+| GET | `/v1/internal/shards?region=ge-tbilisi` | List shard health and capacity |
+| POST | `/v1/internal/players/{playerId}/session/allocate` | Reserve a slot in a healthy shard |
+| POST | `/v1/internal/shards/{serverId}/players/{playerId}/claim` | Claim an unexpired player reservation |
+| POST | `/v1/internal/shards/{serverId}/players/{playerId}/release` | Release the active reservation/session |
+
+Operational rules:
+- Default allocation lease and heartbeat-freshness window are each **45 seconds**.
+- Maximum advertised capacity is bounded to **250 players per server instance**; capacity must be measured, not assumed.
+- Allocation prefers the lowest-utilization healthy shard in the requested region. Reserved leases and connected sessions both consume capacity.
+- A per-player advisory lock and partial unique index prevent one player from obtaining multiple active sessions. A per-region advisory lock serializes capacity selection; this avoids two concurrent allocations oversubscribing the same shard.
+- A draining shard receives no new allocations but may claim existing live leases. An offline heartbeat expires its active sessions.
+- Allocation replay returns the existing session for the same player and region while that shard remains healthy. A different region returns `SESSION_REGION_TRANSFER_REQUIRED`; cross-region transfer is not silently simulated.
+- **serverId is a process-instance ID**. Generate a new unique ID for each Dedicated Server process boot; an ID with active sessions cannot be registered again.
+
+These endpoints are not public player authentication. They require the existing internal server token. Before production, replace the shared token with per-server credentials/rotation, add a verified account/session gateway, and issue a signed or otherwise authenticated client join ticket. The current RidgePublicId is a prototype identifier, not an authentication credential.
+
+## 9. Stage 5 validation results — 2026-11-23
+
+| Gate | Result |
+|---|---:|
+| Python / BotLab / Unreal static source regression | 52/52 PASS |
+| Unreal project static validator | 24/24 PASS |
+| API load harness unit tests | 6/6 PASS |
+| Backend Node regression (no database) | 32/32 PASS |
+| PostgreSQL migrations 001–004 | PASS |
+| Live backend + PostgreSQL integration | **34 PASS / 0 FAIL / 0 SKIP** |
+| Session registry live integration | PASS |
+| 500 virtual-user development HTTP preflight | PASS |
+
+The API preflight used only in-memory development storage: **6,995 requests, 0 failures, 437.22 requests/second**, p50 **0.52 ms**, p95 **0.84 ms**, p99 **1.45 ms**, maximum **10.13 ms**. It observed at most **7 simultaneous in-flight HTTP requests**. These are virtual API users, not 500 Unreal Engine network connections.
+
+Workflow evidence:
+- [Stage 5 static/API preflight](https://github.com/maisuradzee/Ridge/actions/runs/45127239100)
+- [PostgreSQL 16 integration, migrations 001–004](https://github.com/maisuradzee/Ridge/actions/runs/45127239008)
+
+Committed machine-readable report: `RIDGE_GIS/Data/QA/ridge_stage5_session_registry_20261123.json`.
+
+## 10. Remaining hard gates
+
+- Player-facing authentication/session gateway and signed join ticket.
+- Per-Dedicated-Server credentials, rotation and least-privilege access.
+- Unreal GameMode/BackendSubsystem registration + heartbeat wiring, then real UE 5.8 UBT/UHT compile.
+- Two-client PIE and Dedicated Server claim/reconnect behavior.
+- Cross-region/cross-shard transfer workflow and recovery.
+- 25/50/100 UE client capacity measurements and 500-CCU soak with server CPU, memory, tick, network bandwidth and replication profiling.
+
+The current work is the backend control-plane foundation, not proof of a 500-player playable world.

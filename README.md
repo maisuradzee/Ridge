@@ -85,3 +85,18 @@ The API preflight is not a 500-player Unreal network test. C++ compilation/UHT, 
 ### Stage 5 — first API preflight result (2026-11-23)
 
 GitHub Actions Stage 5 preflight: **SUCCESS**. Regression gates: Python **52/52**, UE project static validation **24/24**, load-runner unit tests **6/6**, backend Node **22/22**. The isolated 500 virtual-user development API run completed **6,996 requests / 0 errors**, at **437.24 req/s**; p95 latency **0.56 ms**. This ran only against in-memory development storage. It is not a 500-player Unreal Engine network test; maximum simultaneous in-flight HTTP requests was 9. See the [workflow run](https://github.com/maisuradzee/Ridge/actions/runs/45125101490) and [Stage 5 plan/results](docs/56_STAGE_5_MULTIPLAYER_CAPACITY_PLAN_GE.md).
+
+
+### Stage 5 increment — shard registry and session leases (2026-11-23)
+
+The separate Stage 5 branch now contains a PostgreSQL-backed Dedicated Server registry and player session lease manager:
+
+- migration 004 adds shard-instance and player-session tables;
+- private endpoints register instances, update heartbeats, allocate region-specific sessions, claim leases and release sessions;
+- per-player and per-region advisory locks plus a one-active-session index protect concurrent allocation;
+- stale/offline shards are excluded; draining shards receive no new assignments;
+- current region changes are explicitly rejected until a cross-region transfer workflow exists.
+
+Validation: Stage 5 CI **SUCCESS** (Python 52/52, UE static 24/24, load unit 6/6, backend Node 32/32); PostgreSQL 16 live integration **34/34 PASS**, migrations 001–004; 500 virtual-user API preflight **6,995 requests / 0 errors / 437.22 req/s** against memory-only development storage.
+
+This still does not prove 500 connected Unreal players. Player login/authentication, per-server credentials, client join tickets, Unreal registration/heartbeat wiring, real UE 5.8 runtime, cross-shard transfer, and real 500-CCU soak remain open.

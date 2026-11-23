@@ -80,6 +80,10 @@ test('allocation is idempotent while a lease remains valid and reissues after ex
   const { registry, advance } = await createRegistry();
   await registry.registerServer(registration('shard-a', { maxPlayers: 3 }));
   const first = await registry.allocatePlayer('player-1', 'ge-tbilisi');
+  await assert.rejects(
+    registry.registerServer(registration('shard-a', { maxPlayers: 3 })),
+    (error) => error.code === 'SHARD_INSTANCE_ID_IN_USE',
+  );
   const replay = await registry.allocatePlayer('player-1', 'ge-tbilisi');
   assert.equal(replay.sessionId, first.sessionId);
   assert.equal(replay.reused, true);
@@ -176,4 +180,18 @@ test('allocator refuses regions without capacity and rejects malformed player ID
     registry.allocatePlayer('../bad', 'ge-tbilisi'),
     (error) => error.code === 'INVALID_PLAYER_ID',
   );
+});
+
+
+test('an active player session cannot silently change regions', async () => {
+  const { registry } = await createRegistry();
+  await registry.registerServer(registration('shard-a', { maxPlayers: 2 }));
+  const allocation = await registry.allocatePlayer('player-1', 'ge-tbilisi');
+  await assert.rejects(
+    registry.allocatePlayer('player-1', 'ge-batumi'),
+    (error) => error.code === 'SESSION_REGION_TRANSFER_REQUIRED',
+  );
+  const replay = await registry.allocatePlayer('player-1', 'ge-tbilisi');
+  assert.equal(replay.sessionId, allocation.sessionId);
+  assert.equal(replay.server.region, 'ge-tbilisi');
 });
