@@ -67,3 +67,16 @@ All three configured GitHub Actions workflows completed successfully on the curr
 
 
 BotLab V14 repeatability verification: **64,000 synthetic events across four deterministic seeds**, 0 invariant failures; 3,111 pairwise environment scenarios per seed. See `RIDGE_GIS/Data/QA/ridge_botlab_seed_matrix_v14.json`. This is synthetic model coverage, not exhaustive human-behavior proof or live Unreal NPC validation.
+
+
+## Stage 5 — Multiplayer capacity preflight
+
+Stage 5 work is maintained on the separate `codex/ridge-stage-5-multiplayer` branch so the V14 release branch and `main` remain unchanged.
+
+- [Stage 5 multiplayer and capacity plan](docs/56_STAGE_5_MULTIPLAYER_CAPACITY_PLAN_GE.md)
+- `Tools/LoadTest/ridge_api_load_test.mjs`: development-only virtual HTTP client runner (default 500 clients); refuses production and database-backed targets.
+- `Tools/LoadTest/test_load_test.mjs`: load runner unit tests.
+- `Tools/BotLab/tests/test_stage5_replication_contract.py`: static regression checks for existing Unreal replication declarations.
+- `.github/workflows/ridge-stage5-preflight.yml`: static checks plus an isolated 500-client in-memory API preflight.
+
+The API preflight is not a 500-player Unreal network test. C++ compilation/UHT, PIE, Dedicated Server runtime, network emulation, shard allocation/transfer, and the real 500-CCU Unreal soak test remain explicit acceptance gates. The 5 × 100 shard layout in the plan is a capacity-testing hypothesis, not a measured production limit.
