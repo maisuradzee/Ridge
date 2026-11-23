@@ -16,11 +16,15 @@ PowerShell-ში მიუთითეთ UE 5.8-ის რეალური i
 
 ```powershell
 $env:RIDGE_UE_ROOT = 'D:\Epic Games\UE_5.8'
+
+# Default: main Game executable + Editor/PIE target
 .\Tools\BotLab\Run-UE58BotLabBuild.ps1
+
+# Full local compile gate: Game + Editor/PIE + Dedicated Server
 .\Tools\BotLab\Run-UE58BotLabBuild.ps1 -BuildDedicatedServer
 ```
 
-Script ამოწმებს engine `Build.version`-ს და compile-ს უშვებს `RIDGEEditor Win64 Development`-ზე; `-BuildDedicatedServer` დამატებით `RIDGEServer` target-ს აგებს. Compile failure ავტომატურად აბრუნებს non-zero exit-ს.
+Script ამოწმებს engine `Build.version`-ს და ზუსტად UE 5.8-ს. Default-ად აგებს `RIDGE Win64 Development` (main game executable) და `RIDGEEditor Win64 Development` target-ებს; `-BuildDedicatedServer` დამატებით `RIDGEServer` target-ს აგებს. თითოეული target-ის ლოგი და ერთიანი JSON ანგარიში ინახება `RIDGE_GIS/Data/QA`-ში. Build failure report-ში ფიქსირდება და script non-zero exit-ით სრულდება. Unreal Build Tool-ის გამოძახება UHT-საც უშვებს შესაბამისი target-ის compile pipeline-ში.
 
 ## 2. Test map და NavMesh
 
