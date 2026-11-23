@@ -27,6 +27,9 @@ class Stage5ReplicationContractTests(unittest.TestCase):
         cls.session_registry_source = (ROOT / "backend/src/session-registry.mjs").read_text(encoding="utf-8")
         cls.backend_oidc_source = (ROOT / "backend/src/oidc-verifier.mjs").read_text(encoding="utf-8")
         cls.gateway_integration_test = (ROOT / "backend/test/gateway-auth.test.mjs").read_text(encoding="utf-8")
+        cls.client_login_header = (ROOT / "Source/RIDGE/Public/RidgeSessionLoginSubsystem.h").read_text(encoding="utf-8")
+        cls.client_login_source = (ROOT / "Source/RIDGE/Private/RidgeSessionLoginSubsystem.cpp").read_text(encoding="utf-8")
+        cls.game_config = (ROOT / "Config/DefaultGame.ini").read_text(encoding="utf-8")
         cls.mission_source = (ROOT / "Source/RIDGE/Private/RidgeMissionCheckpoint.cpp").read_text(encoding="utf-8")
 
     def test_character_uses_actor_and_character_movement_replication(self) -> None:
@@ -186,6 +189,32 @@ class Stage5ReplicationContractTests(unittest.TestCase):
         self.assertIn("isPrivateBindHost(HOST)", self.backend_server_source)
         self.assertIn("public and wildcard listeners are forbidden", self.backend_server_source)
         self.assertIn("from 'node:net'", self.backend_server_source)
+
+
+    def test_unreal_client_uses_oidc_gateway_and_travels_with_single_use_ticket(self) -> None:
+        self.assertIn("RequestAndConnect", self.client_login_header)
+        self.assertIn("/v1/gateway/session", self.client_login_source)
+        self.assertIn('TEXT("Authorization"), TEXT("Bearer ") + OidcAccessToken', self.client_login_source)
+        self.assertIn('TEXT("region")', self.client_login_source)
+        self.assertIn("PlayerController->ClientTravel(ConnectUrl, TRAVEL_Absolute, false, FGuid())", self.client_login_source)
+        self.assertIn('TEXT("ridgeJoinTicket=")', self.client_login_source)
+        self.assertIn('TEXT("ridgeClaimAttemptId=")', self.client_login_source)
+        self.assertIn("FDateTime::ParseIso8601", self.client_login_source)
+        self.assertIn("IsValidJoinTicket", self.client_login_source)
+        self.assertIn("GatewayBaseUrl", self.game_config)
+
+    def test_client_login_never_uses_dedicated_server_or_gateway_service_secrets(self) -> None:
+        self.assertNotIn("RIDGE_SERVER_EVENT_TOKEN", self.client_login_source)
+        self.assertNotIn("RIDGE_SERVER_PROVISIONING_TOKEN", self.client_login_source)
+        self.assertNotIn("RIDGE_GATEWAY_TOKEN", self.client_login_source)
+        self.assertNotIn("x-ridge-server-token", self.client_login_source)
+        self.assertNotIn("x-ridge-gateway-token", self.client_login_source)
+        self.assertNotIn("UE_LOG", self.client_login_source)
+        self.assertIn("https://", self.client_login_source)
+        self.assertIn("http://127.0.0.1", self.client_login_source)
+        self.assertIn("Authority == Host", self.client_login_source)
+        self.assertIn("Authority.StartsWith(Host + TEXT(\":\"))", self.client_login_source)
+        self.assertNotIn('GatewayBaseUrl.StartsWith(TEXT("http://127.0.0.1")', self.client_login_source)
 
     def test_public_gateway_derives_player_identity_only_from_verified_oidc_claims(self) -> None:
         self.assertIn("url.pathname === '/v1/gateway/session'", self.backend_server_source)

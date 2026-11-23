@@ -174,3 +174,21 @@ Latest verification on commit `e2df4c454c332e9362d7e44ca4044a3f16c8058c`:
 - 500 virtual-client development API preflight: **6,995 requests / 0 failures / 437.26 req/s**, p50 **0.48 ms**, p95 **0.82 ms**, p99 **1.96 ms**, max **5.43 ms**, max observed in-flight requests **6**
 
 This remains a virtual HTTP API preflight, not a 500-client Unreal Engine soak. Actual OIDC tenant/auth-code setup, production secret manager provisioning and audit, TLS proxy deployment, encrypted Unreal game transport, UE 5.8 UBT/UHT/PIE and true 500-CCU profiling remain open.
+
+
+## 10. Unreal client OIDC gateway handoff — source wiring added
+
+The client-side `URidgeSessionLoginSubsystem` accepts an already-issued OIDC access token from the selected identity-provider integration. It posts only the region to `POST /v1/gateway/session` and sends the token in the HTTPS Authorization Bearer header. It does not receive or contain the gateway service token, Dedicated Server credential or provisioning token.
+
+On a valid HTTP 201 response it checks the server host/port, 256-bit ticket format, claimAttemptId UUID and expiry, then constructs the connection options in memory and invokes `APlayerController::ClientTravel` to the allocated Dedicated Server. The client never writes the connect URL to logs, config, replicated state or analytics. A successful callback means travel was started; the server's PreLogin/PostLogin lifecycle still determines whether the player actually joins.
+
+The non-secret Gateway base URL is configured in `Config/DefaultGame.ini` under `[RidgeSessionLogin]`. The checked-in default is loopback-only development. Production packaged builds must override it with the actual HTTPS Gateway domain.
+
+This closes the Unreal client-to-gateway-to-travel source path, but the external provider authorization-code/PKCE UI and credential retrieval are not implemented here. The subsystem expects the caller to supply a provider-issued access token whose audience is `ridge-game-api`.
+
+CI static source contracts cover the URL, Bearer header, region request, ticket/attempt/expiry validation, ClientTravel call and absence of internal service secrets. UBT/UHT and real UE client travel still require an Unreal Engine 5.8 environment.
+
+
+## 11. Client Gateway transport allowlist
+
+The client login subsystem accepts HTTPS Gateway URLs in every build. Plain HTTP is allowed only for exact loopback authorities: `127.0.0.1`, `localhost` or `[::1]`, optionally followed by a valid numeric port. Prefix lookalikes such as `localhost.attacker.example`, URL user-info, paths, query strings and fragments are rejected for the development HTTP exception. The gateway base URL is read from `Config/DefaultGame.ini`; the checked-in value is a loopback development default and must be overridden in packaged production configuration.

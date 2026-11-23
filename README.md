@@ -221,3 +221,6 @@ Latest commit `e2df4c454c332e9362d7e44ca4044a3f16c8058c`:
 Evidence: [Stage 5 CI](https://github.com/maisuradzee/Ridge/actions/runs/45137196624) · [PostgreSQL 16](https://github.com/maisuradzee/Ridge/actions/runs/45137196583).
 
 Real UE 5.8 build/runtime, actual identity provider deployment, secret manager rollout, TLS ingress, encrypted Unreal game transport and 500-CCU Unreal soak remain unverified.
+
+
+Client login transport accepts HTTPS or exact loopback-only HTTP in development; public/prefix-lookalike HTTP origins are rejected. See `docs/61_UNREAL_CLIENT_SESSION_HANDOFF_GE.md`.
