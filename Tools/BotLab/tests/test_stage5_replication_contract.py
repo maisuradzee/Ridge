@@ -252,6 +252,9 @@ class Stage5ReplicationContractTests(unittest.TestCase):
         self.assertIn("/v1/gateway/session", self.gateway_integration_test)
         self.assertIn("/join/claim", self.gateway_integration_test)
         self.assertIn("PLAYER_SESSION_ALREADY_CONNECTED", self.gateway_integration_test)
+        self.assertIn("PLAYER_SESSION_LOGIN_PENDING", self.gateway_integration_test)
+        self.assertIn("allocation.reused", self.backend_server_source)
+        self.assertIn("SESSION_JOIN_TICKET_ALREADY_ISSUED", self.session_registry_source)
         self.assertIn("RIDGE_OIDC_JWKS_URL", self.gateway_integration_test)
 
     def test_gateway_and_game_server_credentials_are_separate(self) -> None:

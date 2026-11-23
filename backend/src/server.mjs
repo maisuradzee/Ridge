@@ -262,6 +262,10 @@ async function main() {
         if (allocation.status !== 'allocated') {
           throw new RidgeError(409, 'PLAYER_SESSION_ALREADY_CONNECTED', 'ამ ანგარიშს უკვე აქვს აქტიური თამაშის კავშირი.');
         }
+        if (allocation.reused) {
+          // Never replace a ticket belonging to an existing in-flight login attempt.
+          throw new RidgeError(409, 'PLAYER_SESSION_LOGIN_PENDING', 'ამ ანგარიშზე შესვლის მცდელობა უკვე მიმდინარეობს; დაელოდე მიმდინარე კავშირს ან მის ვადის ამოწურვას.');
+        }
 
         let issued;
         try {

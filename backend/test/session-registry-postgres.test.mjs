@@ -98,6 +98,10 @@ test('PostgreSQL session registry serializes shard capacity, reuses leases, clai
     assert.notEqual(storedTicket.rows[0].join_ticket_hash, issued.ticket);
     assert.match(storedTicket.rows[0].join_ticket_hash, /^[a-f0-9]{64}$/);
     assert.equal(storedTicket.rows[0].join_attempt_id, issued.claimAttemptId);
+    await assert.rejects(
+      registry.issueJoinTicket({ playerId: firstPlayer, sessionId: first.sessionId, serverId }),
+      (error) => error.code === 'SESSION_JOIN_TICKET_ALREADY_ISSUED',
+    );
     const claimAttemptId = issued.claimAttemptId;
     await assert.rejects(
       registry.claimJoinTicket({ serverId, ticket: issued.ticket, claimAttemptId: randomUUID() }),

@@ -315,6 +315,10 @@ function createMemoryRegistry({ clock, leaseMs, heartbeatTtlMs, joinTicketMs, se
       if (!serverIsLive(server, now, heartbeatTtlMs)) {
         fail(409, 'SHARD_NOT_LIVE', 'Shard heartbeat მოძველებულია ან სერვერი მზად არ არის.');
       }
+      if (session.joinTicketHash && session.joinTicketExpiresAt !== null &&
+          session.joinTicketExpiresAt > now) {
+        fail(409, 'SESSION_JOIN_TICKET_ALREADY_ISSUED', 'ამ allocation-ს მოქმედი join ticket უკვე აქვს; მისი ჩანაცვლება დაუშვებელია.');
+      }
       const ticket = randomBytes(32).toString('base64url');
       const claimAttemptId = randomUUID();
       const expiresAt = Math.min(session.leaseExpiresAt, now + joinTicketMs);
@@ -651,6 +655,7 @@ function createPostgresRegistry({ pool, clock, leaseMs, heartbeatTtlMs, joinTick
       return inTransaction(pool, async (client) => {
         const selected = await client.query(
           'SELECT ps.session_id, ps.player_id, ps.server_id, ps.status, ps.lease_expires_at, ' +
+          'ps.join_ticket_hash, ps.join_ticket_expires_at, ' +
           'ds.region, ds.host, ds.port, ds.protocol_version, ds.max_players, ds.current_players, ' +
           'ds.status AS server_status, ds.last_heartbeat_at ' +
           'FROM ridge.player_sessions ps JOIN ridge.dedicated_servers ds ON ds.server_id = ps.server_id ' +
@@ -663,6 +668,10 @@ function createPostgresRegistry({ pool, clock, leaseMs, heartbeatTtlMs, joinTick
         }
         if (!row.lease_expires_at || new Date(row.lease_expires_at).getTime() <= clock()) {
           fail(409, 'SESSION_LEASE_EXPIRED', 'Session lease ვადაგასულია.');
+        }
+        if (row.join_ticket_hash && row.join_ticket_expires_at &&
+            new Date(row.join_ticket_expires_at).getTime() > clock()) {
+          fail(409, 'SESSION_JOIN_TICKET_ALREADY_ISSUED', 'ამ allocation-ს მოქმედი join ticket უკვე აქვს; მისი ჩანაცვლება დაუშვებელია.');
         }
         ensureServerLive({ status: row.server_status, lastHeartbeatAt: row.last_heartbeat_at });
         const updated = await client.query(

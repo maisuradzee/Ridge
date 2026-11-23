@@ -131,14 +131,26 @@ test('public OIDC gateway allocates a shard, issues a stable join ticket and den
   assert.equal(rejected.status, 401);
 
   const token = makeIdentityToken(privateKey, kid, { email: 'private@example.test' });
-  const firstResponse = await fetch(gatewayUrl, {
+  // Two overlapping requests for one account must not replace the first join ticket.
+  const createSessionRequest = () => fetch(gatewayUrl, {
     method: 'POST',
     headers: { 'content-type': 'application/json', authorization: 'Bearer ' + token },
     body: JSON.stringify({ region: 'ge-tbilisi' }),
   });
-  assert.equal(firstResponse.status, 201);
-  assert.equal(firstResponse.headers.get('cache-control'), 'no-store');
-  const first = await firstResponse.json();
+  const [firstResponse, parallelResponse] = await Promise.all([
+    createSessionRequest(),
+    createSessionRequest(),
+  ]);
+  assert.deepEqual(
+    [firstResponse.status, parallelResponse.status].sort((a, b) => a - b),
+    [201, 409],
+    'Exactly one concurrent login may issue a join ticket.',
+  );
+  const successfulResponse = firstResponse.status === 201 ? firstResponse : parallelResponse;
+  const rejectedResponse = firstResponse.status === 409 ? firstResponse : parallelResponse;
+  assert.equal(successfulResponse.headers.get('cache-control'), 'no-store');
+  assert.equal((await rejectedResponse.json()).error.code, 'PLAYER_SESSION_LOGIN_PENDING');
+  const first = await successfulResponse.json();
   assert.equal(first.server.host, '127.0.0.1');
   assert.equal(first.server.port, 7777);
   assert.equal(first.server.protocolVersion, 'ridge-0.6');

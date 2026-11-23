@@ -261,29 +261,23 @@ test('join ticket is short-lived, stored as a digest, single-use and idempotent 
   );
 });
 
-test('issuing a replacement ticket invalidates the previous bearer ticket', async () => {
+test('an active join ticket cannot be overwritten by a second issuance request', async () => {
   const { registry } = await createRegistry({ leaseMs: 10_000, joinTicketMs: 5_000 });
   await registry.registerServer(registration('shard-reissue'));
   const allocation = await registry.allocatePlayer('player-reissue', 'ge-tbilisi');
   const first = await registry.issueJoinTicket({
     playerId: 'player-reissue', sessionId: allocation.sessionId, serverId: 'shard-reissue',
   });
-  const second = await registry.issueJoinTicket({
-    playerId: 'player-reissue', sessionId: allocation.sessionId, serverId: 'shard-reissue',
-  });
-  assert.notEqual(first.ticket, second.ticket);
   await assert.rejects(
-    registry.claimJoinTicket({
-      serverId: 'shard-reissue',
-      ticket: first.ticket,
-      claimAttemptId: first.claimAttemptId,
+    registry.issueJoinTicket({
+      playerId: 'player-reissue', sessionId: allocation.sessionId, serverId: 'shard-reissue',
     }),
-    (error) => error.code === 'JOIN_TICKET_INVALID',
+    (error) => error.code === 'SESSION_JOIN_TICKET_ALREADY_ISSUED',
   );
   const claim = await registry.claimJoinTicket({
     serverId: 'shard-reissue',
-    ticket: second.ticket,
-    claimAttemptId: second.claimAttemptId,
+    ticket: first.ticket,
+    claimAttemptId: first.claimAttemptId,
   });
   assert.equal(claim.connected, true);
 });
