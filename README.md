@@ -100,3 +100,10 @@ The separate Stage 5 branch now contains a PostgreSQL-backed Dedicated Server re
 Validation: Stage 5 CI **SUCCESS** (Python 52/52, UE static 24/24, load unit 6/6, backend Node 33/33); PostgreSQL 16 live integration **35/35 PASS**, migrations 001–004; 500 virtual-user API preflight **6,994 requests / 0 errors / 437.23 req/s** against memory-only development storage.
 
 This still does not prove 500 connected Unreal players. Player login/authentication, per-server credentials, client join tickets, Unreal registration/heartbeat wiring, real UE 5.8 runtime, cross-shard transfer, and real 500-CCU soak remain open.
+
+
+### Unreal Dedicated Server control-plane wiring
+
+The Stage 5 branch adds GameMode-driven shard registration on startup, 15-second heartbeat updates, and an offline heartbeat during EndPlay. Production mode now requires an HTTPS backend URL and an explicitly advertised non-loopback server host. See docs/57_UNREAL_DEDICATED_SERVER_REGISTRATION_GE.md.
+
+This is source-level integration only until the Editor/Server targets compile and the server + two clients pass a real UE 5.8 network test. Player login/session allocation, signed join tickets, per-server credentials, reconnect and shard transfer remain open gates.

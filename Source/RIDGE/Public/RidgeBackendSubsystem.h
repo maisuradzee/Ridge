@@ -19,6 +19,10 @@ public:
     virtual void Deinitialize() override;
 
     bool EnsureServerConfiguration();
+    bool RegisterDedicatedServer();
+    void SendShardHeartbeat(int32 CurrentPlayers, const FString& Status);
+    void MarkDedicatedServerOffline(int32 CurrentPlayers);
+    bool IsDedicatedServerRegistered() const { return bShardRegistered; }
     void AcceptDeliveryJob(const FString& PlayerId);
     void RecordDeliveryCheckpoint(const FString& PlayerId, const FString& CheckpointId, const FVector& ObservedPositionMeters);
 
@@ -34,6 +38,15 @@ private:
 
     FString ApiBaseUrl;
     FString ServerToken;
+    FString ServerId;
+    FString ServerRegion;
+    FString ServerHost;
+    FString ServerProtocolVersion;
+    int32 ServerPort = 7777;
+    int32 ServerMaxPlayers = 100;
+    bool bShardRegistered = false;
+    bool bRegistrationInFlight = false;
+    bool bShutdownRequested = false;
     TMap<FString, FActiveDeliveryJob> ActiveJobs;
     TSet<FString> PendingAccepts;
 

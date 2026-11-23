@@ -21,6 +21,8 @@ class Stage5ReplicationContractTests(unittest.TestCase):
         cls.server_target = (ROOT / "Source/RIDGEServer.Target.cs").read_text(encoding="utf-8")
         cls.engine_config = (ROOT / "Config/DefaultEngine.ini").read_text(encoding="utf-8")
         cls.backend_bridge = (ROOT / "Source/RIDGE/Private/RidgeBackendSubsystem.cpp").read_text(encoding="utf-8")
+        cls.backend_header = (ROOT / "Source/RIDGE/Public/RidgeBackendSubsystem.h").read_text(encoding="utf-8")
+        cls.game_mode_header = (ROOT / "Source/RIDGE/Public/RidgeGameMode.h").read_text(encoding="utf-8")
 
     def test_character_uses_actor_and_character_movement_replication(self) -> None:
         self.assertIn("bReplicates = true;", self.character_source)
@@ -63,6 +65,48 @@ class Stage5ReplicationContractTests(unittest.TestCase):
         self.assertIn("NetServerMaxTickRate=30", self.engine_config)
         self.assertIn("MaxClientRate=15000", self.engine_config)
         self.assertIn("MaxInternetClientRate=15000", self.engine_config)
+
+
+    def test_backend_registers_dedicated_server_with_a_unique_process_instance_id(self) -> None:
+        self.assertIn("RegisterDedicatedServer", self.backend_header)
+        self.assertIn("/v1/internal/shards/register", self.backend_bridge)
+        self.assertIn("FGuid::NewGuid()", self.backend_bridge)
+        self.assertIn('TEXT("RIDGE_SERVER_ID")', self.backend_bridge)
+        self.assertIn('TEXT("RIDGE_SERVER_MAX_PLAYERS")', self.backend_bridge)
+        self.assertIn('TEXT("x-ridge-server-token")', self.backend_bridge)
+
+    def test_production_backend_requires_https_and_an_advertisable_host(self) -> None:
+        self.assertIn('TEXT("https://")', self.backend_bridge)
+        self.assertIn('TEXT("RIDGE_ENV")', self.backend_bridge)
+        self.assertIn('TEXT("RIDGE_API_BASE_URL")', self.backend_bridge)
+        self.assertIn('TEXT("RIDGE_SERVER_HOST")', self.backend_bridge)
+        self.assertIn("cannot advertise a loopback host", self.backend_bridge)
+        self.assertIn("bShutdownRequested", self.backend_header)
+        self.assertIn('Self->SendShardHeartbeat(0, TEXT("offline"))', self.backend_bridge)
+        self.assertIn("refusing to send the server token", self.backend_bridge)
+
+    def test_shard_heartbeat_is_bounded_and_uses_the_internal_registry_route(self) -> None:
+        self.assertIn("SendShardHeartbeat", self.backend_header)
+        self.assertIn("/heartbeat", self.backend_bridge)
+        self.assertIn('TEXT("ready")', self.backend_bridge)
+        self.assertIn('TEXT("draining")', self.backend_bridge)
+        self.assertIn('TEXT("offline")', self.backend_bridge)
+        self.assertIn("CurrentPlayers > ServerMaxPlayers", self.backend_bridge)
+
+    def test_game_mode_registers_and_sends_periodic_server_heartbeat(self) -> None:
+        self.assertIn("virtual void BeginPlay() override;", self.game_mode_header)
+        self.assertIn("virtual void EndPlay(const EEndPlayReason::Type EndPlayReason) override;", self.game_mode_header)
+        self.assertIn("FTimerHandle ServerHeartbeatTimer", self.game_mode_header)
+        self.assertIn("RegisterDedicatedServer()", self.game_mode_source)
+        self.assertIn("SetTimer(", self.game_mode_source)
+        self.assertIn("15.0f", self.game_mode_source)
+        self.assertIn("SendShardHeartbeat(GetNumPlayers(), TEXT(\"ready\"))", self.game_mode_source)
+        self.assertIn("MarkDedicatedServerOffline(GetNumPlayers())", self.game_mode_source)
+
+    def test_shard_registration_and_heartbeat_are_server_authority_only(self) -> None:
+        self.assertIn("GetNetMode() == NM_Client", self.backend_bridge)
+        self.assertIn("HasAuthority()", self.game_mode_source)
+        self.assertIn("GetNetMode() == NM_Client", self.game_mode_source)
 
     def test_backend_secret_is_not_marked_for_network_replication(self) -> None:
         self.assertIn('GetEnvironmentVariable(TEXT("RIDGE_SERVER_EVENT_TOKEN"))', self.backend_bridge)
