@@ -118,3 +118,10 @@ This is source-level integration only until the Editor/Server targets compile an
 - API preflight: **6,995 requests / 0 errors / 437.17 req/s**, p95 **1.17 ms** on in-memory development storage.
 
 This is source-contract verification, not a real UE build. Unreal Engine 5.8 UBT/UHT, Dedicated Server runtime, two-client PIE, reconnect, and true 500-player load remain unverified. See the [Dedicated Server runbook](docs/57_UNREAL_DEDICATED_SERVER_REGISTRATION_GE.md).
+
+
+### One-time join-ticket control
+
+Stage 5 backend adds migration 005 for short-lived, single-use join tickets. The gateway receives a random 256-bit Base64URL ticket, while PostgreSQL stores only its SHA-256 digest. Tickets are bound to a specific shard, expire within 30 seconds (and never outlive their session lease), allow same-attempt idempotent retry, and reject reuse from another connection attempt. The legacy direct claim route is removed.
+
+See docs/58_JOIN_TICKET_AND_PRELOGIN_FLOW_GE.md. This is not yet a full account login: verified identity-provider/gateway integration and Unreal PreLoginAsync/PostLogin/Logout wiring remain open.

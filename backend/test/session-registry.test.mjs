@@ -94,34 +94,44 @@ test('allocation is idempotent while a lease remains valid and reissues after ex
   assert.equal(renewed.reused, false);
 });
 
-test('only the assigned live shard can claim a lease; claim replay is safe', async () => {
+test('only the assigned live shard can claim a join ticket; same-claim replay is safe', async () => {
   const { registry } = await createRegistry();
   await registry.registerServer(registration('shard-a'));
   await registry.registerServer(registration('shard-b'));
   const allocation = await registry.allocatePlayer('player-1', 'ge-tbilisi');
-  const wrongShard = allocation.server.serverId === 'shard-a' ? 'shard-b' : 'shard-a';
-  await assert.rejects(
-    registry.claimSession({ playerId: 'player-1', sessionId: allocation.sessionId, serverId: wrongShard }),
-    (error) => error.code === 'SESSION_NOT_FOUND',
-  );
-  const claimed = await registry.claimSession({
+  const issued = await registry.issueJoinTicket({
     playerId: 'player-1', sessionId: allocation.sessionId, serverId: allocation.server.serverId,
   });
+  const claimAttemptId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+  const wrongShard = allocation.server.serverId === 'shard-a' ? 'shard-b' : 'shard-a';
+  await assert.rejects(
+    registry.claimJoinTicket({ serverId: wrongShard, ticket: issued.ticket, claimAttemptId }),
+    (error) => error.code === 'JOIN_TICKET_INVALID',
+  );
+  const claimed = await registry.claimJoinTicket({
+    serverId: allocation.server.serverId, ticket: issued.ticket, claimAttemptId,
+  });
   assert.equal(claimed.connected, true);
+  assert.equal(claimed.playerId, 'player-1');
   assert.equal(claimed.replayed, false);
-  const replay = await registry.claimSession({
-    playerId: 'player-1', sessionId: allocation.sessionId, serverId: allocation.server.serverId,
+  const replay = await registry.claimJoinTicket({
+    serverId: allocation.server.serverId, ticket: issued.ticket, claimAttemptId,
   });
   assert.equal(replay.replayed, true);
 });
 
-test('draining shard accepts existing leases but receives no new allocations', async () => {
+test('draining shard accepts existing join tickets but receives no new allocations', async () => {
   const { registry } = await createRegistry();
   await registry.registerServer(registration('shard-a', { maxPlayers: 3 }));
   const allocation = await registry.allocatePlayer('player-1', 'ge-tbilisi');
-  await registry.heartbeatServer('shard-a', { currentPlayers: 0, status: 'draining' });
-  const claimed = await registry.claimSession({
+  const issued = await registry.issueJoinTicket({
     playerId: 'player-1', sessionId: allocation.sessionId, serverId: 'shard-a',
+  });
+  await registry.heartbeatServer('shard-a', { currentPlayers: 0, status: 'draining' });
+  const claimed = await registry.claimJoinTicket({
+    serverId: 'shard-a',
+    ticket: issued.ticket,
+    claimAttemptId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   });
   assert.equal(claimed.connected, true);
   await assert.rejects(
@@ -130,14 +140,21 @@ test('draining shard accepts existing leases but receives no new allocations', a
   );
 });
 
-test('offline or stale shards are never selected and offline heartbeat expires sessions', async () => {
+test('offline or stale shards are never selected and offline heartbeat invalidates join tickets', async () => {
   const { registry, advance } = await createRegistry();
   await registry.registerServer(registration('shard-a', { maxPlayers: 3 }));
   const allocation = await registry.allocatePlayer('player-1', 'ge-tbilisi');
+  const issued = await registry.issueJoinTicket({
+    playerId: 'player-1', sessionId: allocation.sessionId, serverId: 'shard-a',
+  });
   await registry.heartbeatServer('shard-a', { currentPlayers: 0, status: 'offline' });
   await assert.rejects(
-    registry.claimSession({ playerId: 'player-1', sessionId: allocation.sessionId, serverId: 'shard-a' }),
-    (error) => error.code === 'SESSION_NOT_FOUND',
+    registry.claimJoinTicket({
+      serverId: 'shard-a',
+      ticket: issued.ticket,
+      claimAttemptId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    }),
+    (error) => error.code === 'JOIN_TICKET_INVALID',
   );
   await assert.rejects(
     registry.allocatePlayer('player-2', 'ge-tbilisi'),
@@ -194,4 +211,121 @@ test('an active player session cannot silently change regions', async () => {
   const replay = await registry.allocatePlayer('player-1', 'ge-tbilisi');
   assert.equal(replay.sessionId, allocation.sessionId);
   assert.equal(replay.server.region, 'ge-tbilisi');
+});
+
+test('join ticket is short-lived, stored as a digest, single-use and idempotent for one claim attempt', async () => {
+  const { registry } = await createRegistry({ leaseMs: 10_000, joinTicketMs: 5_000 });
+  await registry.registerServer(registration('shard-ticket'));
+  const allocation = await registry.allocatePlayer('player-ticket', 'ge-tbilisi');
+  const issued = await registry.issueJoinTicket({
+    playerId: 'player-ticket',
+    sessionId: allocation.sessionId,
+    serverId: 'shard-ticket',
+  });
+  assert.match(issued.ticket, /^[A-Za-z0-9_-]{43}$/);
+  assert.equal(issued.ticket.length, 43);
+  assert.equal(issued.sessionId, allocation.sessionId);
+  assert.equal(issued.server.serverId, 'shard-ticket');
+  assert.ok(Date.parse(issued.expiresAt) > Date.now() || Date.parse(issued.expiresAt) > 0);
+
+  const claimAttemptId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+  const claimed = await registry.claimJoinTicket({
+    serverId: 'shard-ticket',
+    ticket: issued.ticket,
+    claimAttemptId,
+  });
+  assert.equal(claimed.playerId, 'player-ticket');
+  assert.equal(claimed.sessionId, allocation.sessionId);
+  assert.equal(claimed.connected, true);
+  assert.equal(claimed.replayed, false);
+
+  const replay = await registry.claimJoinTicket({
+    serverId: 'shard-ticket',
+    ticket: issued.ticket,
+    claimAttemptId,
+  });
+  assert.equal(replay.replayed, true);
+
+  await assert.rejects(
+    registry.claimJoinTicket({
+      serverId: 'shard-ticket',
+      ticket: issued.ticket,
+      claimAttemptId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+    }),
+    (error) => error.code === 'JOIN_TICKET_ALREADY_USED',
+  );
+});
+
+test('issuing a replacement ticket invalidates the previous bearer ticket', async () => {
+  const { registry } = await createRegistry({ leaseMs: 10_000, joinTicketMs: 5_000 });
+  await registry.registerServer(registration('shard-reissue'));
+  const allocation = await registry.allocatePlayer('player-reissue', 'ge-tbilisi');
+  const first = await registry.issueJoinTicket({
+    playerId: 'player-reissue', sessionId: allocation.sessionId, serverId: 'shard-reissue',
+  });
+  const second = await registry.issueJoinTicket({
+    playerId: 'player-reissue', sessionId: allocation.sessionId, serverId: 'shard-reissue',
+  });
+  assert.notEqual(first.ticket, second.ticket);
+  await assert.rejects(
+    registry.claimJoinTicket({
+      serverId: 'shard-reissue',
+      ticket: first.ticket,
+      claimAttemptId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    }),
+    (error) => error.code === 'JOIN_TICKET_INVALID',
+  );
+  const claim = await registry.claimJoinTicket({
+    serverId: 'shard-reissue',
+    ticket: second.ticket,
+    claimAttemptId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+  });
+  assert.equal(claim.connected, true);
+});
+
+test('join ticket expiry is enforced against the server lease', async () => {
+  const { registry, advance } = await createRegistry({ leaseMs: 10_000, joinTicketMs: 1_000 });
+  await registry.registerServer(registration('shard-ticket-expiry'));
+  const allocation = await registry.allocatePlayer('player-ticket-expiry', 'ge-tbilisi');
+  const issued = await registry.issueJoinTicket({
+    playerId: 'player-ticket-expiry',
+    sessionId: allocation.sessionId,
+    serverId: 'shard-ticket-expiry',
+  });
+  advance(1_001);
+  await assert.rejects(
+    registry.claimJoinTicket({
+      serverId: 'shard-ticket-expiry',
+      ticket: issued.ticket,
+      claimAttemptId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+    }),
+    (error) => error.code === 'JOIN_TICKET_EXPIRED',
+  );
+});
+
+test('ticket issuance requires the correct allocated session and a valid claim attempt ID', async () => {
+  const { registry } = await createRegistry({ leaseMs: 10_000, joinTicketMs: 5_000 });
+  await registry.registerServer(registration('shard-ticket-auth'));
+  const allocation = await registry.allocatePlayer('player-ticket-auth', 'ge-tbilisi');
+  await assert.rejects(
+    registry.issueJoinTicket({
+      playerId: 'another-player',
+      sessionId: allocation.sessionId,
+      serverId: 'shard-ticket-auth',
+    }),
+    (error) => error.code === 'SESSION_NOT_ALLOCATED',
+  );
+  const issued = await registry.issueJoinTicket({
+    playerId: 'player-ticket-auth',
+    sessionId: allocation.sessionId,
+    serverId: 'shard-ticket-auth',
+  });
+  await assert.rejects(
+    registry.claimJoinTicket({
+      serverId: 'shard-ticket-auth',
+      ticket: issued.ticket,
+      claimAttemptId: 'not-a-uuid',
+    }),
+    (error) => error.code === 'INVALID_CLAIM_ATTEMPT_ID',
+  );
 });

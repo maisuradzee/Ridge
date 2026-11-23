@@ -167,12 +167,13 @@ test('production mode refuses to start with ephemeral in-memory storage', async 
   assert.match(output, /Production mode cannot use ephemeral in-memory game storage/);
 });
 
-test('trusted game-server session control plane enforces auth and supports allocate, claim, heartbeat and release', async (t) => {
+test('trusted gateway issues one-time join tickets and only the assigned shard can claim them', async (t) => {
   const port = await getFreePort();
   const baseUrl = 'http://127.0.0.1:' + port;
-  const token = 'local-test-session-registry-token';
-  const serverId = 'shard-http-' + Date.now();
-  const playerId = 'player-session-http';
+  const token = 'local-test-join-ticket-token';
+  const serverId = 'shard-join-' + Date.now();
+  const playerId = 'player-join-http';
+  const claimAttemptId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
   const child = spawn(process.execPath, ['src/server.mjs'], {
     cwd: backendDir,
     env: { ...process.env, PORT: String(port), RIDGE_ENV: 'development', RIDGE_STORAGE: 'memory', RIDGE_SERVER_EVENT_TOKEN: token },
@@ -197,10 +198,10 @@ test('trusted game-server session control plane enforces auth and supports alloc
     protocolVersion: 'ridge-0.6',
   });
 
-  const unauthorized = await fetch(registerUrl, {
+  const unauthorizedRegister = await fetch(registerUrl, {
     method: 'POST', headers: { 'content-type': 'application/json' }, body: registerBody,
   });
-  assert.equal(unauthorized.status, 403);
+  assert.equal(unauthorizedRegister.status, 403);
 
   const registered = await fetch(registerUrl, { method: 'POST', headers: serverHeaders, body: registerBody });
   assert.equal(registered.status, 201);
@@ -221,17 +222,65 @@ test('trusted game-server session control plane enforces auth and supports alloc
   assert.equal(allocation.server.serverId, serverId);
   assert.equal(allocation.status, 'allocated');
 
-  const claimUrl = baseUrl + '/v1/internal/shards/' + serverId + '/players/' + playerId + '/claim';
-  const claim = await fetch(claimUrl, {
+  const issueUrl = baseUrl + '/v1/internal/players/' + playerId + '/session/join-ticket';
+  const issueBody = JSON.stringify({ sessionId: allocation.sessionId, serverId });
+  const unauthorizedIssue = await fetch(issueUrl, {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: issueBody,
+  });
+  assert.equal(unauthorizedIssue.status, 403);
+
+  const issuedResponse = await fetch(issueUrl, { method: 'POST', headers: serverHeaders, body: issueBody });
+  assert.equal(issuedResponse.status, 201);
+  const issued = await issuedResponse.json();
+  assert.equal(issued.sessionId, allocation.sessionId);
+  assert.equal(issued.server.serverId, serverId);
+  assert.match(issued.ticket, /^[A-Za-z0-9_-]{43}$/);
+
+  const legacyClaimUrl = baseUrl + '/v1/internal/shards/' + serverId + '/players/' + playerId + '/claim';
+  const legacyClaim = await fetch(legacyClaimUrl, {
     method: 'POST', headers: serverHeaders, body: JSON.stringify({ sessionId: allocation.sessionId }),
+  });
+  assert.equal(legacyClaim.status, 404);
+
+  const wrongShardClaim = await fetch(baseUrl + '/v1/internal/shards/another-shard/join/claim', {
+    method: 'POST',
+    headers: serverHeaders,
+    body: JSON.stringify({ ticket: issued.ticket, claimAttemptId }),
+  });
+  assert.equal(wrongShardClaim.status, 403);
+  assert.equal((await wrongShardClaim.json()).error.code, 'JOIN_TICKET_INVALID');
+
+  const claimUrl = baseUrl + '/v1/internal/shards/' + serverId + '/join/claim';
+  const noAuthClaim = await fetch(claimUrl, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ ticket: issued.ticket, claimAttemptId }),
+  });
+  assert.equal(noAuthClaim.status, 403);
+
+  const claim = await fetch(claimUrl, {
+    method: 'POST', headers: serverHeaders,
+    body: JSON.stringify({ ticket: issued.ticket, claimAttemptId }),
   });
   assert.equal(claim.status, 200);
-  assert.equal((await claim.json()).replayed, false);
+  const claimed = await claim.json();
+  assert.equal(claimed.playerId, playerId);
+  assert.equal(claimed.sessionId, allocation.sessionId);
+  assert.equal(claimed.connected, true);
+  assert.equal(claimed.replayed, false);
 
   const replay = await fetch(claimUrl, {
-    method: 'POST', headers: serverHeaders, body: JSON.stringify({ sessionId: allocation.sessionId }),
+    method: 'POST', headers: serverHeaders,
+    body: JSON.stringify({ ticket: issued.ticket, claimAttemptId }),
   });
   assert.equal((await replay.json()).replayed, true);
+
+  const stolenReplay = await fetch(claimUrl, {
+    method: 'POST', headers: serverHeaders,
+    body: JSON.stringify({ ticket: issued.ticket, claimAttemptId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' }),
+  });
+  assert.equal(stolenReplay.status, 409);
+  assert.equal((await stolenReplay.json()).error.code, 'JOIN_TICKET_ALREADY_USED');
 
   const heartbeat = await fetch(baseUrl + '/v1/internal/shards/' + serverId + '/heartbeat', {
     method: 'POST', headers: serverHeaders, body: JSON.stringify({ currentPlayers: 1, status: 'ready' }),

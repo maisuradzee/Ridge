@@ -163,12 +163,25 @@ async function main() {
         return send(response, 201, await sessionRegistry.allocatePlayer(allocateSessionMatch[1], body.region ?? 'ge-tbilisi'));
       }
 
-      const claimSessionMatch = url.pathname.match(/^\/v1\/internal\/shards\/([A-Za-z0-9._:-]{1,80})\/players\/([A-Za-z0-9._:-]{1,80})\/claim$/);
-      if (request.method === 'POST' && claimSessionMatch) {
+      const issueJoinTicketMatch = url.pathname.match(/^\/v1\/internal\/players\/([A-Za-z0-9._:-]{1,80})\/session\/join-ticket$/);
+      if (request.method === 'POST' && issueJoinTicketMatch) {
         requireGameServer(request);
         const body = await readJson(request);
-        return send(response, 200, await sessionRegistry.claimSession({
-          serverId: claimSessionMatch[1], playerId: claimSessionMatch[2], sessionId: body.sessionId,
+        return send(response, 201, await sessionRegistry.issueJoinTicket({
+          playerId: issueJoinTicketMatch[1],
+          sessionId: body.sessionId,
+          serverId: body.serverId,
+        }));
+      }
+
+      const claimJoinTicketMatch = url.pathname.match(/^\/v1\/internal\/shards\/([A-Za-z0-9._:-]{1,80})\/join\/claim$/);
+      if (request.method === 'POST' && claimJoinTicketMatch) {
+        requireGameServer(request);
+        const body = await readJson(request);
+        return send(response, 200, await sessionRegistry.claimJoinTicket({
+          serverId: claimJoinTicketMatch[1],
+          ticket: body.ticket,
+          claimAttemptId: body.claimAttemptId,
         }));
       }
 

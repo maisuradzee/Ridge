@@ -66,19 +66,42 @@ test('PostgreSQL session registry serializes shard capacity, reuses leases, clai
     assert.equal(replay.sessionId, first.sessionId);
     assert.equal(replay.reused, true);
 
-    const claimed = await registry.claimSession({
+    const issued = await registry.issueJoinTicket({
       playerId: firstPlayer,
       sessionId: first.sessionId,
       serverId,
     });
+    assert.match(issued.ticket, /^[A-Za-z0-9_-]{43}$/);
+    const storedTicket = await pool.query(
+      'SELECT join_ticket_hash FROM ridge.player_sessions WHERE session_id = $1',
+      [first.sessionId],
+    );
+    assert.notEqual(storedTicket.rows[0].join_ticket_hash, issued.ticket);
+    assert.match(storedTicket.rows[0].join_ticket_hash, /^[a-f0-9]{64}$/);
+    const claimAttemptId = randomUUID();
+    const claimed = await registry.claimJoinTicket({
+      serverId,
+      ticket: issued.ticket,
+      claimAttemptId,
+    });
+    assert.equal(claimed.playerId, firstPlayer);
+    assert.equal(claimed.sessionId, first.sessionId);
     assert.equal(claimed.connected, true);
     assert.equal(claimed.replayed, false);
-    const claimReplay = await registry.claimSession({
-      playerId: firstPlayer,
-      sessionId: first.sessionId,
+    const claimReplay = await registry.claimJoinTicket({
       serverId,
+      ticket: issued.ticket,
+      claimAttemptId,
     });
     assert.equal(claimReplay.replayed, true);
+    await assert.rejects(
+      registry.claimJoinTicket({
+        serverId,
+        ticket: issued.ticket,
+        claimAttemptId: randomUUID(),
+      }),
+      (error) => error.code === 'JOIN_TICKET_ALREADY_USED',
+    );
 
     const toRelease = allocations[1];
     const released = await registry.releaseSession({
