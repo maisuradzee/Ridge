@@ -1,22 +1,22 @@
 {
   "schema": "ridge.stage5.join-ticket-unreal-login-report.v1",
   "date": "2026-11-23",
-  "commit": "e54e992e8307a1702a106e37a62a0ca631df948a",
+  "commit": "9d95b2276686c757e9fbccb85144b51d5f68db78",
   "workflows": {
     "stage5": {
-      "id": 45131346534,
+      "id": 45132841698,
       "result": "success",
-      "url": "https://github.com/maisuradzee/Ridge/actions/runs/45131346534",
+      "url": "https://github.com/maisuradzee/Ridge/actions/runs/45132841698",
       "pythonBotlabUnrealSource": "66/66 PASS",
       "unrealProjectStatic": "24/24 PASS",
       "loadRunnerUnit": "6/6 PASS",
-      "backendNode": "37/37 PASS",
+      "backendNode": "38 PASS / 0 FAIL / 2 SKIP",
       "ueBuildStatus": "NOT_RUN_STATIC_ONLY"
     },
     "postgres": {
-      "id": 45131346543,
+      "id": 45132841779,
       "result": "success",
-      "url": "https://github.com/maisuradzee/Ridge/actions/runs/45131346543",
+      "url": "https://github.com/maisuradzee/Ridge/actions/runs/45132841779",
       "migrations": [
         "001_initial_schema.sql",
         "002_job_checkpoints.sql",
@@ -24,7 +24,7 @@
         "004_session_registry.sql",
         "005_session_join_tickets.sql"
       ],
-      "backendAndLivePostgres": "39 PASS / 0 FAIL / 0 SKIP"
+      "backendAndLivePostgres": "40 PASS / 0 FAIL / 0 SKIP"
     }
   },
   "apiPreflight": {
@@ -32,17 +32,28 @@
     "storage": "memory-ephemeral",
     "virtualClients": 500,
     "durationSeconds": 15,
-    "totalRequests": 6996,
+    "totalRequests": 6997,
     "failedRequests": 0,
-    "requestsPerSecond": 437.29,
-    "maxObservedInFlightRequests": 5,
+    "requestsPerSecond": 437.39,
+    "maxObservedInFlightRequests": 7,
     "latencyMs": {
-      "p50": 0.48,
-      "p95": 0.8,
-      "p99": 1.83,
-      "max": 7.23
+      "p50": 0.22,
+      "p95": 0.47,
+      "p99": 1.94,
+      "max": 11.29
     },
     "notAnUnrealPlayerNetworkTest": true
+  },
+  "joinTicket": {
+    "ticketBytes": 32,
+    "storage": "sha256_digest_only",
+    "defaultTtlSeconds": 30,
+    "attemptId": "server-issued-random-uuid",
+    "attemptIdStoredWithTicketHashAndExpiry": true,
+    "sameAttemptRetryIdempotent": true,
+    "differentAttemptRejected": true,
+    "perShardDuplicateCanonicalPlayerGuard": true,
+    "databaseTicketFieldsAllOrNoneConstraint": true
   },
   "gatewayAndServerRoles": {
     "gatewayEnv": "RIDGE_GATEWAY_TOKEN",
@@ -63,6 +74,9 @@
   },
   "unrealLoginLifecycle": {
     "asyncPreLogin": true,
+    "stableClaimAttemptReadFromConnectionOptions": true,
+    "sameTicketAttemptRetryIdempotent": true,
+    "duplicatePendingOrActiveBackendPlayerRejected": true,
     "initNewPlayerTicketBinding": true,
     "postLoginCanonicalServerOnlyIdentity": true,
     "invalidConnectionKick": true,

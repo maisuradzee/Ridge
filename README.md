@@ -156,3 +156,20 @@ The UE project validator explicitly reports UBT/UHT build as NOT_RUN_STATIC_ONLY
 ### Stable join-ticket retry and duplicate-account protection
 
 Ticket issuance now returns a stable `claimAttemptId`, which the gateway must preserve and pass with the bearer ticket through Unreal connection options. PreLogin reuses this ID across retries; a duplicate pending/active backend player ID on the same shard is rejected. The schema enforces that ticket hash, expiry and claim attempt ID are stored together.
+
+
+### Stable join-ticket retry hardening — CI verified (2026-11-23)
+
+Revision `9d95b2276686c757e9fbccb85144b51d5f68db78` passed:
+- Python/BotLab/UE source regression **66/66**
+- UE project static validator **24/24**
+- Load-runner tests **6/6**
+- Backend Node tests **38 PASS / 0 FAIL / 2 SKIP**
+- PostgreSQL 16 migrations 001–005 + live integration **40/40 PASS**
+- 500 virtual-client in-memory API preflight **6,997 requests / 0 errors / 437.39 req/s**, p95 **0.47 ms**
+
+Ticket issuance now returns a stable `claimAttemptId` stored with the ticket digest and expiry. Gateway passes it as `ridgeClaimAttemptId`; Unreal PreLogin reuses it across retries. A duplicate pending/active canonical player ID is rejected on the same shard.
+
+Evidence: [Stage 5 CI](https://github.com/maisuradzee/Ridge/actions/runs/45132841698) · [PostgreSQL 16 integration](https://github.com/maisuradzee/Ridge/actions/runs/45132841779).
+
+This is still source/static verification, not UBT/UHT compilation or a live Unreal network test. The 500 virtual users do not represent 500 connected Unreal players.

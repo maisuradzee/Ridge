@@ -76,7 +76,9 @@ Gateway და Dedicated Server ცალკე shared role token-ებს ი�
 
 The Stage 5 Unreal GameMode now wires the backend one-time ticket to the Unreal login lifecycle:
 
-- PreLoginAsync first invokes Super::PreLoginAsync, preserving the engine's normal pre-login checks and event broadcast, then validates the ridgeJoinTicket connection option against the backend asynchronously.
+- PreLoginAsync first invokes Super::PreLoginAsync, preserving the engine's normal pre-login checks and event broadcast, then validates ridgeJoinTicket plus the gateway-issued ridgeClaimAttemptId against the backend asynchronously.
+- Same-ticket/same-attempt PreLogin retries are idempotent. A different connection attempt cannot reuse the ticket.
+- The GameMode refuses a second pending/active connection for the same canonical backend Player ID on that shard.
 - A successful server claim is held in a short-lived in-memory pending map (25 seconds).
 - InitNewPlayer requires the same ticket to have a matching backend-verified claim; missing/expired claims are rejected.
 - PostLogin sets the canonical backend identity on the server-only PlayerState field. Unexpected unverified connections are kicked through GameSession->KickPlayer.
@@ -102,10 +104,10 @@ The C++ overrides and source-level contracts are committed and are being checked
 
 ## 7. CI results — 2026-11-23
 
-The latest committed revision is verified by two successful GitHub Actions workflows:
+The latest stable-claim revision `9d95b2276686c757e9fbccb85144b51d5f68db78` passed both GitHub Actions workflows:
 
-- Stage 5 Multiplayer Preflight: https://github.com/maisuradzee/Ridge/actions/runs/45131346534
-- PostgreSQL 16 Integration: https://github.com/maisuradzee/Ridge/actions/runs/45131346543
+- Stage 5 Multiplayer Preflight: https://github.com/maisuradzee/Ridge/actions/runs/45132841698
+- PostgreSQL 16 Integration: https://github.com/maisuradzee/Ridge/actions/runs/45132841779
 
 | Gate | Result |
 |---|---:|
@@ -113,14 +115,14 @@ The latest committed revision is verified by two successful GitHub Actions workf
 | Unreal project static validator | 24/24 PASS |
 | UE UBT/UHT build | NOT RUN |
 | Load-runner unit tests | 6/6 PASS |
-| Backend Node regression | 37/37 PASS |
+| Backend Node regression | 38 PASS / 0 FAIL / 2 SKIP |
 | PostgreSQL migrations 001–005 | PASS |
-| PostgreSQL/live backend integration | 39 PASS / 0 FAIL / 0 SKIP |
-| 500 virtual-client in-memory API preflight | 6,996 requests / 0 failures |
+| PostgreSQL/live backend integration | 40 PASS / 0 FAIL / 0 SKIP |
+| 500 virtual-client in-memory API preflight | 6,997 requests / 0 failures |
 
-The 15-second development API preflight recorded 437.29 requests/second, p50 0.48 ms, p95 0.80 ms, p99 1.83 ms and max 7.23 ms; maximum observed simultaneous in-flight requests was 5. It uses in-memory development storage and is not a 500-player Unreal network test.
+The 15-second development API preflight recorded 437.39 requests/second, p50 0.22 ms, p95 0.47 ms, p99 1.94 ms and max 11.29 ms; maximum observed simultaneous in-flight requests was 7. It uses in-memory development storage and is not a 500-player Unreal network test.
 
-Machine-readable report: RIDGE_GIS/Data/QA/ridge_stage5_join_ticket_unreal_login_20261123.json.
+Machine-readable report: `RIDGE_GIS/Data/QA/ridge_stage5_join_ticket_unreal_login_20261123.json`.
 
 The branch remains Draft. The results do not prove C++ compilation, UHT, PIE, a reachable Dedicated Server, encrypted game transport, account-provider integration, two-client replication, or 500 concurrent Unreal players.
 
