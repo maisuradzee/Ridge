@@ -145,6 +145,9 @@ async function createStorage() {
 }
 
 async function main() {
+  if (ENV === 'production' && STORAGE === 'memory') {
+    throw new Error('Production mode cannot use ephemeral in-memory game storage.');
+  }
   if (ENV === 'production' && !TRUST_PROXY) {
     throw new Error('Production RIDGE public gateway requires a trusted HTTPS reverse proxy (RIDGE_TRUST_PROXY=true).');
   }

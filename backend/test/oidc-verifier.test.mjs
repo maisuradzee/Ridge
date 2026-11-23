@@ -110,7 +110,7 @@ test('rejects a token whose RSA signature is invalid', async () => {
   const trusted = makeKey('trusted-key');
   const attacker = makeKey('attacker-key');
   const verifier = makeVerifier([trusted.jwk]);
-  await assert.rejects(verifier.verifyToken(makeToken(attacker)), /signature verification failed/);
+  await assert.rejects(verifier.verifyToken(makeToken({ ...attacker, kid: trusted.kid })), /signature verification failed/);
 });
 
 test('rejects wrong issuer and audience', async () => {
