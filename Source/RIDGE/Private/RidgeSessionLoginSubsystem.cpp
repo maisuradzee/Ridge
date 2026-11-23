@@ -42,6 +42,25 @@ void URidgeSessionLoginSubsystem::Initialize(FSubsystemCollectionBase& Collectio
     }
 }
 
+void URidgeSessionLoginSubsystem::RequestAndConnectFromBlueprint(
+    const FString& OidcAccessToken,
+    const FString& Region,
+    APlayerController* LocalPlayerController)
+{
+    const TWeakObjectPtr<URidgeSessionLoginSubsystem> WeakThis(this);
+    RequestAndConnect(
+        OidcAccessToken,
+        Region,
+        LocalPlayerController,
+        [WeakThis](bool bTravelStarted, const FString& Message)
+        {
+            if (URidgeSessionLoginSubsystem* Self = WeakThis.Get())
+            {
+                Self->OnLoginAttemptCompleted.Broadcast(bTravelStarted, Message);
+            }
+        });
+}
+
 bool URidgeSessionLoginSubsystem::IsGatewayTransportAllowed() const
 {
     if (GatewayBaseUrl.StartsWith(TEXT("https://"), ESearchCase::IgnoreCase))

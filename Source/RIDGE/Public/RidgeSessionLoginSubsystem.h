@@ -13,6 +13,11 @@ class APlayerController;
  * The bearer join ticket is kept only in the short-lived response/URL memory and
  * is never written to config, replicated state, logs or analytics.
  */
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(
+    FRidgeSessionLoginResult,
+    bool, bTravelStarted,
+    const FString&, Message);
+
 UCLASS()
 class RIDGE_API URidgeSessionLoginSubsystem : public UGameInstanceSubsystem
 {
@@ -31,6 +36,17 @@ public:
         const FString& Region,
         APlayerController* LocalPlayerController,
         TFunction<void(bool, const FString&)> Completion);
+
+    /** Blueprint entry point for the login UI after the identity provider supplies a JWT. */
+    UFUNCTION(BlueprintCallable, Category = "RIDGE|Session")
+    void RequestAndConnectFromBlueprint(
+        const FString& OidcAccessToken,
+        const FString& Region,
+        APlayerController* LocalPlayerController);
+
+    /** Fires when Gateway validation finishes and ClientTravel is either started or rejected. */
+    UPROPERTY(BlueprintAssignable, Category = "RIDGE|Session")
+    FRidgeSessionLoginResult OnLoginAttemptCompleted;
 
 private:
     FString GatewayBaseUrl;

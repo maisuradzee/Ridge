@@ -99,3 +99,15 @@ Revision f689c702c267a90486f329850d2b790131bb5a82 passed the Stage 5 preflight:
 The PostgreSQL 16 migration/live integration result remains the previously verified Stage 5 backend result on commit e2df4c454c332e9362d7e44ca4044a3f16c8058c: migrations 001–006 and **57 PASS / 0 FAIL / 0 SKIP**. This client-only commit did not alter backend or migration files.
 
 The CI proves source-contract/static behavior only. No UE 5.8 C++ compile/UHT, packaged client, provider UI, game-connection encryption or actual ClientTravel-to-PreLogin network join has run yet.
+
+
+## 7. Blueprint/UI entry point
+
+The GameInstance subsystem exposes a Blueprint-callable wrapper for the login UI:
+
+- Obtain the GameInstance subsystem URidgeSessionLoginSubsystem.
+- Bind to the OnLoginAttemptCompleted event before starting the request.
+- Call RequestAndConnectFromBlueprint with the provider-issued OIDC access token, selected region (or ge-tbilisi), and local PlayerController.
+- When bTravelStarted is true, the client travel request has started. It is not confirmation that the Dedicated Server accepted PreLogin; show final in-game state only after the server session is established.
+
+The subsystem does not present provider UI and does not acquire or refresh the OIDC token itself. The caller remains responsible for securely obtaining a token for the RIDGE API audience and refreshing/re-authenticating before expiry. Do not store the access token in SaveGame or log it. The delegate message is safe for UI display and intentionally excludes credential values.

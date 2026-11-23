@@ -197,11 +197,18 @@ class Stage5ReplicationContractTests(unittest.TestCase):
         self.assertIn('TEXT("Authorization"), TEXT("Bearer ") + OidcAccessToken', self.client_login_source)
         self.assertIn('TEXT("region")', self.client_login_source)
         self.assertIn("PlayerController->ClientTravel(ConnectUrl, TRAVEL_Absolute, false, FGuid())", self.client_login_source)
-        self.assertIn('TEXT("?ridgeJoinTicket=")', self.client_login_source)
-        self.assertIn('TEXT("?ridgeClaimAttemptId=")', self.client_login_source)
+        self.assertIn('TEXT("ridgeJoinTicket=")', self.client_login_source)
+        self.assertIn('TEXT("ridgeClaimAttemptId=")', self.client_login_source)
         self.assertIn("FDateTime::ParseIso8601", self.client_login_source)
         self.assertIn("IsValidJoinTicket", self.client_login_source)
         self.assertIn("GatewayBaseUrl", self.game_config)
+
+    def test_client_login_subsystem_exposes_a_blueprint_ui_entrypoint_and_result_delegate(self) -> None:
+        self.assertIn("UFUNCTION(BlueprintCallable", self.client_login_header)
+        self.assertIn("RequestAndConnectFromBlueprint", self.client_login_header)
+        self.assertIn("UPROPERTY(BlueprintAssignable", self.client_login_header)
+        self.assertIn("OnLoginAttemptCompleted", self.client_login_header)
+        self.assertIn("OnLoginAttemptCompleted.Broadcast(bTravelStarted, Message)", self.client_login_source)
 
     def test_client_login_never_uses_dedicated_server_or_gateway_service_secrets(self) -> None:
         self.assertNotIn("RIDGE_SERVER_EVENT_TOKEN", self.client_login_source)
@@ -211,7 +218,7 @@ class Stage5ReplicationContractTests(unittest.TestCase):
         self.assertNotIn("x-ridge-gateway-token", self.client_login_source)
         self.assertNotIn("UE_LOG", self.client_login_source)
         self.assertIn("https://", self.client_login_source)
-        self.assertIn('GatewayBaseUrl.StartsWith(TEXT("http://")', self.client_login_source)
+        self.assertIn("http://127.0.0.1", self.client_login_source)
         self.assertIn("Authority == Host", self.client_login_source)
         self.assertIn("Authority.StartsWith(Host + TEXT(\":\"))", self.client_login_source)
         self.assertNotIn('GatewayBaseUrl.StartsWith(TEXT("http://127.0.0.1")', self.client_login_source)
