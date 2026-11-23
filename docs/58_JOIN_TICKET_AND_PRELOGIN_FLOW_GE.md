@@ -96,3 +96,28 @@ The bearer ticket is passed through Unreal's ridgeJoinTicket connection option a
 ### Current acceptance boundary
 
 The C++ overrides and source-level contracts are committed and are being checked by static CI. This does not prove Unreal Engine 5.8 UBT/UHT compilation or a live network join. Still required: Windows UE 5.8 Editor/Server build, two-client PIE/Dedicated Server, rejection of a ticketless client, successful claim, public PlayerState replication, logout release, reconnect, and server shutdown recovery.
+
+
+## 7. CI results — 2026-11-23
+
+The latest committed revision is verified by two successful GitHub Actions workflows:
+
+- Stage 5 Multiplayer Preflight: https://github.com/maisuradzee/Ridge/actions/runs/45131346534
+- PostgreSQL 16 Integration: https://github.com/maisuradzee/Ridge/actions/runs/45131346543
+
+| Gate | Result |
+|---|---:|
+| Python / BotLab / UE source regression | 66/66 PASS |
+| Unreal project static validator | 24/24 PASS |
+| UE UBT/UHT build | NOT RUN |
+| Load-runner unit tests | 6/6 PASS |
+| Backend Node regression | 37/37 PASS |
+| PostgreSQL migrations 001–005 | PASS |
+| PostgreSQL/live backend integration | 39 PASS / 0 FAIL / 0 SKIP |
+| 500 virtual-client in-memory API preflight | 6,996 requests / 0 failures |
+
+The 15-second development API preflight recorded 437.29 requests/second, p50 0.48 ms, p95 0.80 ms, p99 1.83 ms and max 7.23 ms; maximum observed simultaneous in-flight requests was 5. It uses in-memory development storage and is not a 500-player Unreal network test.
+
+Machine-readable report: RIDGE_GIS/Data/QA/ridge_stage5_join_ticket_unreal_login_20261123.json.
+
+The branch remains Draft. The results do not prove C++ compilation, UHT, PIE, a reachable Dedicated Server, encrypted game transport, account-provider integration, two-client replication, or 500 concurrent Unreal players.

@@ -1,0 +1,83 @@
+{
+  "schema": "ridge.stage5.join-ticket-unreal-login-report.v1",
+  "date": "2026-11-23",
+  "commit": "e54e992e8307a1702a106e37a62a0ca631df948a",
+  "workflows": {
+    "stage5": {
+      "id": 45131346534,
+      "result": "success",
+      "url": "https://github.com/maisuradzee/Ridge/actions/runs/45131346534",
+      "pythonBotlabUnrealSource": "66/66 PASS",
+      "unrealProjectStatic": "24/24 PASS",
+      "loadRunnerUnit": "6/6 PASS",
+      "backendNode": "37/37 PASS",
+      "ueBuildStatus": "NOT_RUN_STATIC_ONLY"
+    },
+    "postgres": {
+      "id": 45131346543,
+      "result": "success",
+      "url": "https://github.com/maisuradzee/Ridge/actions/runs/45131346543",
+      "migrations": [
+        "001_initial_schema.sql",
+        "002_job_checkpoints.sql",
+        "003_postgres_runtime.sql",
+        "004_session_registry.sql",
+        "005_session_join_tickets.sql"
+      ],
+      "backendAndLivePostgres": "39 PASS / 0 FAIL / 0 SKIP"
+    }
+  },
+  "apiPreflight": {
+    "environment": "development",
+    "storage": "memory-ephemeral",
+    "virtualClients": 500,
+    "durationSeconds": 15,
+    "totalRequests": 6996,
+    "failedRequests": 0,
+    "requestsPerSecond": 437.29,
+    "maxObservedInFlightRequests": 5,
+    "latencyMs": {
+      "p50": 0.48,
+      "p95": 0.8,
+      "p99": 1.83,
+      "max": 7.23
+    },
+    "notAnUnrealPlayerNetworkTest": true
+  },
+  "gatewayAndServerRoles": {
+    "gatewayEnv": "RIDGE_GATEWAY_TOKEN",
+    "gatewayHeader": "x-ridge-gateway-token",
+    "gatewayOperations": [
+      "session allocation",
+      "join ticket issuance"
+    ],
+    "gameServerEnv": "RIDGE_SERVER_EVENT_TOKEN",
+    "gameServerHeader": "x-ridge-server-token",
+    "gameServerOperations": [
+      "shard registration",
+      "heartbeat",
+      "join ticket claim",
+      "session release"
+    ],
+    "perInstanceServerCredentials": "NOT_IMPLEMENTED"
+  },
+  "unrealLoginLifecycle": {
+    "asyncPreLogin": true,
+    "initNewPlayerTicketBinding": true,
+    "postLoginCanonicalServerOnlyIdentity": true,
+    "invalidConnectionKick": true,
+    "logoutSessionRelease": true,
+    "expiredPendingClaimCleanup": true,
+    "replicatedPublicIdSeparatedFromCanonicalBackendId": true,
+    "sourceContractTests": "PASS"
+  },
+  "remainingGates": [
+    "UE 5.8 UBT/C++ compile and UHT",
+    "Dedicated Server runtime and two-client PIE",
+    "Verify encrypted/protected UE game-connection transport for the bearer ticket",
+    "Identity provider and actual player-facing session gateway",
+    "Per-server credentials, rotation and revocation",
+    "Real two-client replication, reconnect and logout soak",
+    "500 connected Unreal player capacity/soak test"
+  ]
+}

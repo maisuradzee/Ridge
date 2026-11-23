@@ -198,3 +198,17 @@ The current work is the backend control-plane foundation, not proof of a 500-pla
 Migration 005 and the backend issue/claim endpoints are now connected in Unreal source through PreLoginAsync, InitNewPlayer, PostLogin and Logout. The server stores canonical verified player ID only in a non-replicated PlayerState field. Gateway allocation/issue routes now require a separate RIDGE_GATEWAY_TOKEN; Dedicated Server operations require RIDGE_SERVER_EVENT_TOKEN. See docs/58_JOIN_TICKET_AND_PRELOGIN_FLOW_GE.md.
 
 This is source implementation, not a verified UE build/runtime. The gateway/identity provider, encrypted UE game-connection transport, UBT/UHT and real two-client Dedicated Server test remain release gates.
+
+
+### Verified Stage 5 join-ticket and Unreal login CI (2026-11-23)
+
+- Python/BotLab/UE source regression 66/66 PASS.
+- UE project static validator 24/24 PASS; UBT/UHT was NOT RUN.
+- Load harness 6/6 PASS; backend Node 37/37 PASS.
+- PostgreSQL migration 001–005 and live integration 39 PASS / 0 FAIL / 0 SKIP.
+- 500 virtual-client memory API preflight: 6,996 requests, zero failures, 437.29 req/s, p95 0.80 ms.
+
+Stage workflow: https://github.com/maisuradzee/Ridge/actions/runs/45131346534
+PostgreSQL workflow: https://github.com/maisuradzee/Ridge/actions/runs/45131346543
+
+The load profile is not 500 connected Unreal clients. Real UE 5.8 build, UHT, two-client PIE, transport encryption, identity gateway and 500-CCU soak remain open release gates.

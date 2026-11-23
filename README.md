@@ -134,3 +134,20 @@ The Stage 5 Unreal GameMode source now binds one-time tickets to UE 5.8 PreLogin
 Session allocation and ticket issuance now require a separate RIDGE_GATEWAY_TOKEN; shard operations retain RIDGE_SERVER_EVENT_TOKEN. The gateway implementation and account identity provider remain open. The bearer ticket is carried in the UE login options, so production also requires verified encrypted game-connection transport.
 
 See docs/58_JOIN_TICKET_AND_PRELOGIN_FLOW_GE.md. C++ UBT/UHT and live UE 5.8 two-client runtime have not yet been executed.
+
+
+### Join-ticket + Unreal login lifecycle — CI result (2026-11-23)
+
+Latest commit e54e992e8307a1702a106e37a62a0ca631df948a passed:
+- Python/BotLab/UE source regression: **66/66**
+- UE project static validator: **24/24**
+- Load-runner tests: **6/6**
+- Backend Node tests: **37/37**
+- PostgreSQL 16 migration 001–005 + live integration: **39/39 PASS**
+- 500 virtual-client in-memory API preflight: **6,996 requests, 0 errors, 437.29 req/s**, p95 **0.80 ms**
+
+Workflow evidence:
+- Stage 5: https://github.com/maisuradzee/Ridge/actions/runs/45131346534
+- PostgreSQL: https://github.com/maisuradzee/Ridge/actions/runs/45131346543
+
+The UE project validator explicitly reports UBT/UHT build as NOT_RUN_STATIC_ONLY. No real UE 5.8 compile, two-client PIE or 500 connected-player soak is claimed. See docs/58_JOIN_TICKET_AND_PRELOGIN_FLOW_GE.md.
