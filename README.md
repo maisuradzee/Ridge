@@ -204,3 +204,20 @@ This does not yet configure an actual identity-provider tenant or authorization-
 Production shard authentication now uses a unique 256-bit token per `RIDGE_SERVER_INSTANCE_ID`. The orchestrator receives the token once from the provisioning API; PostgreSQL stores only its SHA-256 hash. Credential rotation invalidates the previous token immediately, and revocation affects only the selected instance. The old shared-token compatibility path is development-only.
 
 Migration 006 adds the credential registry. Production requires `RIDGE_SERVER_PROVISIONING_TOKEN` in the control plane and never passes it to game-server processes. See `docs/60_PER_INSTANCE_SERVER_CREDENTIALS_GE.md`.
+
+
+### Production gateway hardening — latest CI (2026-11-23)
+
+Production API startup now rejects wildcard and public listener addresses, allowing only loopback, RFC1918 IPv4 and IPv6 ULA bind addresses. PostgreSQL readiness also checks the per-instance server credential registry.
+
+Latest commit `e2df4c454c332e9362d7e44ca4044a3f16c8058c`:
+- Python/BotLab/Unreal source regression: **72/72 PASS**
+- UE project static validator: **STATIC_PASS** (UBT/UHT not run)
+- Load unit: **6/6 PASS**
+- Backend Node: **55 PASS / 0 FAIL / 2 SKIP**
+- PostgreSQL 16 live suite, migrations 001–006: **57 PASS / 0 FAIL / 0 SKIP**
+- 500 virtual API preflight: **6,995 requests, 0 failures, 437.26 req/s**, p95 **0.82 ms**
+
+Evidence: [Stage 5 CI](https://github.com/maisuradzee/Ridge/actions/runs/45137196624) · [PostgreSQL 16](https://github.com/maisuradzee/Ridge/actions/runs/45137196583).
+
+Real UE 5.8 build/runtime, actual identity provider deployment, secret manager rollout, TLS ingress, encrypted Unreal game transport and 500-CCU Unreal soak remain unverified.

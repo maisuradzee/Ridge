@@ -156,3 +156,21 @@ The server sends `x-ridge-server-id` and `x-ridge-server-token` on its private r
 Production startup requires the provisioning token and does not accept a shared `RIDGE_SERVER_EVENT_TOKEN` fallback. A local development-only legacy shared token remains available for existing isolated tests.
 
 See `docs/60_PER_INSTANCE_SERVER_CREDENTIALS_GE.md`.
+
+
+## 9. Production listener and credential readiness guard — 2026-11-23
+
+The API now refuses to start in production if `RIDGE_HOST` is a wildcard or public IP. Accepted bind targets are loopback, RFC1918 IPv4, and IPv6 Unique Local Addresses. This guard complements (but does not replace) the trusted reverse-proxy TLS requirement. PostgreSQL readiness now includes the per-instance credential registry table; a missing credential table no longer reports a ready session control plane.
+
+Latest verification on commit `e2df4c454c332e9362d7e44ca4044a3f16c8058c`:
+
+- Stage 5 Multiplayer Preflight: [SUCCESS](https://github.com/maisuradzee/Ridge/actions/runs/45137196624)
+- PostgreSQL 16 Integration (migrations 001–006): [SUCCESS](https://github.com/maisuradzee/Ridge/actions/runs/45137196583)
+- Python/BotLab/Unreal source regression: **72/72 PASS**
+- Unreal project static validator: **STATIC_PASS** (UBT/UHT not run)
+- Load-runner tests: **6/6 PASS**
+- Backend Node regression: **55 PASS / 0 FAIL / 2 SKIP**
+- PostgreSQL live backend suite: **57 PASS / 0 FAIL / 0 SKIP**
+- 500 virtual-client development API preflight: **6,995 requests / 0 failures / 437.26 req/s**, p50 **0.48 ms**, p95 **0.82 ms**, p99 **1.96 ms**, max **5.43 ms**, max observed in-flight requests **6**
+
+This remains a virtual HTTP API preflight, not a 500-client Unreal Engine soak. Actual OIDC tenant/auth-code setup, production secret manager provisioning and audit, TLS proxy deployment, encrypted Unreal game transport, UE 5.8 UBT/UHT/PIE and true 500-CCU profiling remain open.

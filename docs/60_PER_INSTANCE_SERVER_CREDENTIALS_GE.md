@@ -1,7 +1,7 @@
 # RIDGE — Per-instance Dedicated Server credentials
 
 **Stage:** 5 / production shard security  
-**Status:** Backend provisioning, hash-only credential registry, per-instance request authentication, rotation and revocation are implemented in source. CI/runtime results are pending for the current revision.
+**Status:** Backend provisioning, hash-only credential registry, per-instance request authentication, rotation and revocation are implemented in source. Static and PostgreSQL CI pass; production secret-manager and UE runtime acceptance remain open.
 
 ## 1. Security model
 
@@ -134,3 +134,16 @@ See also:
 - docs/57_UNREAL_DEDICATED_SERVER_REGISTRATION_GE.md
 - docs/58_JOIN_TICKET_AND_PRELOGIN_FLOW_GE.md
 - docs/59_PUBLIC_OIDC_GATEWAY_GE.md
+
+
+## 8. Latest CI verification — 2026-11-23
+
+On commit `e2df4c454c332e9362d7e44ca4044a3f16c8058c`:
+
+- Stage 5 source/regression and development API preflight: [SUCCESS](https://github.com/maisuradzee/Ridge/actions/runs/45137196624)
+- PostgreSQL 16 live integration, migrations 001–006: [SUCCESS](https://github.com/maisuradzee/Ridge/actions/runs/45137196583)
+- Per-instance credential registry and rotation/revocation tests are included in the 55-pass backend regression and 57-pass PostgreSQL live suite.
+- The PostgreSQL readiness check now verifies the credential table exists.
+- Production listener guard has explicit tests for wildcard/public rejection and loopback/private-IP acceptance.
+
+The CI does not provision credentials into a real external secret manager, verify redaction from a production orchestrator, compile UE 5.8, or execute a real Dedicated Server credential rotation during live players. Those remain operational/runtime gates.

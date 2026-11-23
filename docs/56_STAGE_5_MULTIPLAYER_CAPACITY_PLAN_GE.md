@@ -212,3 +212,19 @@ Stage workflow: https://github.com/maisuradzee/Ridge/actions/runs/45131346534
 PostgreSQL workflow: https://github.com/maisuradzee/Ridge/actions/runs/45131346543
 
 The load profile is not 500 connected Unreal clients. Real UE 5.8 build, UHT, two-client PIE, transport encryption, identity gateway and 500-CCU soak remain open release gates.
+
+
+### Public OIDC gateway + per-instance credential lifecycle — latest verified state (2026-11-23)
+
+The Stage 5 branch now contains:
+- Public `POST /v1/gateway/session`, validating an RS256 OIDC token against configured HTTPS JWKS, deriving canonical identity from issuer + subject, and returning an opaque one-time shard join ticket with stable claimAttemptId.
+- Migration 005 for hash-only join-ticket persistence and all-or-none hash/expiry/attempt constraints.
+- Migration 006 for individual 256-bit Dedicated Server process credentials; only SHA-256 digests are persisted. Orchestrator-only provisioning, rotation and revocation endpoints are separate from player gateway and game-server roles.
+- Production API listener guard: loopback/RFC1918/IPv6 ULA only; wildcard and public binds fail startup.
+- PostgreSQL readiness includes the per-instance credential registry.
+
+Latest commit `e2df4c454c332e9362d7e44ca4044a3f16c8058c`: Python source regression **72/72 PASS**; UE static validation **STATIC_PASS**; load unit **6/6 PASS**; backend Node **55 PASS / 0 FAIL / 2 SKIP**; PostgreSQL 16 migrations 001–006 and live suite **57 PASS / 0 FAIL / 0 SKIP**; 500 virtual-user in-memory API preflight **6,995 requests / 0 errors / 437.26 req/s**, p95 **0.82 ms**.
+
+Evidence: [Stage 5 CI](https://github.com/maisuradzee/Ridge/actions/runs/45137196624) · [PostgreSQL 16 integration](https://github.com/maisuradzee/Ridge/actions/runs/45137196583).
+
+No claim is made that UE 5.8 UBT/UHT/PIE, actual provider tenant/auth-code flow, TLS reverse proxy deployment, encrypted game transport or 500 connected Unreal players have been verified.
