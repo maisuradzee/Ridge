@@ -3,6 +3,7 @@ import { timingSafeEqual } from 'node:crypto';
 import { createGameService, RidgeError } from './game-service.mjs';
 import { createPostgresGameService } from './postgres-game-service.mjs';
 import { createSessionRegistry } from './session-registry.mjs';
+import { createOidcVerifier, deriveCanonicalPlayerId } from './oidc-verifier.mjs';
 
 const PORT = Number(process.env.PORT ?? 8787);
 const HOST = process.env.RIDGE_HOST ?? '127.0.0.1';
@@ -10,6 +11,28 @@ const ENV = process.env.RIDGE_ENV ?? 'development';
 const STORAGE = process.env.RIDGE_STORAGE ?? (process.env.DATABASE_URL ? 'postgres' : 'memory');
 const GAME_SERVER_TOKEN = process.env.RIDGE_SERVER_EVENT_TOKEN ?? '';
 const GATEWAY_TOKEN = process.env.RIDGE_GATEWAY_TOKEN ?? '';
+const TRUST_PROXY = process.env.RIDGE_TRUST_PROXY === 'true';
+
+
+function createConfiguredOidcVerifier() {
+  const issuer = process.env.RIDGE_OIDC_ISSUER ?? '';
+  const audience = process.env.RIDGE_OIDC_AUDIENCE ?? '';
+  const jwksUrl = process.env.RIDGE_OIDC_JWKS_URL ?? '';
+  const configuredCount = [issuer, audience, jwksUrl].filter(Boolean).length;
+  if (configuredCount === 0) {
+    if (ENV === 'production') throw new Error('Production RIDGE API requires OIDC issuer, audience and JWKS configuration.');
+    return null;
+  }
+  if (configuredCount !== 3) {
+    throw new Error('RIDGE_OIDC_ISSUER, RIDGE_OIDC_AUDIENCE and RIDGE_OIDC_JWKS_URL must be configured together.');
+  }
+  return createOidcVerifier({
+    issuer,
+    audience,
+    jwksUrl,
+    allowHttpForDevelopment: ENV !== 'production',
+  });
+}
 
 function safeTokenEquals(provided, expected) {
   const a = Buffer.from(String(provided ?? ''), 'utf8');
@@ -122,6 +145,10 @@ async function createStorage() {
 }
 
 async function main() {
+  if (ENV === 'production' && !TRUST_PROXY) {
+    throw new Error('Production RIDGE public gateway requires a trusted HTTPS reverse proxy (RIDGE_TRUST_PROXY=true).');
+  }
+  const oidcVerifier = createConfiguredOidcVerifier();
   const storage = await createStorage();
   const service = storage.service;
   const sessionRegistry = storage.sessionRegistry;
@@ -143,6 +170,78 @@ async function main() {
         if (!sessionRegistryReady) throw new RidgeError(503, 'SESSION_REGISTRY_NOT_READY', 'Session registry მზად არ არის.');
         return send(response, 200, { ok: true, storage: service.storageMode ?? 'memory-ephemeral', sessionRegistry: true });
       }
+      // Public player session entry. Identity is derived only from a verified OIDC JWT.
+      if (request.method === 'POST' && url.pathname === '/v1/gateway/session') {
+        if (!oidcVerifier) {
+          throw new RidgeError(503, 'OIDC_NOT_CONFIGURED', 'RIDGE account identity provider ჯერ არ არის კონფიგურირებული.');
+        }
+        const forwardedProto = String(request.headers['x-forwarded-proto'] ?? '').split(',')[0].trim().toLowerCase();
+        const secureTransport = Boolean(request.socket.encrypted) || (TRUST_PROXY && forwardedProto === 'https');
+        if (ENV === 'production' && !secureTransport) {
+          throw new RidgeError(400, 'HTTPS_REQUIRED', 'Gateway-ის public session endpoint მხოლოდ HTTPS-ით არის ხელმისაწვდომი.');
+        }
+
+        let identity;
+        try {
+          identity = await oidcVerifier.verifyAuthorizationHeader(request.headers.authorization);
+        } catch (error) {
+          const unavailable = ['OIDC_JWKS_UNAVAILABLE', 'OIDC_JWKS_INVALID'].includes(error?.code);
+          throw new RidgeError(
+            unavailable ? 503 : 401,
+            unavailable ? 'OIDC_IDENTITY_SERVICE_UNAVAILABLE' : 'OIDC_TOKEN_INVALID',
+            unavailable ? 'Identity provider-ის signing keys დროებით მიუწვდომელია.' : 'ანგარიშის ავტორიზაცია ვერ დადასტურდა.',
+          );
+        }
+
+        const body = await readJson(request, 4 * 1024);
+        const playerId = deriveCanonicalPlayerId(identity.issuer, identity.subject);
+        const allocation = await sessionRegistry.allocatePlayer(playerId, body.region ?? 'ge-tbilisi');
+        if (allocation.status !== 'allocated') {
+          throw new RidgeError(409, 'PLAYER_SESSION_ALREADY_CONNECTED', 'ამ ანგარიშს უკვე აქვს აქტიური თამაშის კავშირი.');
+        }
+
+        let issued;
+        try {
+          issued = await sessionRegistry.issueJoinTicket({
+            playerId,
+            sessionId: allocation.sessionId,
+            serverId: allocation.server.serverId,
+          });
+        } catch (error) {
+          if (!allocation.reused) {
+            await sessionRegistry.releaseSession({
+              playerId,
+              sessionId: allocation.sessionId,
+              serverId: allocation.server.serverId,
+            }).catch(() => {});
+          }
+          throw error;
+        }
+
+        const encodedTicket = encodeURIComponent(issued.ticket);
+        const encodedAttempt = encodeURIComponent(issued.claimAttemptId);
+        const connectionOptions = 'ridgeJoinTicket=' + encodedTicket +
+          '?ridgeClaimAttemptId=' + encodedAttempt;
+        const connectUrl = issued.server.host + ':' + issued.server.port + '?' + connectionOptions;
+
+        return send(response, 201, {
+          sessionId: issued.sessionId,
+          expiresAt: issued.expiresAt,
+          server: {
+            host: issued.server.host,
+            port: issued.server.port,
+            region: issued.server.region,
+            protocolVersion: issued.server.protocolVersion,
+          },
+          join: {
+            ticket: issued.ticket,
+            claimAttemptId: issued.claimAttemptId,
+          },
+          connectionOptions,
+          connectUrl,
+        });
+      }
+
       if (request.method === 'GET' && url.pathname === '/v1/world/state') {
         return send(response, 200, await service.getWorldState());
       }

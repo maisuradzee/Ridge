@@ -173,3 +173,10 @@ Ticket issuance now returns a stable `claimAttemptId` stored with the ticket dig
 Evidence: [Stage 5 CI](https://github.com/maisuradzee/Ridge/actions/runs/45132841698) · [PostgreSQL 16 integration](https://github.com/maisuradzee/Ridge/actions/runs/45132841779).
 
 This is still source/static verification, not UBT/UHT compilation or a live Unreal network test. The 500 virtual users do not represent 500 connected Unreal players.
+
+
+### Provider-agnostic OIDC public session gateway
+
+The backend now exposes `POST /v1/gateway/session`. It verifies a signed RS256 OIDC JWT against configured HTTPS JWKS, derives an opaque canonical backend player ID from issuer + subject, allocates a healthy shard, and returns the one-time join ticket plus stable claimAttemptId in the Unreal connection options. Production requires OIDC configuration, PostgreSQL storage and a trusted HTTPS reverse proxy. See `docs/59_PUBLIC_OIDC_GATEWAY_GE.md`.
+
+The endpoint is provider-agnostic, but the real provider tenant, authorization-code/redirect/MFA/account lifecycle, ingress rate limits, per-server credentials and encrypted Unreal game transport remain deployment/integration work. This is not yet a complete public account system.

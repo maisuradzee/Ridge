@@ -1,0 +1,117 @@
+# RIDGE — OIDC public session gateway
+
+**ეტაპი:** Stage 5 / player-facing session entry  
+**მდგომარეობა:** Provider-agnostic OIDC JWT verification + public session allocation/ticket endpoint committed; actual identity-provider tenant and UE client travel wiring remain deployment/integration work.
+
+## 1. Public endpoint
+
+\`POST /v1/gateway/session\`
+
+Request:
+
+    Authorization: Bearer <OIDC-JWT-issued-for-ridge-game-api>
+    Content-Type: application/json
+
+    {
+      "region": "ge-tbilisi"
+    }
+
+The region defaults to \`ge-tbilisi\` if omitted. The endpoint does not accept a player ID from the client and does not accept \`x-ridge-player-id\` as proof of identity.
+
+Successful response (sensitive values shown as placeholders):
+
+    {
+      "sessionId": "<session-uuid>",
+      "expiresAt": "<ticket-expiry-iso8601>",
+      "server": {
+        "host": "game-server.example.net",
+        "port": 7777,
+        "region": "ge-tbilisi",
+        "protocolVersion": "ridge-0.6"
+      },
+      "join": {
+        "ticket": "<short-lived-256-bit-bearer-ticket>",
+        "claimAttemptId": "<stable-uuid>"
+      },
+      "connectionOptions": "ridgeJoinTicket=<ticket>?ridgeClaimAttemptId=<uuid>",
+      "connectUrl": "game-server.example.net:7777?ridgeJoinTicket=<ticket>?ridgeClaimAttemptId=<uuid>"
+    }
+
+The canonical backend player identifier is intentionally not returned. The ticket and attempt ID must be treated as secrets until the Unreal server consumes them. Never log them, include them in analytics, crash reports, deep-link telemetry, or support logs.
+
+If the account already has a connected session, the gateway responds HTTP 409 \`PLAYER_SESSION_ALREADY_CONNECTED\`. The gateway allocates a slot only through the trusted session registry, then issues a ticket for that exact allocation. If ticket issuance fails for a newly created allocation, the gateway attempts a compensating release.
+
+## 2. OIDC verification contract
+
+Environment:
+
+- \`RIDGE_OIDC_ISSUER\` — exact HTTPS issuer URL; must equal the JWT \`iss\`.
+- \`RIDGE_OIDC_AUDIENCE\` — RIDGE API audience; must be present in JWT \`aud\`.
+- \`RIDGE_OIDC_JWKS_URL\` — HTTPS URL for the provider's JSON Web Key Set.
+
+The verifier:
+- accepts compact signed JWTs using RS256 only;
+- loads the key by \`kid\` from the configured JWKS endpoint, never from a token-supplied \`jku\`, \`x5u\` or embedded \`jwk\`;
+- accepts RSA signing keys with at least 2048-bit modulus and exponent 65537;
+- verifies the cryptographic signature and exact \`iss\`, \`aud\`, optional multi-audience \`azp\`, mandatory \`sub\`, \`iat\` and \`exp\`, plus \`nbf\` when present;
+- caches JWKS keys for five minutes and forces one refresh when a token uses an unknown \`kid\`, supporting normal key rotation;
+- rejects unsupported critical JWT header parameters and tokens larger than the configured bound.
+
+The stable backend ID is derived as \`oidc_\` plus SHA-256 of \`issuer + NUL + subject\`. It is deterministic for the same issuer/subject pair and does not expose the original subject or email to the game client. If the provider changes a subject, that is a new identity and requires an account-link/migration workflow; do not silently key accounts by email.
+
+The verifier does not implement the external provider's authorization-code flow, redirect URI, state/nonce issuance, MFA policy, account recovery, or account linking. Those belong in the identity provider/client integration. The caller must present a signed JWT explicitly issued for the configured RIDGE audience.
+
+## 3. Production deployment and TLS
+
+The RIDGE Node API uses an HTTP listener behind a trusted TLS reverse proxy. Production startup requires:
+- PostgreSQL-backed storage (ephemeral memory storage is refused in production);
+- all three OIDC environment variables;
+- \`RIDGE_TRUST_PROXY=true\`;
+- a reverse proxy that terminates TLS, removes any client-supplied \`X-Forwarded-Proto\`, then sets \`X-Forwarded-Proto: https\`;
+- the Node listener bound to loopback/private interface and not directly reachable from the public internet.
+
+Example environment (replace placeholders with values from the chosen provider and deployment secret store):
+
+    RIDGE_ENV=production
+    RIDGE_STORAGE=postgres
+    RIDGE_HOST=127.0.0.1
+    RIDGE_TRUST_PROXY=true
+    RIDGE_OIDC_ISSUER=https://identity.example.com/
+    RIDGE_OIDC_AUDIENCE=ridge-game-api
+    RIDGE_OIDC_JWKS_URL=https://identity.example.com/.well-known/jwks.json
+
+Never set \`RIDGE_TRUST_PROXY=true\` when untrusted clients can reach the Node listener directly; the trusted proxy must overwrite forwarding headers. The ingress must also enforce request rate limits, connection limits and body-size/time limits. The current Node process does not provide a distributed rate limiter.
+
+The public gateway endpoint is disabled when OIDC is not configured. Production refuses to start without OIDC configuration and a trusted HTTPS reverse proxy. Development can run with OIDC configured and an HTTP JWKS URL only when that URL points to loopback (127.0.0.1, localhost or ::1); this exception is not available in production.
+
+## 4. Unreal client handoff
+
+After the user authenticates, the client sends the provider-issued JWT to the gateway and receives the one-time response above. The UE client then opens the supplied \`connectUrl\` (or equivalent host/port/options) immediately, before \`expiresAt\`.
+
+The bearer ticket is a credential, not harmless URL metadata. The application must:
+- avoid writing the connect URL or options into application logs, analytics, crash breadcrumbs or clipboard history;
+- avoid reusing the same response to open a different connection attempt;
+- preserve \`claimAttemptId\` exactly for a retry of the same connection attempt;
+- request a new gateway session after expiry, a completed/failed login, or a different connection attempt.
+
+The server binds \`ridgeJoinTicket\` and \`ridgeClaimAttemptId\` in \`PreLoginAsync\`, consumes the ticket on the assigned shard, and only then binds the canonical identity to the server-side PlayerState. The claim is single-use except for the same-attempt retry after a lost backend response.
+
+**Important:** HTTPS between the game client and gateway protects the HTTP response, but it does not automatically encrypt the later Unreal game connection. Before production, enable and verify appropriate Unreal network encryption/transport protection so the bearer ticket in initial connection options cannot be read or replayed by an on-path observer. This is an open acceptance gate.
+
+## 5. Error contract
+
+| HTTP | Code | Meaning / client action |
+|---|---|---|
+| 201 | — | session reserved and join ticket issued; connect immediately |
+| 400 | \`INVALID_JSON_BODY\`, \`HTTPS_REQUIRED\` | correct request format or transport |
+| 401 | \`OIDC_TOKEN_INVALID\` | authenticate again; do not retry the same invalid token |
+| 409 | \`PLAYER_SESSION_ALREADY_CONNECTED\` | existing live session; resolve reconnect/duplicate client before another login |
+| 503 | \`OIDC_NOT_CONFIGURED\`, \`OIDC_IDENTITY_SERVICE_UNAVAILABLE\`, \`NO_AVAILABLE_SHARD\` | service/configuration/capacity unavailable; retry with backoff or show service unavailable |
+
+The endpoint uses \`Cache-Control: no-store\`. Do not cache session responses or tickets in shared caches.
+
+## 6. Test coverage and acceptance boundary
+
+Automated tests cover RS256 verification, cache reuse, unknown-kid refresh, invalid signature, wrong issuer/audience, expiry/nbf/iat checks, unsupported JWT header key injection, JWKS transport restrictions, stable pseudonymous player ID derivation, and an end-to-end public session flow against a local JWKS test server.
+
+These tests do not prove the chosen external provider's tenant configuration, real authorization-code flow, MFA/account recovery, real TLS reverse-proxy deployment, encrypted Unreal game transport, Windows UBT/UHT compilation, two-client PIE, or true 500-player Unreal capacity. Those remain explicit integration gates.

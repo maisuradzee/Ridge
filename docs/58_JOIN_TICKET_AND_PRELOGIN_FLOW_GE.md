@@ -91,7 +91,7 @@ The backend now separates the service roles:
 - RIDGE_GATEWAY_TOKEN / x-ridge-gateway-token: session allocation and ticket issuance.
 - RIDGE_SERVER_EVENT_TOKEN / x-ridge-server-token: shard registration/heartbeat, join-ticket claim and session release.
 
-The gateway token must exist only in the gateway process. Dedicated Server processes must not receive it. The gateway service and external identity-provider integration are not implemented yet; current gateway endpoints are internal service-to-service primitives.
+The gateway token must exist only in the gateway process. Dedicated Server processes must not receive it. The public OIDC session endpoint is now implemented as a provider-agnostic JWT verifier and ticket-issuing gateway. The actual identity-provider tenant/authorization-code configuration remains a deployment integration step; trusted service-to-service gateway routes remain available for internal automation.
 
 ### Production transport caution
 
@@ -138,3 +138,12 @@ Unreal `PreLoginAsync` ორივეს კითხულობს. Claim ID-
 GameMode ინახავს verified, pending და active claims-ს. ერთი canonical backend Player ID-ის მეორე პარალელური/აქტიური connection იმავე shard-ზე უარყოფილია. claimAttemptId არის idempotency binding და არა დამოუკიდებელი authentication factor; bearer ticket კვლავ აუცილებელია.
 
 Migration 005 ამოწმებს, რომ `join_ticket_hash`, `join_ticket_expires_at` და `join_attempt_id` ან სამივე ერთად იყოს მითითებული, ან არცერთი.
+
+
+## 9. Public OIDC player session gateway
+
+The backend now exposes `POST /v1/gateway/session`. It accepts a verified OIDC JWT for the configured RIDGE audience, derives the canonical backend identity from issuer + subject, allocates a healthy shard, issues a short-lived one-time ticket, and returns the connection host/port plus both `ridgeJoinTicket` and stable `ridgeClaimAttemptId` options.
+
+Production requires `RIDGE_OIDC_ISSUER`, `RIDGE_OIDC_AUDIENCE`, `RIDGE_OIDC_JWKS_URL`, PostgreSQL storage and a trusted HTTPS reverse proxy (`RIDGE_TRUST_PROXY=true`). The reverse proxy must overwrite X-Forwarded-Proto and the Node listener must not be publicly reachable. The actual provider's authorization-code/redirect/MFA/account-recovery setup is not supplied by the repository; it must be configured at deployment.
+
+Runbook: `docs/59_PUBLIC_OIDC_GATEWAY_GE.md`.

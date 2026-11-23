@@ -24,6 +24,8 @@ class Stage5ReplicationContractTests(unittest.TestCase):
         cls.backend_header = (ROOT / "Source/RIDGE/Public/RidgeBackendSubsystem.h").read_text(encoding="utf-8")
         cls.game_mode_header = (ROOT / "Source/RIDGE/Public/RidgeGameMode.h").read_text(encoding="utf-8")
         cls.backend_server_source = (ROOT / "backend/src/server.mjs").read_text(encoding="utf-8")
+        cls.backend_oidc_source = (ROOT / "backend/src/oidc-verifier.mjs").read_text(encoding="utf-8")
+        cls.gateway_integration_test = (ROOT / "backend/test/gateway-auth.test.mjs").read_text(encoding="utf-8")
         cls.mission_source = (ROOT / "Source/RIDGE/Private/RidgeMissionCheckpoint.cpp").read_text(encoding="utf-8")
 
     def test_character_uses_actor_and_character_movement_replication(self) -> None:
@@ -176,6 +178,38 @@ class Stage5ReplicationContractTests(unittest.TestCase):
         self.assertIn('TEXT("x-ridge-server-token")', self.backend_bridge)
         self.assertIn("ClaimedServerId != Self->ServerId", self.backend_bridge)
 
+
+
+    def test_public_gateway_derives_player_identity_only_from_verified_oidc_claims(self) -> None:
+        self.assertIn("url.pathname === '/v1/gateway/session'", self.backend_server_source)
+        self.assertIn("request.method === 'POST'", self.backend_server_source)
+        self.assertIn("verifyAuthorizationHeader", self.backend_server_source)
+        self.assertIn("deriveCanonicalPlayerId(identity.issuer, identity.subject)", self.backend_server_source)
+        self.assertIn("RIDGE_OIDC_ISSUER", self.backend_server_source)
+        self.assertIn("RIDGE_OIDC_AUDIENCE", self.backend_server_source)
+        self.assertIn("RIDGE_OIDC_JWKS_URL", self.backend_server_source)
+        self.assertIn("deriveCanonicalPlayerId(identity.issuer, identity.subject)", self.backend_server_source)
+        self.assertIn("RIDGE_TRUST_PROXY", self.backend_server_source)
+        self.assertIn("Production RIDGE public gateway requires a trusted HTTPS reverse proxy", self.backend_server_source)
+        self.assertIn("Production RIDGE API requires OIDC issuer, audience and JWKS configuration", self.backend_server_source)
+        self.assertNotIn("x-ridge-player-id", self.backend_server_source[self.backend_server_source.index("url.pathname === '/v1/gateway/session'"):])
+
+    def test_oidc_verifier_uses_configured_https_jwks_rs256_and_standard_claim_checks(self) -> None:
+        self.assertIn("header.alg !== 'RS256'", self.backend_oidc_source)
+        self.assertIn("verifySignature('RSA-SHA256'", self.backend_oidc_source)
+        self.assertIn("parsedJwksUrl.protocol !== 'https:'", self.backend_oidc_source)
+        self.assertIn("claims.iss !== issuer", self.backend_oidc_source)
+        self.assertIn("tokenAudiences.includes(audience)", self.backend_oidc_source)
+        self.assertIn("claims.exp", self.backend_oidc_source)
+        self.assertIn("claims.sub", self.backend_oidc_source)
+        self.assertIn("redirect: 'error'", self.backend_oidc_source)
+
+    def test_public_gateway_end_to_end_test_covers_oidc_allocation_ticket_claim_and_duplicate_login(self) -> None:
+        self.assertIn("public OIDC gateway allocates a shard", self.gateway_integration_test)
+        self.assertIn("/v1/gateway/session", self.gateway_integration_test)
+        self.assertIn("/join/claim", self.gateway_integration_test)
+        self.assertIn("PLAYER_SESSION_ALREADY_CONNECTED", self.gateway_integration_test)
+        self.assertIn("RIDGE_OIDC_JWKS_URL", self.gateway_integration_test)
 
     def test_gateway_and_game_server_credentials_are_separate(self) -> None:
         self.assertIn("RIDGE_GATEWAY_TOKEN", self.backend_server_source)
