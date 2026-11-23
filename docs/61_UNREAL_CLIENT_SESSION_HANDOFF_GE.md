@@ -133,3 +133,18 @@ Stage 5 CI on revision 4ce132707cb64ed53c34ec2d60aefec57dda5532: [SUCCESS](https
 PostgreSQL migration/live integration is unchanged by the client-only login UI wrapper. The previous backend verification remains: migrations 001–006, **57 PASS / 0 FAIL / 0 SKIP**, on revision e2df4c454c332e9362d7e44ca4044a3f16c8058c.
 
 Still not verified: external OIDC login/PKCE UI, a real token from the selected identity provider, packaged client invocation, UBT/UHT, actual ClientTravel-to-PreLogin network join, encrypted game transport and true Unreal CCU load.
+
+
+## 8. Latest branch-head CI — 2026-11-23
+
+On branch head 6075bb5a640a22561016848d6f0169035b9c7eca:
+
+- Stage 5 Multiplayer Preflight: [SUCCESS](https://github.com/maisuradzee/Ridge/actions/runs/45139177332)
+- Python/BotLab/Unreal source regression: **75/75 PASS**
+- Unreal project static validator: **STATIC_PASS**; UBT/UHT **NOT RUN**
+- Load runner: **6/6 PASS**
+- Backend Node: **55 PASS / 0 FAIL / 2 SKIP**
+- 500 virtual-user development API preflight: **6,995 requests / 0 failures / 437.18 req/s**, p50 **0.55 ms**, p95 **0.93 ms**, p99 **1.46 ms**, max **4.78 ms**, max in-flight **6**
+- PostgreSQL 16 migrations 001–006 and live integration: [SUCCESS](https://github.com/maisuradzee/Ridge/actions/runs/45139177246), **57 PASS / 0 FAIL / 0 SKIP**
+
+The Blueprint entry point, Blueprint result delegate and no-service-secret contract are included in the passing 75 source regression tests. These are source/static gates, not a UBT/UHT build or actual UE client login.

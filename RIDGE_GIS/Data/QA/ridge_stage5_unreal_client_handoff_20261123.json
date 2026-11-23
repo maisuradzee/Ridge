@@ -1,16 +1,33 @@
 {
-  "schema": "ridge.stage5.unreal-client-session-handoff.v2",
+  "schema": "ridge.stage5.unreal-client-session-handoff.v3",
   "date": "2026-11-23",
-  "commit": "4ce132707cb64ed53c34ec2d60aefec57dda5532",
+  "testedSourceCommit": "6075bb5a640a22561016848d6f0169035b9c7eca",
+  "latestBranchHeadAtVerification": "6075bb5a640a22561016848d6f0169035b9c7eca",
   "workflow": {
-    "id": 45138993647,
-    "result": "success",
-    "url": "https://github.com/maisuradzee/Ridge/actions/runs/45138993647",
-    "pythonBotlabUnrealSource": "75/75 PASS",
-    "unrealProjectStatic": "STATIC_PASS",
-    "ueUbtUht": "NOT_RUN",
-    "loadRunnerUnit": "6/6 PASS",
-    "backendNode": "55 PASS / 0 FAIL / 2 SKIP"
+    "stage5": {
+      "id": 45139177332,
+      "result": "success",
+      "url": "https://github.com/maisuradzee/Ridge/actions/runs/45139177332",
+      "pythonBotlabUnrealSource": "75/75 PASS",
+      "unrealProjectStatic": "STATIC_PASS",
+      "ueUbtUht": "NOT_RUN",
+      "loadRunnerUnit": "6/6 PASS",
+      "backendNode": "55 PASS / 0 FAIL / 2 SKIP"
+    },
+    "postgres": {
+      "id": 45139177246,
+      "result": "success",
+      "url": "https://github.com/maisuradzee/Ridge/actions/runs/45139177246",
+      "migrations": [
+        "001_initial_schema.sql",
+        "002_job_checkpoints.sql",
+        "003_postgres_runtime.sql",
+        "004_session_registry.sql",
+        "005_session_join_tickets.sql",
+        "006_dedicated_server_credentials.sql"
+      ],
+      "liveIntegration": "57 PASS / 0 FAIL / 0 SKIP"
+    }
   },
   "apiPreflight": {
     "environment": "development",
@@ -18,16 +35,16 @@
     "virtualUsers": 500,
     "durationSeconds": 15,
     "rampSeconds": 3,
-    "totalRequests": 6997,
+    "totalRequests": 6995,
     "failedRequests": 0,
-    "requestsPerSecond": 437.38,
+    "requestsPerSecond": 437.18,
     "latencyMs": {
-      "p50": 0.22,
-      "p95": 0.49,
-      "p99": 1.38,
-      "max": 8.8
+      "p50": 0.55,
+      "p95": 0.93,
+      "p99": 1.46,
+      "max": 4.78
     },
-    "maxObservedInFlightRequests": 7,
+    "maxObservedInFlightRequests": 6,
     "notAnUnrealNetworkLoadTest": true
   },
   "clientHandoff": {
@@ -43,6 +60,8 @@
       "ticket expiry"
     ],
     "travel": "APlayerController::ClientTravel",
+    "blueprintCallable": "RequestAndConnectFromBlueprint",
+    "blueprintAssignable": "OnLoginAttemptCompleted",
     "clientContainsNoInternalServiceCredentials": true,
     "productionRequiresHttps": true,
     "developmentHttpAllowedOnlyForExactLoopbackAuthorities": [
@@ -51,13 +70,11 @@
       "[::1]"
     ],
     "connectUrlOrTicketLogged": false,
-    "blueprintCallable": "RequestAndConnectFromBlueprint",
-    "blueprintAssignable": "OnLoginAttemptCompleted",
     "providerUiOrPkce": "NOT_IMPLEMENTED"
   },
   "backendDatabaseVerification": {
-    "verifiedCommit": "e2df4c454c332e9362d7e44ca4044a3f16c8058c",
-    "workflowId": 45137196583,
+    "verifiedCommit": "6075bb5a640a22561016848d6f0169035b9c7eca",
+    "workflowId": 45139177246,
     "result": "success",
     "migrations": [
       "001_initial_schema.sql",
@@ -67,12 +84,11 @@
       "005_session_join_tickets.sql",
       "006_dedicated_server_credentials.sql"
     ],
-    "liveIntegration": "57 PASS / 0 FAIL / 0 SKIP",
-    "note": "Client handoff commit changes no backend or SQL migration files."
+    "liveIntegration": "57 PASS / 0 FAIL / 0 SKIP"
   },
   "outstanding": [
-    "Provider authorization-code/PKCE UI and retrieval of a real OIDC access token",
-    "Packaged Unreal client caller wiring",
+    "Provider authorization-code/PKCE UI and retrieval/refresh of a real OIDC access token",
+    "Packaged Unreal login screen caller",
     "UE 5.8 UBT/UHT compile",
     "Two-client PIE and actual ClientTravel -> PreLogin -> PostLogin join",
     "Encrypted Unreal game transport for the bearer join ticket",

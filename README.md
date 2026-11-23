@@ -241,3 +241,17 @@ The client subsystem also exposes a Blueprint-callable UI entry point and a Blue
 The client session subsystem now exposes RequestAndConnectFromBlueprint plus OnLoginAttemptCompleted. The future login widget can submit a provider-issued OIDC token and receive the result through a Blueprint event; provider sign-in/PKCE and token refresh remain provider integration work.
 
 Latest Stage 5 CI: [SUCCESS](https://github.com/maisuradzee/Ridge/actions/runs/45138993647) — Python/Unreal source **75/75 PASS**, UE static **PASS**, load unit **6/6 PASS**, backend Node **55 PASS / 0 FAIL / 2 SKIP**, 500 virtual API preflight **6,997 requests / 0 errors / 437.38 req/s**, p95 **0.49 ms**. UBT/UHT and real UE runtime are not proven.
+
+
+### Latest Stage 5 verification — Blueprint OIDC login path
+
+On branch head 6075bb5a640a22561016848d6f0169035b9c7eca:
+- [Stage 5 Multiplayer Preflight](https://github.com/maisuradzee/Ridge/actions/runs/45139177332): **SUCCESS**
+- Python/BotLab/Unreal source regression: **75/75 PASS**
+- Unreal project static validator: **STATIC_PASS** (UBT/UHT not run)
+- Load runner unit: **6/6 PASS**
+- Backend Node: **55 PASS / 0 FAIL / 2 SKIP**
+- 500 virtual-user development API preflight: **6,995 requests / 0 failures / 437.18 req/s**; p50 **0.55 ms**, p95 **0.93 ms**, p99 **1.46 ms**, max **4.78 ms**, max in-flight **6**
+- [PostgreSQL 16 integration, migrations 001–006](https://github.com/maisuradzee/Ridge/actions/runs/45139177246): **57 PASS / 0 FAIL / 0 SKIP**
+
+This verifies source/static contracts and API/backend integration only. UBT/UHT, external OIDC provider UI/PKCE, packaged client travel, encrypted Unreal game transport and true 500-player Unreal soak remain open.

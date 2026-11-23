@@ -215,3 +215,14 @@ URidgeSessionLoginSubsystem now exposes a BlueprintCallable method, RequestAndCo
 The actual provider sign-in UI, authorization-code/PKCE, refresh-token lifecycle and MFA remain the responsibility of the selected identity-provider integration. Do not persist or log the JWT or join ticket.
 
 CI revision 4ce132707cb64ed53c34ec2d60aefec57dda5532: [SUCCESS](https://github.com/maisuradzee/Ridge/actions/runs/45138993647), source regression **75/75 PASS**, UE static **PASS**, load unit **6/6 PASS**, backend **55 PASS / 0 FAIL / 2 SKIP**, 500 virtual-user API preflight **6,997 requests / 0 errors / 437.38 req/s**, p95 **0.49 ms**. This is not UE UBT/UHT or a real network login.
+
+
+## 13. Latest branch-head verification — 2026-11-23
+
+The full client source contract, including Blueprint UI entry point and event, is verified on branch head 6075bb5a640a22561016848d6f0169035b9c7eca:
+
+- [Stage 5 Preflight](https://github.com/maisuradzee/Ridge/actions/runs/45139177332): **75/75 source PASS**, UE static **PASS**, load unit **6/6**, backend **55 PASS / 0 FAIL / 2 SKIP**.
+- 500 virtual-user API preflight: **6,995 requests / 0 failures / 437.18 req/s**, p95 **0.93 ms**.
+- [PostgreSQL 16](https://github.com/maisuradzee/Ridge/actions/runs/45139177246): migrations 001–006, live suite **57 PASS / 0 FAIL / 0 SKIP**.
+
+No claim is made that UBT/UHT, provider authorization-code/PKCE, real client travel, transport encryption or Unreal 500-CCU load has been executed.

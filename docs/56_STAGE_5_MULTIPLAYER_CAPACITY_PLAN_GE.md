@@ -248,3 +248,15 @@ URidgeSessionLoginSubsystem exposes a BlueprintCallable RequestAndConnectFromBlu
 Revision 4ce132707cb64ed53c34ec2d60aefec57dda5532: **75/75** source/regression PASS, UE static PASS, load unit 6/6 PASS, backend Node 55 PASS / 0 FAIL / 2 SKIP; 500 virtual-user in-memory API preflight **6,997 requests / 0 errors / 437.38 req/s**, p95 **0.49 ms**.
 
 Evidence: [Stage 5 CI](https://github.com/maisuradzee/Ridge/actions/runs/45138993647). The separate PostgreSQL backend suite has previously passed migrations 001–006 with 57/57 tests. UBT/UHT, packaged client, provider UI, two-client PIE and actual game transport remain unverified.
+
+
+### Latest source verification — 2026-11-23
+
+Branch head 6075bb5a640a22561016848d6f0169035b9c7eca passed:
+- Stage 5 source/static: **75/75 Python/BotLab/Unreal source**, UE static **STATIC_PASS**, load unit **6/6**, backend Node **55 PASS / 0 FAIL / 2 SKIP**.
+- 500 virtual HTTP users: **6,995 requests / 0 errors / 437.18 req/s**, p50 **0.55 ms**, p95 **0.93 ms**, p99 **1.46 ms**, max **4.78 ms**, max in-flight **6**.
+- PostgreSQL 16 migrations 001–006 and live suite: **57 PASS / 0 FAIL / 0 SKIP**.
+
+Evidence: [Stage 5](https://github.com/maisuradzee/Ridge/actions/runs/45139177332) · [PostgreSQL](https://github.com/maisuradzee/Ridge/actions/runs/45139177246).
+
+The load profile remains in-memory API traffic, not connected Unreal Engine clients. UBT/UHT, provider authorization/PKCE UI, packaged client login, true server travel/replication and encrypted game transport remain open.
