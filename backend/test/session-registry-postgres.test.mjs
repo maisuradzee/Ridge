@@ -24,6 +24,8 @@ test('PostgreSQL session registry serializes shard capacity, reuses leases, clai
   const serverId = 'it-shard-' + suffix;
   const playerIds = Array.from({ length: 12 }, (_, index) => 'it-session-' + index + '-' + suffix);
   try {
+    assert.equal(await registry.healthCheck(), true, 'readiness must include the credential registry table');
+
     const server = await registry.registerServer({
       serverId,
       region: 'ge-tbilisi',

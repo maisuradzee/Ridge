@@ -63,7 +63,7 @@ The verifier does not implement the external provider's authorization-code flow,
 
 ## 3. Production deployment and TLS
 
-The RIDGE Node API uses an HTTP listener behind a trusted TLS reverse proxy. Production startup requires:
+The RIDGE Node API uses an HTTP listener behind a trusted TLS reverse proxy. The Node process itself is restricted to loopback or a private RFC1918/IPv6 ULA bind address; wildcard and public-interface binds are refused at startup. Production startup requires:
 - PostgreSQL-backed storage (ephemeral memory storage is refused in production);
 - all three OIDC environment variables;
 - `RIDGE_SERVER_PROVISIONING_TOKEN` (orchestrator-only credential used to issue/rotate/revoke per-server tokens);

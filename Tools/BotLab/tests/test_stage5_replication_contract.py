@@ -181,6 +181,12 @@ class Stage5ReplicationContractTests(unittest.TestCase):
 
 
 
+    def test_production_api_listener_is_bound_to_loopback_or_private_network(self) -> None:
+        self.assertIn("function isPrivateBindHost(host)", self.backend_server_source)
+        self.assertIn("isPrivateBindHost(HOST)", self.backend_server_source)
+        self.assertIn("public and wildcard listeners are forbidden", self.backend_server_source)
+        self.assertIn("from 'node:net'", self.backend_server_source)
+
     def test_public_gateway_derives_player_identity_only_from_verified_oidc_claims(self) -> None:
         self.assertIn("url.pathname === '/v1/gateway/session'", self.backend_server_source)
         self.assertIn("request.method === 'POST'", self.backend_server_source)
@@ -238,6 +244,7 @@ class Stage5ReplicationContractTests(unittest.TestCase):
     def test_per_instance_server_credential_migration_and_registry_contract_exist(self) -> None:
         self.assertTrue((ROOT / "database/migrations/006_dedicated_server_credentials.sql").exists())
         self.assertIn("dedicated_server_credentials", self.session_registry_source)
+        self.assertIn("to_regclass('ridge.dedicated_server_credentials') AS credentials", self.session_registry_source)
         self.assertIn("RIDGE_SERVER_INSTANCE_ID is required in production", self.backend_bridge)
 
     def test_backend_secret_is_not_marked_for_network_replication(self) -> None:

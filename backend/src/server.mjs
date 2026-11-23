@@ -1,4 +1,5 @@
 import http from 'node:http';
+import { isIP } from 'node:net';
 import { timingSafeEqual } from 'node:crypto';
 import { createGameService, RidgeError } from './game-service.mjs';
 import { createPostgresGameService } from './postgres-game-service.mjs';
@@ -14,6 +15,30 @@ const GATEWAY_TOKEN = process.env.RIDGE_GATEWAY_TOKEN ?? '';
 const SERVER_PROVISIONING_TOKEN = process.env.RIDGE_SERVER_PROVISIONING_TOKEN ?? '';
 const TRUST_PROXY = process.env.RIDGE_TRUST_PROXY === 'true';
 
+
+
+function isPrivateBindHost(host) {
+  if (typeof host !== 'string') return false;
+  const value = host.trim().toLowerCase();
+  if (value === 'localhost') return true;
+
+  const family = isIP(value);
+  if (family === 4) {
+    const octets = value.split('.').map(Number);
+    const [a, b] = octets;
+    return a === 127 || a === 10 ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168);
+  }
+  if (family === 6) {
+    if (value === '::1') return true;
+    const firstHextet = Number.parseInt(value.split(':')[0] || '0', 16);
+    // IPv6 Unique Local Addresses (fc00::/7). Global and unspecified
+    // addresses, including ::, are deliberately rejected for the API listener.
+    return Number.isFinite(firstHextet) && (firstHextet & 0xfe00) === 0xfc00;
+  }
+  return false;
+}
 
 function createConfiguredOidcVerifier() {
   const issuer = process.env.RIDGE_OIDC_ISSUER ?? '';
@@ -174,6 +199,9 @@ async function createStorage() {
 }
 
 async function main() {
+  if (ENV === 'production' && !isPrivateBindHost(HOST)) {
+    throw new Error('Production RIDGE API must bind to loopback or a private network IP; public and wildcard listeners are forbidden.');
+  }
   if (ENV === 'production' && STORAGE === 'memory') {
     throw new Error('Production mode cannot use ephemeral in-memory game storage.');
   }

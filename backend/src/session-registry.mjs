@@ -793,9 +793,15 @@ function createPostgresRegistry({ pool, clock, leaseMs, heartbeatTtlMs, joinTick
 
     async healthCheck() {
       const result = await pool.query(
-        "SELECT to_regclass('ridge.dedicated_servers') AS servers, to_regclass('ridge.player_sessions') AS sessions",
+        "SELECT to_regclass('ridge.dedicated_servers') AS servers, " +
+        "to_regclass('ridge.player_sessions') AS sessions, " +
+        "to_regclass('ridge.dedicated_server_credentials') AS credentials",
       );
-      return Boolean(result.rows[0]?.servers && result.rows[0]?.sessions);
+      return Boolean(
+        result.rows[0]?.servers &&
+        result.rows[0]?.sessions &&
+        result.rows[0]?.credentials
+      );
     },
   });
 }

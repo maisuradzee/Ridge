@@ -167,6 +167,36 @@ test('production mode refuses to start with ephemeral in-memory storage', async 
   assert.match(output, /Production mode cannot use ephemeral in-memory game storage/);
 });
 
+test('production API refuses wildcard and public listener addresses before startup', async () => {
+  const attempts = [
+    { host: '0.0.0.0', expected: /must bind to loopback or a private network IP/ },
+    { host: '8.8.8.8', expected: /must bind to loopback or a private network IP/ },
+    { host: '10.20.30.40', expected: /Production mode cannot use ephemeral in-memory game storage/ },
+    { host: '127.0.0.1', expected: /Production mode cannot use ephemeral in-memory game storage/ },
+  ];
+
+  for (const attempt of attempts) {
+    const port = await getFreePort();
+    const child = spawn(process.execPath, ['src/server.mjs'], {
+      cwd: backendDir,
+      env: {
+        ...process.env,
+        PORT: String(port),
+        RIDGE_ENV: 'production',
+        RIDGE_STORAGE: 'memory',
+        RIDGE_HOST: attempt.host,
+      },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    let output = '';
+    child.stdout.on('data', (chunk) => { output += chunk.toString(); });
+    child.stderr.on('data', (chunk) => { output += chunk.toString(); });
+    const [code] = await once(child, 'exit');
+    assert.equal(code, 1, 'Production startup must stop for RIDGE_HOST=' + attempt.host);
+    assert.match(output, attempt.expected, 'Unexpected startup guard for RIDGE_HOST=' + attempt.host);
+  }
+});
+
 test('trusted gateway issues one-time join tickets and only the assigned shard can claim them', async (t) => {
   const port = await getFreePort();
   const baseUrl = 'http://127.0.0.1:' + port;
