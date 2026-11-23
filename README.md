@@ -97,6 +97,6 @@ The separate Stage 5 branch now contains a PostgreSQL-backed Dedicated Server re
 - stale/offline shards are excluded; draining shards receive no new assignments;
 - current region changes are explicitly rejected until a cross-region transfer workflow exists.
 
-Validation: Stage 5 CI **SUCCESS** (Python 52/52, UE static 24/24, load unit 6/6, backend Node 32/32); PostgreSQL 16 live integration **34/34 PASS**, migrations 001–004; 500 virtual-user API preflight **6,995 requests / 0 errors / 437.22 req/s** against memory-only development storage.
+Validation: Stage 5 CI **SUCCESS** (Python 52/52, UE static 24/24, load unit 6/6, backend Node 33/33); PostgreSQL 16 live integration **35/35 PASS**, migrations 001–004; 500 virtual-user API preflight **6,994 requests / 0 errors / 437.23 req/s** against memory-only development storage.
 
 This still does not prove 500 connected Unreal players. Player login/authentication, per-server credentials, client join tickets, Unreal registration/heartbeat wiring, real UE 5.8 runtime, cross-shard transfer, and real 500-CCU soak remain open.

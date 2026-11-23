@@ -167,17 +167,17 @@ These endpoints are not public player authentication. They require the existing 
 | Python / BotLab / Unreal static source regression | 52/52 PASS |
 | Unreal project static validator | 24/24 PASS |
 | API load harness unit tests | 6/6 PASS |
-| Backend Node regression (no database) | 32/32 PASS |
+| Backend Node regression (no database) | 33/33 PASS |
 | PostgreSQL migrations 001–004 | PASS |
-| Live backend + PostgreSQL integration | **34 PASS / 0 FAIL / 0 SKIP** |
+| Live backend + PostgreSQL integration | **35 PASS / 0 FAIL / 0 SKIP** |
 | Session registry live integration | PASS |
 | 500 virtual-user development HTTP preflight | PASS |
 
-The API preflight used only in-memory development storage: **6,995 requests, 0 failures, 437.22 requests/second**, p50 **0.52 ms**, p95 **0.84 ms**, p99 **1.45 ms**, maximum **10.13 ms**. It observed at most **7 simultaneous in-flight HTTP requests**. These are virtual API users, not 500 Unreal Engine network connections.
+The API preflight used only in-memory development storage: **6,994 requests, 0 failures, 437.23 requests/second**, p50 **0.45 ms**, p95 **0.78 ms**, p99 **1.83 ms**, maximum **6.47 ms**. It observed at most **5 simultaneous in-flight HTTP requests**. These are virtual API users, not 500 Unreal Engine network connections.
 
 Workflow evidence:
-- [Stage 5 static/API preflight](https://github.com/maisuradzee/Ridge/actions/runs/45127239100)
-- [PostgreSQL 16 integration, migrations 001–004](https://github.com/maisuradzee/Ridge/actions/runs/45127239008)
+- [Stage 5 static/API preflight](https://github.com/maisuradzee/Ridge/actions/runs/45127547554)
+- [PostgreSQL 16 integration, migrations 001–004](https://github.com/maisuradzee/Ridge/actions/runs/45127547471)
 
 Committed machine-readable report: `RIDGE_GIS/Data/QA/ridge_stage5_session_registry_20261123.json`.
 
