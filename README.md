@@ -80,3 +80,8 @@ Stage 5 work is maintained on the separate `codex/ridge-stage-5-multiplayer` bra
 - `.github/workflows/ridge-stage5-preflight.yml`: static checks plus an isolated 500-client in-memory API preflight.
 
 The API preflight is not a 500-player Unreal network test. C++ compilation/UHT, PIE, Dedicated Server runtime, network emulation, shard allocation/transfer, and the real 500-CCU Unreal soak test remain explicit acceptance gates. The 5 × 100 shard layout in the plan is a capacity-testing hypothesis, not a measured production limit.
+
+
+### Stage 5 — first API preflight result (2026-11-23)
+
+GitHub Actions Stage 5 preflight: **SUCCESS**. Regression gates: Python **52/52**, UE project static validation **24/24**, load-runner unit tests **6/6**, backend Node **22/22**. The isolated 500 virtual-user development API run completed **6,996 requests / 0 errors**, at **437.24 req/s**; p95 latency **0.56 ms**. This ran only against in-memory development storage. It is not a 500-player Unreal Engine network test; maximum simultaneous in-flight HTTP requests was 9. See the [workflow run](https://github.com/maisuradzee/Ridge/actions/runs/45125101490) and [Stage 5 plan/results](docs/56_STAGE_5_MULTIPLAYER_CAPACITY_PLAN_GE.md).

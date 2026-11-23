@@ -105,3 +105,27 @@ CI სცენარის პარამეტრები:
 ## 7. მიმდინარე გადაწყვეტილება
 
 Stage 5-ის პირველი მიწოდება არის API load-test harness, source-level replication guardrails და CI preflight. შემდეგი აუცილებელი ბარიერი არის Windows გარემოში Unreal Engine 5.8 UBT/UHT/PIE/Dedicated Server-ის რეალური გაშვება. ამ გარემოს გარეშე საბოლოო 500 CCU multiplayer capacity ვერ გამოცხადდება.
+
+
+## 8. შესრულებული CI preflight — 2026-11-23
+
+GitHub Actions run #1 დასრულდა SUCCESS-ით:
+[RIDGE Stage 5 Multiplayer Preflight](https://github.com/maisuradzee/Ridge/actions/runs/45125101490).
+
+| შემოწმება | შედეგი |
+|---|---:|
+| BotLab + Unreal source + Stage 5 Python regression | 52/52 PASS |
+| UE 5.8 project static validation | 24/24 PASS |
+| Load runner unit tests | 6/6 PASS |
+| Backend Node regression suite | 22/22 PASS |
+| 500 virtual-user API preflight | PASS |
+| HTTP requests | 6,996 |
+| HTTP request failures | 0 |
+| Requests per second | 437.24 |
+| p50 / p95 / p99 latency | 0.32 / 0.56 / 1.62 ms |
+| Maximum observed latency | 11.37 ms |
+| Maximum simultaneous in-flight HTTP requests | 9 |
+
+Load test შესრულდა 500 ლოგიკური virtual-user session-ით, 15-წამიანი ფანჯრით, 3-წამიანი ramp-up-ით და 1,000 ms think-time-ით. სამიზნე იყო მხოლოდ development API და memory-ephemeral storage; production და PostgreSQL არ გამოუყენებია. სრული JSON summary ინახება `RIDGE_GIS/Data/QA/ridge_stage5_api_preflight_20261123.json`-ში; ორიგინალი workflow artifact ხელმისაწვდომია [აქ](https://github.com/maisuradzee/Ridge/actions/runs/45125101490/artifacts/14794939132).
+
+**მნიშვნელოვანი შეზღუდვა:** 500 virtual user არ ნიშნავს 500 ერთდროულად დაკავშირებულ Unreal მოთამაშეს. ამ ტესტში მაქსიმუმ 9 ერთდროული HTTP მოთხოვნა დაფიქსირდა. შესაბამისად, ეს ადასტურებს მხოლოდ development API-ის მსუბუქი read-only workload-ის გავლას. Unreal replication, Dedicated Server runtime, რეალური shard capacity და 500-CCU soak gate კვლავ ღიაა.
