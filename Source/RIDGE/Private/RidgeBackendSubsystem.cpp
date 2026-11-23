@@ -42,7 +42,7 @@ void URidgeBackendSubsystem::Initialize(FSubsystemCollectionBase& Collection)
         ApiBaseUrl.LeftChopInline(1);
     }
 
-    // The shared secret is loaded lazily only after a server-world check.
+    // The per-instance secret is loaded lazily only after a server-world check.
     // A client process must never copy an inherited server token into game memory.
 }
 
@@ -110,15 +110,49 @@ bool URidgeBackendSubsystem::RegisterDedicatedServer()
 
     if (ServerId.IsEmpty())
     {
-        FString Label = FPlatformMisc::GetEnvironmentVariable(TEXT("RIDGE_SERVER_ID"));
-        if (Label.IsEmpty())
+        const FString ConfiguredInstanceId = FPlatformMisc::GetEnvironmentVariable(TEXT("RIDGE_SERVER_INSTANCE_ID"));
+        if (!ConfiguredInstanceId.IsEmpty())
         {
-            Label = TEXT("ridge-server");
+            ServerId = ConfiguredInstanceId;
         }
-        Label = Label.Left(40);
-        for (int32 Index = 0; Index < Label.Len(); ++Index)
+        else
         {
-            const TCHAR Character = Label[Index];
+            const FString Label = FPlatformMisc::GetEnvironmentVariable(TEXT("RIDGE_SERVER_ID"));
+            const FString Environment = FPlatformMisc::GetEnvironmentVariable(TEXT("RIDGE_ENV"));
+            if (Environment.Equals(TEXT("production"), ESearchCase::IgnoreCase))
+            {
+                UE_LOG(LogTemp, Error, TEXT("[RIDGE Backend] RIDGE_SERVER_INSTANCE_ID is required in production; a per-instance credential cannot be inferred."));
+                return false;
+            }
+
+            FString SafeLabel = Label.IsEmpty() ? TEXT("ridge-server") : Label.Left(40);
+            for (int32 Index = 0; Index < SafeLabel.Len(); ++Index)
+            {
+                const TCHAR Character = SafeLabel[Index];
+                const bool bAllowed =
+                    (Character >= TEXT('a') && Character <= TEXT('z')) ||
+                    (Character >= TEXT('A') && Character <= TEXT('Z')) ||
+                    (Character >= TEXT('0') && Character <= TEXT('9')) ||
+                    Character == TEXT('.') || Character == TEXT('_') ||
+                    Character == TEXT('-') || Character == TEXT(':');
+                if (!bAllowed)
+                {
+                    SafeLabel[Index] = TEXT('-');
+                }
+            }
+            // Development-only generated IDs are process scoped. Production IDs
+            // are provisioned before the process starts so its credential is bound.
+            ServerId = SafeLabel + TEXT("-") + FGuid::NewGuid().ToString(EGuidFormats::Digits);
+        }
+
+        if (ServerId.Len() > 80)
+        {
+            UE_LOG(LogTemp, Error, TEXT("[RIDGE Backend] RIDGE_SERVER_INSTANCE_ID exceeds 80 characters."));
+            ServerId.Reset();
+            return false;
+        }
+        for (const TCHAR Character : ServerId)
+        {
             const bool bAllowed =
                 (Character >= TEXT('a') && Character <= TEXT('z')) ||
                 (Character >= TEXT('A') && Character <= TEXT('Z')) ||
@@ -127,11 +161,11 @@ bool URidgeBackendSubsystem::RegisterDedicatedServer()
                 Character == TEXT('-') || Character == TEXT(':');
             if (!bAllowed)
             {
-                Label[Index] = TEXT('-');
+                UE_LOG(LogTemp, Error, TEXT("[RIDGE Backend] RIDGE_SERVER_INSTANCE_ID contains an invalid character."));
+                ServerId.Reset();
+                return false;
             }
         }
-        // A unique suffix makes this ID a process-instance ID, not a machine ID.
-        ServerId = Label + TEXT("-") + FGuid::NewGuid().ToString(EGuidFormats::Digits);
     }
 
     ServerRegion = FPlatformMisc::GetEnvironmentVariable(TEXT("RIDGE_SERVER_REGION"));
@@ -194,6 +228,7 @@ bool URidgeBackendSubsystem::RegisterDedicatedServer()
     Request->SetVerb(TEXT("POST"));
     Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
     Request->SetHeader(TEXT("x-ridge-server-token"), ServerToken);
+    Request->SetHeader(TEXT("x-ridge-server-id"), ServerId);
     Request->SetContentAsString(RidgeSerializeJson(Payload));
     Request->SetTimeout(8.0f);
 
@@ -264,6 +299,7 @@ void URidgeBackendSubsystem::SendShardHeartbeat(int32 CurrentPlayers, const FStr
     Request->SetVerb(TEXT("POST"));
     Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
     Request->SetHeader(TEXT("x-ridge-server-token"), ServerToken);
+    Request->SetHeader(TEXT("x-ridge-server-id"), ServerId);
     Request->SetContentAsString(RidgeSerializeJson(Payload));
     Request->SetTimeout(8.0f);
 
@@ -344,6 +380,7 @@ void URidgeBackendSubsystem::ClaimJoinTicket(
     Request->SetVerb(TEXT("POST"));
     Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
     Request->SetHeader(TEXT("x-ridge-server-token"), ServerToken);
+    Request->SetHeader(TEXT("x-ridge-server-id"), ServerId);
     Request->SetContentAsString(RidgeSerializeJson(Payload));
     Request->SetTimeout(8.0f);
 
@@ -423,6 +460,7 @@ void URidgeBackendSubsystem::ReleasePlayerSession(const FString& PlayerId, const
     Request->SetVerb(TEXT("POST"));
     Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
     Request->SetHeader(TEXT("x-ridge-server-token"), ServerToken);
+    Request->SetHeader(TEXT("x-ridge-server-id"), ServerId);
     Request->SetContentAsString(RidgeSerializeJson(Payload));
     Request->SetTimeout(8.0f);
 
@@ -466,6 +504,7 @@ void URidgeBackendSubsystem::AcceptDeliveryJob(const FString& PlayerId)
     Request->SetVerb(TEXT("POST"));
     Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
     Request->SetHeader(TEXT("x-ridge-server-token"), ServerToken);
+    Request->SetHeader(TEXT("x-ridge-server-id"), ServerId);
     Request->SetContentAsString(TEXT("{\"definitionId\":\"delivery_intro\"}"));
     Request->SetTimeout(8.0f);
     const TWeakObjectPtr<URidgeBackendSubsystem> WeakThis(this);
@@ -541,6 +580,7 @@ void URidgeBackendSubsystem::RecordDeliveryCheckpoint(const FString& PlayerId, c
     Request->SetVerb(TEXT("POST"));
     Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
     Request->SetHeader(TEXT("x-ridge-server-token"), ServerToken);
+    Request->SetHeader(TEXT("x-ridge-server-id"), ServerId);
     Request->SetContentAsString(Body);
     Request->SetTimeout(8.0f);
     const TWeakObjectPtr<URidgeBackendSubsystem> WeakThis(this);
@@ -603,6 +643,7 @@ void URidgeBackendSubsystem::CompleteDeliveryJob(const FString& PlayerId)
     Request->SetVerb(TEXT("POST"));
     Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
     Request->SetHeader(TEXT("x-ridge-server-token"), ServerToken);
+    Request->SetHeader(TEXT("x-ridge-server-id"), ServerId);
     Request->SetContentAsString(Body);
     Request->SetTimeout(8.0f);
     const TWeakObjectPtr<URidgeBackendSubsystem> WeakThis(this);

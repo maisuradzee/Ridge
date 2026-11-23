@@ -50,6 +50,10 @@ Legacy direct-claim route, რომელიც playerId + sessionId-ით პ
   - join_ticket_hash
   - join_ticket_expires_at
   - join_attempt_id
+- database/migrations/006_dedicated_server_credentials.sql
+  - per-instance server credential UUID
+  - SHA-256 token hash only
+  - expiry and revocation timestamps
   - ticket hash unique index და expiry index
 - Memory registry tests ამოწმებს expiry, replacement ticket, same-claim replay, different-connection reuse rejection და shard binding.
 - PostgreSQL integration test ამოწმებს რეალურ DB-ში hash-only storage-ს, claim atomicity-ს და same-attempt replay-ს.
@@ -87,11 +91,13 @@ The Stage 5 Unreal GameMode now wires the backend one-time ticket to the Unreal 
 
 RidgePublicId remains the replicated public game ID. The canonical account/player ID is stored in a private, non-replicated VerifiedPlayerId field and is only read by server-side backend calls.
 
-The backend now separates the service roles:
-- RIDGE_GATEWAY_TOKEN / x-ridge-gateway-token: session allocation and ticket issuance.
-- RIDGE_SERVER_EVENT_TOKEN / x-ridge-server-token: shard registration/heartbeat, join-ticket claim and session release.
+The backend separates the service roles:
+- OIDC Bearer token: public player identity proof; verified against configured issuer/audience/JWKS.
+- RIDGE_GATEWAY_TOKEN / x-ridge-gateway-token: trusted internal session allocation and ticket issuance.
+- RIDGE_SERVER_PROVISIONING_TOKEN / x-ridge-provisioning-token: orchestrator-only issuance, rotation and revocation of per-instance server credentials.
+- RIDGE_SERVER_EVENT_TOKEN / x-ridge-server-token: unique credential for one Dedicated Server process, paired with x-ridge-server-id.
 
-The gateway token must exist only in the gateway process. Dedicated Server processes must not receive it. The public OIDC session endpoint is now implemented as a provider-agnostic JWT verifier and ticket-issuing gateway. The actual identity-provider tenant/authorization-code configuration remains a deployment integration step; trusted service-to-service gateway routes remain available for internal automation.
+The provisioning token exists only in the control-plane/orchestrator and Backend API configuration. Dedicated Server processes receive only their own per-instance token. Production does not accept the old shared server-token fallback. The public OIDC session endpoint and one-time ticket flow are implemented; the real provider tenant/authorization-code configuration remains a deployment integration step. See `docs/60_PER_INSTANCE_SERVER_CREDENTIALS_GE.md`.
 
 ### Production transport caution
 
@@ -99,7 +105,7 @@ The bearer ticket is passed through Unreal's ridgeJoinTicket connection option a
 
 ### Current acceptance boundary
 
-The C++ overrides and source-level contracts are committed and are being checked by static CI. This does not prove Unreal Engine 5.8 UBT/UHT compilation or a live network join. Still required: Windows UE 5.8 Editor/Server build, two-client PIE/Dedicated Server, rejection of a ticketless client, successful claim, public PlayerState replication, logout release, reconnect, and server shutdown recovery.
+The C++ overrides and source-level contracts are committed and are being checked by static CI. This does not prove Unreal Engine 5.8 UBT/UHT compilation or a live network join. Still required: Windows UE 5.8 Editor/Server build, two-client PIE/Dedicated Server, rejection of a ticketless client, successful per-instance credential authentication, successful claim, public PlayerState replication, logout release, reconnect, and server shutdown recovery.
 
 
 ## 7. CI results — 2026-11-23

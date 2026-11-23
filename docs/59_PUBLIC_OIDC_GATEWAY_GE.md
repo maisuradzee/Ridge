@@ -66,6 +66,7 @@ The verifier does not implement the external provider's authorization-code flow,
 The RIDGE Node API uses an HTTP listener behind a trusted TLS reverse proxy. Production startup requires:
 - PostgreSQL-backed storage (ephemeral memory storage is refused in production);
 - all three OIDC environment variables;
+- `RIDGE_SERVER_PROVISIONING_TOKEN` (orchestrator-only credential used to issue/rotate/revoke per-server tokens);
 - \`RIDGE_TRUST_PROXY=true\`;
 - a reverse proxy that terminates TLS, removes any client-supplied \`X-Forwarded-Proto\`, then sets \`X-Forwarded-Proto: https\`;
 - the Node listener bound to loopback/private interface and not directly reachable from the public internet.
@@ -79,6 +80,7 @@ Example environment (replace placeholders with values from the chosen provider a
     RIDGE_OIDC_ISSUER=https://identity.example.com/
     RIDGE_OIDC_AUDIENCE=ridge-game-api
     RIDGE_OIDC_JWKS_URL=https://identity.example.com/.well-known/jwks.json
+    RIDGE_SERVER_PROVISIONING_TOKEN=<orchestrator-only-secret>
 
 Never set \`RIDGE_TRUST_PROXY=true\` when untrusted clients can reach the Node listener directly; the trusted proxy must overwrite forwarding headers. The ingress must also enforce request rate limits, connection limits and body-size/time limits. The current Node process does not provide a distributed rate limiter.
 
@@ -139,3 +141,18 @@ The 15-second in-memory development API preflight recorded 437.4 requests/second
 Machine-readable evidence: `RIDGE_GIS/Data/QA/ridge_stage5_oidc_gateway_20261123.json`.
 
 The workflow does not run UE 5.8 UBT/UHT. Real provider tenant/authorization-code configuration, live TLS deployment, protected Unreal game transport, two-client Dedicated Server/PIE and true 500-player Unreal soak remain unverified.
+
+
+## 8. Dedicated Server credential lifecycle
+
+Each Dedicated Server process has a separate 256-bit bearer credential bound to a pre-provisioned instance ID. The control plane issues it through:
+
+`POST /v1/control/shards/{serverId}/credentials`
+
+Header: `x-ridge-provisioning-token`. The raw token is returned once. The database stores only a SHA-256 hash with a 90-day expiry. The orchestrator puts the token in the individual process secret store as `RIDGE_SERVER_EVENT_TOKEN` and sets `RIDGE_SERVER_INSTANCE_ID` to the same ID used during provisioning.
+
+The server sends `x-ridge-server-id` and `x-ridge-server-token` on its private requests. Rotation calls the issue endpoint again; the previous credential is invalidated immediately. Revocation uses `POST /v1/control/shards/{serverId}/credentials/revoke`. The `RIDGE_SERVER_PROVISIONING_TOKEN` must never be supplied to game-server processes.
+
+Production startup requires the provisioning token and does not accept a shared `RIDGE_SERVER_EVENT_TOKEN` fallback. A local development-only legacy shared token remains available for existing isolated tests.
+
+See `docs/60_PER_INSTANCE_SERVER_CREDENTIALS_GE.md`.

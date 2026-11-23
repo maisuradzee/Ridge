@@ -39,21 +39,31 @@ RIDGE_SERVER_HOST არის მისამართი, რომელს�
 
 ## 3. Production-ის აუცილებელი პირობები
 
-Production-ში ეს მნიშვნელობები აუცილებლად გარემოდან უნდა მოვიდეს:
+Dedicated Server-ის გარემოში თითოეული process იღებს მხოლოდ საკუთარ credential-ს:
 
-- RIDGE_ENV=production
-- RIDGE_API_BASE_URL=https://backend-domain
-- RIDGE_SERVER_HOST=<publicly reachable DNS name or IP>
-- RIDGE_SERVER_EVENT_TOKEN=<secret-store supplied token>
+- `RIDGE_ENV=production`
+- `RIDGE_API_BASE_URL=https://backend-domain`
+- `RIDGE_SERVER_INSTANCE_ID=<pre-provisioned unique instance ID>`
+- `RIDGE_SERVER_EVENT_TOKEN=<one-time-issued per-instance token>`
+- `RIDGE_SERVER_HOST=<publicly reachable DNS name or IP>`
+- `RIDGE_SERVER_PORT=7777`
+- `RIDGE_SERVER_MAX_PLAYERS=100`
 
-Production რეჟიმში:
-- HTTPS-ის გარეშე API URL უარყოფილია; shared server token არ გაიგზავნება plaintext HTTP-ზე.
-- API URL-ის default localhost მნიშვნელობა აღარ გამოიყენება.
-- RIDGE_SERVER_HOST სავალდებულოა; localhost და 127.x.x.x loopback მისამართები უარყოფილია.
-- API registry-ის advertised port უნდა ემთხვეოდეს რეალურ game transport port-სა და firewall/NAT mapping-ს.
-- RIDGE_SERVER_EVENT_TOKEN არ უნდა მოთავსდეს Default*.ini, game assets, client config, command line ან log-ში.
+RIDGE API/control-plane გარემოში ცალკე secret-ად ინახება:
+- `RIDGE_SERVER_PROVISIONING_TOKEN=<orchestrator-only secret>`
+- `RIDGE_GATEWAY_TOKEN=<gateway-only internal secret>`
+- OIDC issuer/audience/JWKS და PostgreSQL პარამეტრები (იხ. `docs/59_PUBLIC_OIDC_GATEWAY_GE.md`).
 
-მიმდინარე backend ჯერ იყენებს ერთ shared internal server token-ს. Production გაშვებამდე საჭიროა per-server credentials, rotation/revocation და least-privilege authorization.
+Production რეჟიმში HTTPS სავალდებულოა; `RIDGE_SERVER_HOST` უნდა იყოს public-reachable და არ შეიძლება loopback. `RIDGE_SERVER_INSTANCE_ID` წინასწარ უნდა არსებობდეს credential-ის გაცემამდე; `RIDGE_SERVER_EVENT_TOKEN` არ უნდა მოთავსდეს game assets/config/log-ში. `RIDGE_SERVER_PROVISIONING_TOKEN` არასდროს გადაეცემა Dedicated Server-ს.
+
+Credential sequence:
+1. Orchestrator ქმნის უნიკალურ `serverId`-ს.
+2. Orchestrator იძახებს `POST /v1/control/shards/{serverId}/credentials` `x-ridge-provisioning-token` header-ით.
+3. API აბრუნებს 256-bit token-ს მხოლოდ ერთხელ; PostgreSQL-ში ინახება მხოლოდ SHA-256 hash.
+4. Orchestrator token-ს ინახავს secret manager-ში და უშვებს Dedicated Server-ს `RIDGE_SERVER_INSTANCE_ID` + `RIDGE_SERVER_EVENT_TOKEN` გარემოთი.
+5. Server-ის ყველა internal request აგზავნის `x-ridge-server-id` და `x-ridge-server-token` header-ებს.
+
+Rotation იგივე endpoint-ით გასცემს ახალ credential-ს და ძველს დაუყოვნებლივ აუქმებს. Revoke endpoint: `POST /v1/control/shards/{serverId}/credentials/revoke`. Production-ში shared server-token fallback გამორთულია.
 
 ## 4. Compile და runtime პროცედურა
 
@@ -85,11 +95,11 @@ Stage 5-ის შემდეგი increment-ები უკვე ამა�
 - რეალური OIDC provider tenant-ის კონფიგურაცია, authorization-code/redirect/PKCE, MFA, account recovery და account linking;
 - UE 5.8 UBT/UHT compile და Dedicated Server + ორი client-ის PIE/runtime შემოწმება;
 - initial Unreal connection options-ში bearer ticket-ის დაცვა შესაბამისი UE network encryption/transport security-ით;
-- per-server credentials, rotation/revocation და audit;
+- credential audit history და orchestrator-ის secret-manager rotation policy;
 - cross-region/cross-shard transfer;
 - reconnect/disconnect soak და 500 რეალურად დაკავშირებული Unreal player-ის capacity test.
 
-Public session gateway და client-იდან წამოსული ticket flow აღწერილია `docs/58_JOIN_TICKET_AND_PRELOGIN_FLOW_GE.md` და `docs/59_PUBLIC_OIDC_GATEWAY_GE.md` დოკუმენტებში. Internal shard/player endpoints კვლავ მხოლოდ შესაბამისი trusted gateway ან Dedicated Server credential-ით უნდა გამოიძახონ; client-ს პირდაპირი წვდომა არ ეძლევა.
+Public session gateway და client-იდან წამოსული ticket flow აღწერილია `docs/58_JOIN_TICKET_AND_PRELOGIN_FLOW_GE.md` და `docs/59_PUBLIC_OIDC_GATEWAY_GE.md` დოკუმენტებში. Per-instance credential provisioning/rotation აღწერილია `docs/60_PER_INSTANCE_SERVER_CREDENTIALS_GE.md`-ში. Internal shard/player endpoints კვლავ მხოლოდ შესაბამისი trusted gateway ან Dedicated Server credential-ით უნდა გამოიძახონ; client-ს პირდაპირი წვდომა არ ეძლევა.
 
 ## 6. მიღების კრიტერიუმები
 

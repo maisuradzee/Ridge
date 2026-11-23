@@ -63,7 +63,8 @@ jobs:
             database/migrations/002_job_checkpoints.sql \
             database/migrations/003_postgres_runtime.sql \
             database/migrations/004_session_registry.sql \
-            database/migrations/005_session_join_tickets.sql; do
+            database/migrations/005_session_join_tickets.sql \
+            database/migrations/006_dedicated_server_credentials.sql; do
             echo "Applying $migration"
             psql "postgresql://ridge_backend:ridge_ci_password@127.0.0.1:5432/ridge_dev" \
               -X --single-transaction -v ON_ERROR_STOP=1 -f "$migration"

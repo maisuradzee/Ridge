@@ -11,6 +11,7 @@ const ENV = process.env.RIDGE_ENV ?? 'development';
 const STORAGE = process.env.RIDGE_STORAGE ?? (process.env.DATABASE_URL ? 'postgres' : 'memory');
 const GAME_SERVER_TOKEN = process.env.RIDGE_SERVER_EVENT_TOKEN ?? '';
 const GATEWAY_TOKEN = process.env.RIDGE_GATEWAY_TOKEN ?? '';
+const SERVER_PROVISIONING_TOKEN = process.env.RIDGE_SERVER_PROVISIONING_TOKEN ?? '';
 const TRUST_PROXY = process.env.RIDGE_TRUST_PROXY === 'true';
 
 
@@ -40,12 +41,40 @@ function safeTokenEquals(provided, expected) {
   return a.length > 0 && a.length === b.length && timingSafeEqual(a, b);
 }
 
-function requireGameServer(request) {
-  if (!GAME_SERVER_TOKEN) {
-    throw new RidgeError(503, 'GAME_SERVER_AUTH_NOT_CONFIGURED', 'სათამაშო სერვერის შიდა ავტორიზაცია კონფიგურირებული არ არის.');
+async function requireGameServer(request, routeServerId, sessionRegistry) {
+  const headerServerId = request.headers['x-ridge-server-id'];
+  const serverId = routeServerId ?? headerServerId;
+  if (routeServerId && headerServerId && routeServerId !== headerServerId) {
+    throw new RidgeError(403, 'GAME_SERVER_ID_MISMATCH', 'Server identity header does not match the route.');
   }
-  if (!safeTokenEquals(request.headers['x-ridge-server-token'], GAME_SERVER_TOKEN)) {
-    throw new RidgeError(403, 'GAME_SERVER_FORBIDDEN', 'შიდა სათამაშო სერვერის ავტორიზაცია ვერ დადასტურდა.');
+
+  // The shared role token is a development-only compatibility path.
+  if (ENV !== 'production' && GAME_SERVER_TOKEN &&
+      safeTokenEquals(request.headers['x-ridge-server-token'], GAME_SERVER_TOKEN)) {
+    return;
+  }
+  if (!serverId || typeof serverId !== 'string') {
+    throw new RidgeError(400, 'SERVER_INSTANCE_ID_REQUIRED', 'Dedicated Server instance ID is required.');
+  }
+  const authenticated = await sessionRegistry.authenticateServerCredential({
+    serverId,
+    token: request.headers['x-ridge-server-token'],
+  });
+  if (!authenticated) {
+    throw new RidgeError(403, 'GAME_SERVER_FORBIDDEN', 'Per-instance Dedicated Server credential is invalid, expired or revoked.');
+  }
+}
+
+function requireServerProvisioner(request) {
+  if (!SERVER_PROVISIONING_TOKEN) {
+    if (ENV !== 'production' && GAME_SERVER_TOKEN &&
+        safeTokenEquals(request.headers['x-ridge-server-token'], GAME_SERVER_TOKEN)) {
+      return;
+    }
+    throw new RidgeError(503, 'SERVER_PROVISIONING_NOT_CONFIGURED', 'Per-instance server provisioning is not configured.');
+  }
+  if (!safeTokenEquals(request.headers['x-ridge-provisioning-token'], SERVER_PROVISIONING_TOKEN)) {
+    throw new RidgeError(403, 'SERVER_PROVISIONING_FORBIDDEN', 'Server provisioning authorization failed.');
   }
 }
 
@@ -148,6 +177,9 @@ async function main() {
   if (ENV === 'production' && STORAGE === 'memory') {
     throw new Error('Production mode cannot use ephemeral in-memory game storage.');
   }
+  if (ENV === 'production' && !SERVER_PROVISIONING_TOKEN) {
+    throw new Error('Production RIDGE API requires RIDGE_SERVER_PROVISIONING_TOKEN for per-instance credential rotation.');
+  }
   if (ENV === 'production' && !TRUST_PROXY) {
     throw new Error('Production RIDGE public gateway requires a trusted HTTPS reverse proxy (RIDGE_TRUST_PROXY=true).');
   }
@@ -249,21 +281,35 @@ async function main() {
         return send(response, 200, await service.getWorldState());
       }
 
-      // Session and shard control plane. Every route is private to trusted game servers.
+      // Control-plane credential issuance is restricted to the deployment orchestrator.
+      const serverCredentialMatch = url.pathname.match(/^\/v1\/control\/shards\/([A-Za-z0-9._:-]{1,80})\/credentials$/);
+      if (request.method === 'POST' && serverCredentialMatch) {
+        requireServerProvisioner(request);
+        const credential = await sessionRegistry.issueServerCredential({ serverId: serverCredentialMatch[1] });
+        return send(response, 201, credential);
+      }
+
+      const revokeServerCredentialMatch = url.pathname.match(/^\/v1\/control\/shards\/([A-Za-z0-9._:-]{1,80})\/credentials\/revoke$/);
+      if (request.method === 'POST' && revokeServerCredentialMatch) {
+        requireServerProvisioner(request);
+        return send(response, 200, await sessionRegistry.revokeServerCredential({ serverId: revokeServerCredentialMatch[1] }));
+      }
+
+      // Session and shard control plane. Production requires per-instance credentials.
       if (request.method === 'GET' && url.pathname === '/v1/internal/shards') {
-        requireGameServer(request);
+        requireServerProvisioner(request);
         return send(response, 200, { servers: await sessionRegistry.listServers(url.searchParams.get('region')) });
       }
 
       if (request.method === 'POST' && url.pathname === '/v1/internal/shards/register') {
-        requireGameServer(request);
         const body = await readJson(request);
+        await requireGameServer(request, body.serverId, sessionRegistry);
         return send(response, 201, await sessionRegistry.registerServer(body));
       }
 
       const shardHeartbeatMatch = url.pathname.match(/^\/v1\/internal\/shards\/([A-Za-z0-9._:-]{1,80})\/heartbeat$/);
       if (request.method === 'POST' && shardHeartbeatMatch) {
-        requireGameServer(request);
+        await requireGameServer(request, shardHeartbeatMatch[1], sessionRegistry);
         const body = await readJson(request);
         return send(response, 200, await sessionRegistry.heartbeatServer(shardHeartbeatMatch[1], body));
       }
@@ -288,7 +334,7 @@ async function main() {
 
       const claimJoinTicketMatch = url.pathname.match(/^\/v1\/internal\/shards\/([A-Za-z0-9._:-]{1,80})\/join\/claim$/);
       if (request.method === 'POST' && claimJoinTicketMatch) {
-        requireGameServer(request);
+        await requireGameServer(request, claimJoinTicketMatch[1], sessionRegistry);
         const body = await readJson(request);
         return send(response, 200, await sessionRegistry.claimJoinTicket({
           serverId: claimJoinTicketMatch[1],
@@ -299,7 +345,7 @@ async function main() {
 
       const releaseSessionMatch = url.pathname.match(/^\/v1\/internal\/shards\/([A-Za-z0-9._:-]{1,80})\/players\/([A-Za-z0-9._:-]{1,80})\/release$/);
       if (request.method === 'POST' && releaseSessionMatch) {
-        requireGameServer(request);
+        await requireGameServer(request, releaseSessionMatch[1], sessionRegistry);
         const body = await readJson(request);
         return send(response, 200, await sessionRegistry.releaseSession({
           serverId: releaseSessionMatch[1], playerId: releaseSessionMatch[2], sessionId: body.sessionId,
@@ -309,21 +355,21 @@ async function main() {
       // Internal endpoints are callable only by the trusted Dedicated Server.
       const internalAcceptMatch = url.pathname.match(/^\/v1\/internal\/players\/([A-Za-z0-9._:-]{1,80})\/jobs\/accept$/);
       if (request.method === 'POST' && internalAcceptMatch) {
-        requireGameServer(request);
+        await requireGameServer(request, request.headers['x-ridge-server-id'], sessionRegistry);
         const body = await readJson(request);
         return send(response, 201, await service.acceptJob(internalAcceptMatch[1], body.definitionId ?? 'delivery_intro'));
       }
 
       const internalCompleteMatch = url.pathname.match(/^\/v1\/internal\/jobs\/([0-9a-f-]{36})\/complete$/i);
       if (request.method === 'POST' && internalCompleteMatch) {
-        requireGameServer(request);
+        await requireGameServer(request, request.headers['x-ridge-server-id'], sessionRegistry);
         const body = await readJson(request);
         return send(response, 200, await service.completeJob(body.playerId, internalCompleteMatch[1], body.completionProof));
       }
 
       const checkpointMatch = url.pathname.match(/^\/v1\/internal\/jobs\/([0-9a-f-]{36})\/checkpoints$/i);
       if (request.method === 'POST' && checkpointMatch) {
-        requireGameServer(request);
+        await requireGameServer(request, request.headers['x-ridge-server-id'], sessionRegistry);
         const body = await readJson(request);
         return send(response, 200, await service.recordJobCheckpoint(
           body.playerId,

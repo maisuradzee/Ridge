@@ -85,6 +85,21 @@ test('migration 005 stores ticket hash, expiry and stable claim attempt as an al
   assert.match(registry, /JOIN_TICKET_CLAIM_ATTEMPT_MISMATCH/);
 });
 
+test('migration 006 stores per-instance Dedicated Server token hashes only', async () => {
+  const migration = await readFile(new URL('database/migrations/006_dedicated_server_credentials.sql', root), 'utf8');
+  assert.match(migration, /dedicated_server_credentials/);
+  assert.match(migration, /token_hash TEXT NOT NULL/);
+  assert.match(migration, /credential_id UUID NOT NULL/);
+  assert.match(migration, /expires_at TIMESTAMPTZ NOT NULL/);
+  assert.match(migration, /revoked_at TIMESTAMPTZ/);
+
+  const registry = await readFile(new URL('backend/src/session-registry.mjs', root), 'utf8');
+  assert.match(registry, /issueServerCredential/);
+  assert.match(registry, /authenticateServerCredential/);
+  assert.match(registry, /revokeServerCredential/);
+  assert.match(registry, /dedicated_server_credentials/);
+});
+
 test('PostgreSQL service initializes only after required migrations and preserves world epoch', async () => {
   const seen = [];
   const pool = {

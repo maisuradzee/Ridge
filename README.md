@@ -99,14 +99,14 @@ The separate Stage 5 branch now contains a PostgreSQL-backed Dedicated Server re
 
 Validation: Stage 5 CI **SUCCESS** (Python 52/52, UE static 24/24, load unit 6/6, backend Node 33/33); PostgreSQL 16 live integration **35/35 PASS**, migrations 001–004; 500 virtual-user API preflight **6,994 requests / 0 errors / 437.23 req/s** against memory-only development storage.
 
-This still does not prove 500 connected Unreal players. OIDC gateway and client join-ticket source flow are implemented and CI-verified; actual provider tenant/PKCE/MFA setup, per-server credentials, real UE 5.8 runtime, encrypted game transport, cross-shard transfer, and true 500-CCU soak remain open.
+This still does not prove 500 connected Unreal players. OIDC gateway, join-ticket source flow and per-instance credential registry are implemented; actual provider tenant/PKCE/MFA setup, production secret-manager orchestration and credential audit, real UE 5.8 runtime, encrypted game transport, cross-shard transfer, and true 500-CCU soak remain open.
 
 
 ### Unreal Dedicated Server control-plane wiring
 
 The Stage 5 branch adds GameMode-driven shard registration on startup, 15-second heartbeat updates, and an offline heartbeat during EndPlay. Production mode now requires an HTTPS backend URL and an explicitly advertised non-loopback server host. See docs/57_UNREAL_DEDICATED_SERVER_REGISTRATION_GE.md.
 
-This is source-level integration only until the Editor/Server targets compile and the server + two clients pass a real UE 5.8 network test. OIDC-backed session allocation and signed join-ticket source flow are implemented; actual provider setup, per-server credentials, reconnect soak and shard transfer remain open gates.
+This is source-level integration only until the Editor/Server targets compile and the server + two clients pass a real UE 5.8 network test. OIDC-backed session allocation, signed join-ticket flow and per-instance credential source are implemented; actual provider setup, production secret-manager orchestration, reconnect soak and shard transfer remain open gates.
 
 
 ### Dedicated Server registration — static CI verified (2026-11-23)
@@ -131,7 +131,7 @@ See docs/58_JOIN_TICKET_AND_PRELOGIN_FLOW_GE.md and docs/59_PUBLIC_OIDC_GATEWAY_
 
 The Stage 5 Unreal GameMode source now binds one-time tickets to UE 5.8 PreLoginAsync -> InitNewPlayer -> PostLogin and releases sessions on Logout. Canonical backend identity is stored privately on the server-side PlayerState; the replicated RidgePublicId remains a separate public game identifier. Unverified connections are rejected/kicked.
 
-Session allocation and ticket issuance use a separate RIDGE_GATEWAY_TOKEN; shard operations retain RIDGE_SERVER_EVENT_TOKEN. The provider-agnostic OIDC gateway is implemented, but the real provider tenant and authorization-code/PKCE/MFA account lifecycle remain deployment work. The bearer ticket is carried in UE login options, so production also requires verified encrypted game-connection transport.
+Session allocation and ticket issuance use a separate RIDGE_GATEWAY_TOKEN. The orchestrator alone holds RIDGE_SERVER_PROVISIONING_TOKEN; each shard receives only its own RIDGE_SERVER_EVENT_TOKEN tied to RIDGE_SERVER_INSTANCE_ID. Production has no shared server-token fallback. The real provider tenant and authorization-code/PKCE/MFA account lifecycle remain deployment work. The bearer ticket is carried in UE login options, so production also requires verified encrypted game-connection transport.
 
 See docs/58_JOIN_TICKET_AND_PRELOGIN_FLOW_GE.md. C++ UBT/UHT and live UE 5.8 two-client runtime have not yet been executed.
 
@@ -179,7 +179,7 @@ This is still source/static verification, not UBT/UHT compilation or a live Unre
 
 The backend now exposes `POST /v1/gateway/session`. It verifies a signed RS256 OIDC JWT against configured HTTPS JWKS, derives an opaque canonical backend player ID from issuer + subject, allocates a healthy shard, and returns the one-time join ticket plus stable claimAttemptId in the Unreal connection options. Production requires OIDC configuration, PostgreSQL storage and a trusted HTTPS reverse proxy. See `docs/59_PUBLIC_OIDC_GATEWAY_GE.md`.
 
-The endpoint is provider-agnostic, but the real provider tenant, authorization-code/redirect/MFA/account lifecycle, ingress rate limits, per-server credentials and encrypted Unreal game transport remain deployment/integration work. This is not yet a complete public account system.
+The endpoint is provider-agnostic, but the real provider tenant, authorization-code/redirect/MFA/account lifecycle, ingress rate limits, production secret-manager provisioning/audit and encrypted Unreal game transport remain deployment/integration work. This is not yet a complete public account system.
 
 
 ### OIDC session gateway — CI verified (2026-11-23)
@@ -197,3 +197,10 @@ The provider-agnostic `POST /v1/gateway/session` verifies RS256 OIDC JWTs agains
 Evidence: [Stage 5 CI](https://github.com/maisuradzee/Ridge/actions/runs/45134162859) · [PostgreSQL 16 integration](https://github.com/maisuradzee/Ridge/actions/runs/45134168625) · [OIDC gateway runbook](docs/59_PUBLIC_OIDC_GATEWAY_GE.md).
 
 This does not yet configure an actual identity-provider tenant or authorization-code flow, run UE 5.8 UBT/UHT, verify encrypted Unreal connection transport, run live two-client PIE, or prove 500 connected Unreal players. The branch stays Draft.
+
+
+### Per-instance Dedicated Server credentials — Stage 5
+
+Production shard authentication now uses a unique 256-bit token per `RIDGE_SERVER_INSTANCE_ID`. The orchestrator receives the token once from the provisioning API; PostgreSQL stores only its SHA-256 hash. Credential rotation invalidates the previous token immediately, and revocation affects only the selected instance. The old shared-token compatibility path is development-only.
+
+Migration 006 adds the credential registry. Production requires `RIDGE_SERVER_PROVISIONING_TOKEN` in the control plane and never passes it to game-server processes. See `docs/60_PER_INSTANCE_SERVER_CREDENTIALS_GE.md`.

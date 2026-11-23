@@ -221,6 +221,23 @@ class Stage5ReplicationContractTests(unittest.TestCase):
         self.assertIn("requireGateway(request);", self.backend_server_source)
         self.assertIn("requireGameServer(request);", self.backend_server_source)
 
+
+    def test_production_dedicated_servers_use_preprovisioned_per_instance_credentials(self) -> None:
+        self.assertIn("RIDGE_SERVER_INSTANCE_ID", self.backend_bridge)
+        self.assertIn('TEXT("x-ridge-server-id")', self.backend_bridge)
+        self.assertIn("RIDGE_SERVER_PROVISIONING_TOKEN", self.backend_server_source)
+        self.assertIn("SERVER_PROVISIONING_FORBIDDEN", self.backend_server_source)
+        self.assertIn("authenticateServerCredential", self.backend_server_source)
+        self.assertIn("issueServerCredential", self.backend_server_source)
+        self.assertIn("revokeServerCredential", self.backend_server_source)
+        self.assertIn("ENV !== 'production' && GAME_SERVER_TOKEN", self.backend_server_source)
+        self.assertIn("Production RIDGE API requires RIDGE_SERVER_PROVISIONING_TOKEN", self.backend_server_source)
+
+    def test_per_instance_server_credential_migration_and_registry_contract_exist(self) -> None:
+        self.assertTrue((ROOT / "database/migrations/006_dedicated_server_credentials.sql").exists())
+        self.assertIn("dedicated_server_credentials", self.backend_server_source)
+        self.assertIn("RIDGE_SERVER_INSTANCE_ID is required in production", self.backend_bridge)
+
     def test_backend_secret_is_not_marked_for_network_replication(self) -> None:
         self.assertIn('GetEnvironmentVariable(TEXT("RIDGE_SERVER_EVENT_TOKEN"))', self.backend_bridge)
         self.assertNotIn("DOREPLIFETIME", self.backend_bridge)

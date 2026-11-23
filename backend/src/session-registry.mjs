@@ -1,9 +1,10 @@
-import { createHash, randomBytes, randomUUID } from 'node:crypto';
+import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { RidgeError } from './game-service.mjs';
 
 const DEFAULT_LEASE_MS = 45_000;
 const DEFAULT_HEARTBEAT_TTL_MS = 45_000;
 const DEFAULT_JOIN_TICKET_MS = 30_000;
+const DEFAULT_SERVER_CREDENTIAL_MS = 90 * 24 * 60 * 60 * 1000;
 const SERVER_STATUSES = new Set(['ready', 'draining', 'offline']);
 const ACTIVE_SESSION_STATUSES = new Set(['allocated', 'connected']);
 
@@ -16,6 +17,21 @@ function validIdentifier(value, label, maxLength = 80) {
     fail(400, 'INVALID_' + label.toUpperCase(), label + ' არასწორია.');
   }
   return value;
+}
+
+function hashServerCredential(token) {
+  if (typeof token !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(token)) {
+    return null;
+  }
+  return createHash('sha256').update(token, 'utf8').digest('hex');
+}
+
+function secureHashEquals(providedHash, storedHash) {
+  if (typeof providedHash !== 'string' || typeof storedHash !== 'string' ||
+      !/^[a-f0-9]{64}$/.test(providedHash) || !/^[a-f0-9]{64}$/.test(storedHash)) {
+    return false;
+  }
+  return timingSafeEqual(Buffer.from(providedHash, 'hex'), Buffer.from(storedHash, 'hex'));
 }
 
 function hashJoinTicket(ticket) {
@@ -106,9 +122,10 @@ function publicAllocation(session, server, reused = false) {
   };
 }
 
-function createMemoryRegistry({ clock, leaseMs, heartbeatTtlMs, joinTicketMs }) {
+function createMemoryRegistry({ clock, leaseMs, heartbeatTtlMs, joinTicketMs, serverCredentialMs }) {
   const servers = new Map();
   const sessions = new Map();
+  const serverCredentials = new Map();
 
   function findServer(serverId) {
     const server = servers.get(serverId);
@@ -154,6 +171,40 @@ function createMemoryRegistry({ clock, leaseMs, heartbeatTtlMs, joinTicketMs }) 
 
   return Object.freeze({
     storageMode: 'memory-ephemeral',
+
+    async issueServerCredential({ serverId }) {
+      validIdentifier(serverId, 'server_id');
+      const token = randomBytes(32).toString('base64url');
+      const credentialId = randomUUID();
+      const now = clock();
+      const expiresAt = now + serverCredentialMs;
+      serverCredentials.set(serverId, {
+        credentialId,
+        tokenHash: hashServerCredential(token),
+        expiresAt,
+        revokedAt: null,
+      });
+      return { serverId, credentialId, token, expiresAt: new Date(expiresAt).toISOString() };
+    },
+
+    async authenticateServerCredential({ serverId, token }) {
+      validIdentifier(serverId, 'server_id');
+      const tokenHash = hashServerCredential(token);
+      if (!tokenHash) return false;
+      const credential = serverCredentials.get(serverId);
+      return Boolean(credential && !credential.revokedAt &&
+        credential.expiresAt > clock() && secureHashEquals(tokenHash, credential.tokenHash));
+    },
+
+    async revokeServerCredential({ serverId }) {
+      validIdentifier(serverId, 'server_id');
+      const credential = serverCredentials.get(serverId);
+      if (!credential || credential.revokedAt) return { revoked: false };
+      credential.revokedAt = clock();
+      return { revoked: true, credentialId: credential.credentialId };
+    },
+
+
 
     async registerServer(input) {
       const registration = validateRegistration(input);
@@ -412,7 +463,7 @@ function fromSessionRow(row) {
   };
 }
 
-function createPostgresRegistry({ pool, clock, leaseMs, heartbeatTtlMs, joinTicketMs }) {
+function createPostgresRegistry({ pool, clock, leaseMs, heartbeatTtlMs, joinTicketMs, serverCredentialMs }) {
   async function requireServer(client, serverId, lock = false) {
     const sql = 'SELECT server_id, region, host, port, protocol_version, max_players, ' +
       'current_players, status, last_heartbeat_at FROM ridge.dedicated_servers ' +
@@ -430,6 +481,54 @@ function createPostgresRegistry({ pool, clock, leaseMs, heartbeatTtlMs, joinTick
 
   return Object.freeze({
     storageMode: 'postgresql',
+
+    async issueServerCredential({ serverId }) {
+      validIdentifier(serverId, 'server_id');
+      const token = randomBytes(32).toString('base64url');
+      const tokenHash = hashServerCredential(token);
+      const credentialId = randomUUID();
+      const result = await pool.query(
+        'INSERT INTO ridge.dedicated_server_credentials ' +
+        '(server_id, credential_id, token_hash, expires_at, revoked_at, created_at, updated_at) ' +
+        "VALUES ($1, $2, $3, clock_timestamp() + ($4::bigint * interval '1 millisecond'), NULL, clock_timestamp(), clock_timestamp()) " +
+        'ON CONFLICT (server_id) DO UPDATE SET credential_id = EXCLUDED.credential_id, ' +
+        'token_hash = EXCLUDED.token_hash, expires_at = EXCLUDED.expires_at, revoked_at = NULL, updated_at = clock_timestamp() ' +
+        'RETURNING credential_id, expires_at',
+        [serverId, credentialId, tokenHash, serverCredentialMs],
+      );
+      return {
+        serverId,
+        credentialId: result.rows[0].credential_id,
+        token,
+        expiresAt: new Date(result.rows[0].expires_at).toISOString(),
+      };
+    },
+
+    async authenticateServerCredential({ serverId, token }) {
+      validIdentifier(serverId, 'server_id');
+      const tokenHash = hashServerCredential(token);
+      if (!tokenHash) return false;
+      const result = await pool.query(
+        'SELECT token_hash FROM ridge.dedicated_server_credentials ' +
+        'WHERE server_id = $1 AND revoked_at IS NULL AND expires_at > clock_timestamp()',
+        [serverId],
+      );
+      return Boolean(result.rows[0] && secureHashEquals(tokenHash, result.rows[0].token_hash));
+    },
+
+    async revokeServerCredential({ serverId }) {
+      validIdentifier(serverId, 'server_id');
+      const result = await pool.query(
+        'UPDATE ridge.dedicated_server_credentials SET revoked_at = clock_timestamp(), updated_at = clock_timestamp() ' +
+        'WHERE server_id = $1 AND revoked_at IS NULL RETURNING credential_id',
+        [serverId],
+      );
+      return result.rows[0]
+        ? { revoked: true, credentialId: result.rows[0].credential_id }
+        : { revoked: false };
+    },
+
+
 
     async registerServer(input) {
       const r = validateRegistration(input);
@@ -707,6 +806,7 @@ export async function createSessionRegistry({
   leaseMs = DEFAULT_LEASE_MS,
   heartbeatTtlMs = DEFAULT_HEARTBEAT_TTL_MS,
   joinTicketMs = DEFAULT_JOIN_TICKET_MS,
+  serverCredentialMs = DEFAULT_SERVER_CREDENTIAL_MS,
 } = {}) {
   if (!Number.isSafeInteger(leaseMs) || leaseMs < 1000 || leaseMs > 300_000) {
     throw new TypeError('leaseMs must be between 1000 and 300000.');
@@ -717,7 +817,10 @@ export async function createSessionRegistry({
   if (!Number.isSafeInteger(joinTicketMs) || joinTicketMs < 1000 || joinTicketMs > 300_000) {
     throw new TypeError('joinTicketMs must be between 1000 and 300000.');
   }
-  if (!pool) return createMemoryRegistry({ clock, leaseMs, heartbeatTtlMs, joinTicketMs });
+  if (!Number.isSafeInteger(serverCredentialMs) || serverCredentialMs < 60_000 || serverCredentialMs > 365 * 24 * 60 * 60 * 1000) {
+    throw new TypeError('serverCredentialMs must be between 60000 and 31536000000.');
+  }
+  if (!pool) return createMemoryRegistry({ clock, leaseMs, heartbeatTtlMs, joinTicketMs, serverCredentialMs });
   if (typeof pool.query !== 'function' || typeof pool.connect !== 'function') {
     throw new TypeError('A configured node-postgres Pool is required.');
   }
@@ -725,7 +828,8 @@ export async function createSessionRegistry({
     "SELECT to_regclass('ridge.dedicated_servers') AS servers, to_regclass('ridge.player_sessions') AS sessions, " +
     "EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'ridge' AND table_name = 'player_sessions' AND column_name = 'join_ticket_hash') " +
     "AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'ridge' AND table_name = 'player_sessions' AND column_name = 'join_ticket_expires_at') " +
-    "AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'ridge' AND table_name = 'player_sessions' AND column_name = 'join_attempt_id') AS join_ticket_schema",
+    "AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'ridge' AND table_name = 'player_sessions' AND column_name = 'join_attempt_id') AS join_ticket_schema, " +
+    "to_regclass('ridge.dedicated_server_credentials') AS server_credentials",
   );
   if (!schema.rows[0]?.servers || !schema.rows[0]?.sessions) {
     throw new Error('RIDGE session registry migration 004 is required before PostgreSQL startup.');
@@ -733,5 +837,8 @@ export async function createSessionRegistry({
   if (!schema.rows[0]?.join_ticket_schema) {
     throw new Error('RIDGE join ticket migration 005 is required before PostgreSQL startup.');
   }
-  return createPostgresRegistry({ pool, clock, leaseMs, heartbeatTtlMs, joinTicketMs });
+  if (!schema.rows[0]?.server_credentials) {
+    throw new Error('RIDGE per-instance server credential migration 006 is required before PostgreSQL startup.');
+  }
+  return createPostgresRegistry({ pool, clock, leaseMs, heartbeatTtlMs, joinTicketMs, serverCredentialMs });
 }

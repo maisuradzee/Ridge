@@ -6,8 +6,8 @@
 
 /**
  * Dedicated-server-only bridge to the RIDGE backend.
- * The service token is read from the server process environment and is never
- * replicated to clients or stored in game assets/configuration.
+ * Each Dedicated Server loads only its own pre-provisioned instance credential
+ * from the server process environment. It is never replicated to clients or stored in game assets/configuration.
  */
 UCLASS()
 class RIDGE_API URidgeBackendSubsystem : public UGameInstanceSubsystem

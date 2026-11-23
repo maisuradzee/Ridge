@@ -324,3 +324,113 @@ test('trusted gateway issues one-time join tickets and only the assigned shard c
   assert.equal(release.status, 200);
   assert.equal((await release.json()).released, true);
 });
+
+
+test('per-instance server credential is isolated, rotated and revoked by the provisioner', async (t) => {
+  const port = await getFreePort();
+  const baseUrl = 'http://127.0.0.1:' + port;
+  const provisioningToken = 'local-test-provisioning-control-token';
+  const serverId = 'shard-credential-' + Date.now();
+  const child = spawn(process.execPath, ['src/server.mjs'], {
+    cwd: backendDir,
+    env: {
+      ...process.env,
+      PORT: String(port),
+      RIDGE_ENV: 'development',
+      RIDGE_STORAGE: 'memory',
+      RIDGE_SERVER_PROVISIONING_TOKEN: provisioningToken,
+    },
+    stdio: 'ignore',
+  });
+  t.after(async () => {
+    if (child.exitCode === null) {
+      child.kill('SIGTERM');
+      await Promise.race([once(child, 'exit'), delay(1500)]);
+    }
+  });
+  await waitForHealth(baseUrl, child);
+
+  const credentialUrl = baseUrl + '/v1/control/shards/' + serverId + '/credentials';
+  const unauthenticatedProvision = await fetch(credentialUrl, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+  });
+  assert.equal(unauthenticatedProvision.status, 403);
+
+  const provisionHeaders = {
+    'content-type': 'application/json',
+    'x-ridge-provisioning-token': provisioningToken,
+  };
+  const firstResponse = await fetch(credentialUrl, { method: 'POST', headers: provisionHeaders });
+  assert.equal(firstResponse.status, 201);
+  const first = await firstResponse.json();
+  assert.match(first.token, /^[A-Za-z0-9_-]{43}$/);
+  assert.equal(first.serverId, serverId);
+
+  const serverHeaders = {
+    'content-type': 'application/json',
+    'x-ridge-server-id': serverId,
+    'x-ridge-server-token': first.token,
+  };
+  const registerUrl = baseUrl + '/v1/internal/shards/register';
+  const registrationBody = JSON.stringify({
+    serverId,
+    region: 'ge-tbilisi',
+    host: '127.0.0.1',
+    port: 28777,
+    maxPlayers: 8,
+    protocolVersion: 'ridge-0.6',
+  });
+  const registration = await fetch(registerUrl, {
+    method: 'POST',
+    headers: serverHeaders,
+    body: registrationBody,
+  });
+  assert.equal(registration.status, 201);
+
+  const heartbeatUrl = baseUrl + '/v1/internal/shards/' + serverId + '/heartbeat';
+  const firstHeartbeat = await fetch(heartbeatUrl, {
+    method: 'POST',
+    headers: serverHeaders,
+    body: JSON.stringify({ currentPlayers: 0, status: 'ready' }),
+  });
+  assert.equal(firstHeartbeat.status, 200);
+
+  const secondResponse = await fetch(credentialUrl, { method: 'POST', headers: provisionHeaders });
+  assert.equal(secondResponse.status, 201);
+  const second = await secondResponse.json();
+  assert.notEqual(second.token, first.token);
+
+  const oldCredential = await fetch(heartbeatUrl, {
+    method: 'POST',
+    headers: serverHeaders,
+    body: JSON.stringify({ currentPlayers: 0, status: 'ready' }),
+  });
+  assert.equal(oldCredential.status, 403);
+
+  const secondHeaders = { ...serverHeaders, 'x-ridge-server-token': second.token };
+  const newCredential = await fetch(heartbeatUrl, {
+    method: 'POST',
+    headers: secondHeaders,
+    body: JSON.stringify({ currentPlayers: 0, status: 'ready' }),
+  });
+  assert.equal(newCredential.status, 200);
+
+  const wrongInstance = await fetch(heartbeatUrl, {
+    method: 'POST',
+    headers: { ...secondHeaders, 'x-ridge-server-id': 'another-shard' },
+    body: JSON.stringify({ currentPlayers: 0, status: 'ready' }),
+  });
+  assert.equal(wrongInstance.status, 403);
+
+  const revokeUrl = credentialUrl + '/revoke';
+  const revoke = await fetch(revokeUrl, { method: 'POST', headers: provisionHeaders });
+  assert.equal(revoke.status, 200);
+  assert.equal((await revoke.json()).revoked, true);
+  const afterRevoke = await fetch(heartbeatUrl, {
+    method: 'POST',
+    headers: secondHeaders,
+    body: JSON.stringify({ currentPlayers: 0, status: 'ready' }),
+  });
+  assert.equal(afterRevoke.status, 403);
+});

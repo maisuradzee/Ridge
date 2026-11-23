@@ -1,0 +1,136 @@
+# RIDGE — Per-instance Dedicated Server credentials
+
+**Stage:** 5 / production shard security  
+**Status:** Backend provisioning, hash-only credential registry, per-instance request authentication, rotation and revocation are implemented in source. CI/runtime results are pending for the current revision.
+
+## 1. Security model
+
+Every Dedicated Server process receives one independent random 256-bit bearer credential.
+
+- RIDGE_SERVER_INSTANCE_ID is the stable unique server process/instance ID created by the deployment orchestrator before boot.
+- RIDGE_SERVER_EVENT_TOKEN is the secret credential issued for exactly that instance ID.
+- RIDGE_SERVER_PROVISIONING_TOKEN exists only in the RIDGE control plane and deployment orchestrator. It is never sent to a game-server process or client.
+- Each private Dedicated Server request carries both x-ridge-server-id and x-ridge-server-token.
+- Production has no shared server-token fallback. A development-only compatibility path remains for isolated local tests.
+
+The token has 32 random bytes encoded as a 43-character Base64URL value. PostgreSQL stores only its lowercase SHA-256 digest, credential UUID, expiry and revocation timestamp. The plaintext token is returned once by the issue endpoint and is never logged.
+
+## 2. Environment separation
+
+### RIDGE API / control plane
+
+Required in production:
+
+    RIDGE_ENV=production
+    RIDGE_STORAGE=postgres
+    DATABASE_URL=<private-postgres-connection>
+    RIDGE_SERVER_PROVISIONING_TOKEN=<secret-store-control-plane-token>
+    RIDGE_GATEWAY_TOKEN=<internal-session-gateway-token>
+    RIDGE_SERVER_EVENT_TOKEN=
+    RIDGE_TRUST_PROXY=true
+    RIDGE_OIDC_ISSUER=https://identity.example.com/
+    RIDGE_OIDC_AUDIENCE=ridge-game-api
+    RIDGE_OIDC_JWKS_URL=https://identity.example.com/.well-known/jwks.json
+
+The API may omit RIDGE_SERVER_EVENT_TOKEN in production. Per-instance tokens are verified from the database. The provisioner token is distinct from the player gateway token.
+
+### One Dedicated Server process
+
+    RIDGE_ENV=production
+    RIDGE_API_BASE_URL=https://backend-domain
+    RIDGE_SERVER_INSTANCE_ID=ge-tbilisi-zone-a-process-00017
+    RIDGE_SERVER_EVENT_TOKEN=<token-issued-for-this-exact-instance-id>
+    RIDGE_SERVER_HOST=game17.example.net
+    RIDGE_SERVER_PORT=7777
+    RIDGE_SERVER_REGION=ge-tbilisi
+    RIDGE_SERVER_MAX_PLAYERS=100
+    RIDGE_PROTOCOL_VERSION=ridge-0.6
+
+Do not inject the provisioning token or gateway token into Dedicated Server processes. Do not put RIDGE_SERVER_EVENT_TOKEN in DefaultEngine.ini, client configuration, game assets, command-line arguments, build artifacts or logs.
+
+## 3. Issue before process startup
+
+The orchestrator chooses a unique instance ID and requests a credential:
+
+    POST /v1/control/shards/{serverId}/credentials
+    x-ridge-provisioning-token: <provisioning-secret>
+
+Example response:
+
+    {
+      "serverId": "ge-tbilisi-zone-a-process-00017",
+      "credentialId": "c3a3...",
+      "token": "<one-time-256-bit-token>",
+      "expiresAt": "..."
+    }
+
+The API returns HTTP 201 and Cache-Control: no-store. Persist the token directly into the secret manager for that instance. Do not print the response to CI logs or terminal output. Start the Dedicated Server with the same serverId as RIDGE_SERVER_INSTANCE_ID and the issued token as RIDGE_SERVER_EVENT_TOKEN.
+
+The Dedicated Server then registers itself using its own credential:
+
+    POST /v1/internal/shards/register
+    x-ridge-server-id: ge-tbilisi-zone-a-process-00017
+    x-ridge-server-token: <that-instance-token>
+
+The request body must contain the same serverId. A mismatched identity header is rejected.
+
+## 4. Rotation and revocation
+
+### Rotation
+
+Issue a new credential for the same instance ID:
+
+    POST /v1/control/shards/{serverId}/credentials
+    x-ridge-provisioning-token: <provisioning-secret>
+
+The new token replaces the previous hash atomically. The old token becomes invalid immediately. The orchestrator must update that instance's secret-manager version and restart/redeploy the process with the new token. Avoid rotating while the old process is still expected to send heartbeats or serve players; use a planned drain/restart sequence.
+
+### Revocation
+
+    POST /v1/control/shards/{serverId}/credentials/revoke
+    x-ridge-provisioning-token: <provisioning-secret>
+
+The selected instance credential becomes invalid. Other shard credentials are not affected. Revoke should be paired with shard draining/offline and instance termination.
+
+The current registry retains only the latest active credential per serverId. It does not yet maintain a full operator/audit event history; that is a separate operational hardening task.
+
+## 5. Authorized request coverage
+
+The per-instance credential protects:
+- shard registration;
+- shard heartbeat and offline transitions;
+- join-ticket claim;
+- exact player session release;
+- internal job acceptance, completion and checkpoint recording.
+
+The shard list and credential issue/rotate/revoke endpoints are control-plane operations and require the provisioning token, not a game-server token.
+
+The per-instance credential is not an account login token. Player identity is separately established by the OIDC gateway, and the one-time join ticket is separately bound to one player session and one shard.
+
+## 6. Failure and recovery behavior
+
+- Missing, incorrect, expired or revoked server credential: HTTP 403.
+- Mismatched x-ridge-server-id and route/body server ID: HTTP 403.
+- Missing server instance ID on job events: rejected; the API never guesses the shard from the token alone.
+- Credential rotation: old token fails immediately; new token is accepted for that exact server ID.
+- Server shutdown: mark the shard offline; the registry expires all active sessions on that instance.
+- Server process crash: heartbeat becomes stale after 45 seconds; allocator excludes the shard and expires a player's stale previous session when that account attempts a new allocation.
+
+## 7. Current implementation boundary
+
+Migration: database/migrations/006_dedicated_server_credentials.sql.
+
+The registry stores only SHA-256 token hashes, issues 90-day credentials by default, rotates by replacing the active hash and supports explicit revocation. Production startup requires RIDGE_SERVER_PROVISIONING_TOKEN and PostgreSQL migration 006. The old shared RIDGE_SERVER_EVENT_TOKEN fallback is accepted only in development/test mode.
+
+Still required before production:
+- attach the issuance response to a production secret manager/orchestrator and prove secret redaction;
+- implement immutable credential issuance/rotation/revocation audit events with actor identity;
+- provision and restart a real Windows/Linux UE Dedicated Server process using the per-instance secret;
+- verify no client package, crash log, analytics event or process argument leaks the token;
+- compile UE 5.8 UBT/UHT and run real registration, heartbeat, join, logout and rotation tests;
+- use per-server credential rotation together with a graceful shard drain, not while active players are being served.
+
+See also:
+- docs/57_UNREAL_DEDICATED_SERVER_REGISTRATION_GE.md
+- docs/58_JOIN_TICKET_AND_PRELOGIN_FLOW_GE.md
+- docs/59_PUBLIC_OIDC_GATEWAY_GE.md

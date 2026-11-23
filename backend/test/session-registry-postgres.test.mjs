@@ -33,6 +33,23 @@ test('PostgreSQL session registry serializes shard capacity, reuses leases, clai
       protocolVersion: 'ridge-0.6',
     });
     assert.equal(server.status, 'ready');
+    const firstCredential = await registry.issueServerCredential({ serverId });
+    assert.match(firstCredential.token, /^[A-Za-z0-9_-]{43}$/);
+    assert.equal(await registry.authenticateServerCredential({ serverId, token: firstCredential.token }), true);
+    const storedCredential = await pool.query(
+      'SELECT token_hash FROM ridge.dedicated_server_credentials WHERE server_id = $1',
+      [serverId],
+    );
+    assert.notEqual(storedCredential.rows[0].token_hash, firstCredential.token);
+    assert.match(storedCredential.rows[0].token_hash, /^[a-f0-9]{64}$/);
+
+    const rotatedCredential = await registry.issueServerCredential({ serverId });
+    assert.equal(await registry.authenticateServerCredential({ serverId, token: firstCredential.token }), false);
+    assert.equal(await registry.authenticateServerCredential({ serverId, token: rotatedCredential.token }), true);
+    assert.equal((await registry.revokeServerCredential({ serverId })).revoked, true);
+    assert.equal(await registry.authenticateServerCredential({ serverId, token: rotatedCredential.token }), false);
+    const activeCredential = await registry.issueServerCredential({ serverId });
+    assert.equal(await registry.authenticateServerCredential({ serverId, token: activeCredential.token }), true);
 
     const attempts = await Promise.allSettled(
       playerIds.map((playerId) => registry.allocatePlayer(playerId, 'ge-tbilisi')),
@@ -138,6 +155,7 @@ test('PostgreSQL session registry serializes shard capacity, reuses leases, clai
     assert.equal(unavailable[0].status, 'rejected');
     assert.equal(unavailable[0].reason.code, 'NO_AVAILABLE_SHARD');
   } finally {
+    await pool.query('DELETE FROM ridge.dedicated_server_credentials WHERE server_id = $1', [serverId]).catch(() => {});
     await pool.query('DELETE FROM ridge.player_sessions WHERE server_id = $1', [serverId]).catch(() => {});
     await pool.query('DELETE FROM ridge.dedicated_servers WHERE server_id = $1', [serverId]).catch(() => {});
     await pool.end();
