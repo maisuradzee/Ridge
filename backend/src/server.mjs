@@ -54,7 +54,7 @@ async function requireGameServer(request, routeServerId, sessionRegistry) {
     return;
   }
   if (!serverId || typeof serverId !== 'string') {
-    throw new RidgeError(400, 'SERVER_INSTANCE_ID_REQUIRED', 'Dedicated Server instance ID is required.');
+    throw new RidgeError(403, 'GAME_SERVER_FORBIDDEN', 'Dedicated Server instance identity is required.');
   }
   const authenticated = await sessionRegistry.authenticateServerCredential({
     serverId,
@@ -71,7 +71,7 @@ function requireServerProvisioner(request) {
         safeTokenEquals(request.headers['x-ridge-server-token'], GAME_SERVER_TOKEN)) {
       return;
     }
-    throw new RidgeError(503, 'SERVER_PROVISIONING_NOT_CONFIGURED', 'Per-instance server provisioning is not configured.');
+    throw new RidgeError(403, 'SERVER_PROVISIONING_FORBIDDEN', 'Server provisioning authorization failed.');
   }
   if (!safeTokenEquals(request.headers['x-ridge-provisioning-token'], SERVER_PROVISIONING_TOKEN)) {
     throw new RidgeError(403, 'SERVER_PROVISIONING_FORBIDDEN', 'Server provisioning authorization failed.');

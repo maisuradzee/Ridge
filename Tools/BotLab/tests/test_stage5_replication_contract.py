@@ -24,6 +24,7 @@ class Stage5ReplicationContractTests(unittest.TestCase):
         cls.backend_header = (ROOT / "Source/RIDGE/Public/RidgeBackendSubsystem.h").read_text(encoding="utf-8")
         cls.game_mode_header = (ROOT / "Source/RIDGE/Public/RidgeGameMode.h").read_text(encoding="utf-8")
         cls.backend_server_source = (ROOT / "backend/src/server.mjs").read_text(encoding="utf-8")
+        cls.session_registry_source = (ROOT / "backend/src/session-registry.mjs").read_text(encoding="utf-8")
         cls.backend_oidc_source = (ROOT / "backend/src/oidc-verifier.mjs").read_text(encoding="utf-8")
         cls.gateway_integration_test = (ROOT / "backend/test/gateway-auth.test.mjs").read_text(encoding="utf-8")
         cls.mission_source = (ROOT / "Source/RIDGE/Private/RidgeMissionCheckpoint.cpp").read_text(encoding="utf-8")
@@ -217,9 +218,10 @@ class Stage5ReplicationContractTests(unittest.TestCase):
         self.assertIn("RIDGE_SERVER_EVENT_TOKEN", self.backend_server_source)
         self.assertIn("x-ridge-server-token", self.backend_server_source)
         self.assertIn("requireGateway(request)", self.backend_server_source)
-        self.assertIn("requireGameServer(request)", self.backend_server_source)
+        self.assertIn("async function requireGameServer(request, routeServerId, sessionRegistry)", self.backend_server_source)
+        self.assertIn("await requireGameServer(request,", self.backend_server_source)
+        self.assertIn("requireServerProvisioner(request)", self.backend_server_source)
         self.assertIn("requireGateway(request);", self.backend_server_source)
-        self.assertIn("requireGameServer(request);", self.backend_server_source)
 
 
     def test_production_dedicated_servers_use_preprovisioned_per_instance_credentials(self) -> None:
@@ -235,7 +237,7 @@ class Stage5ReplicationContractTests(unittest.TestCase):
 
     def test_per_instance_server_credential_migration_and_registry_contract_exist(self) -> None:
         self.assertTrue((ROOT / "database/migrations/006_dedicated_server_credentials.sql").exists())
-        self.assertIn("dedicated_server_credentials", self.backend_server_source)
+        self.assertIn("dedicated_server_credentials", self.session_registry_source)
         self.assertIn("RIDGE_SERVER_INSTANCE_ID is required in production", self.backend_bridge)
 
     def test_backend_secret_is_not_marked_for_network_replication(self) -> None:
