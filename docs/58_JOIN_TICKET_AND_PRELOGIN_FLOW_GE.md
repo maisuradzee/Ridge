@@ -104,27 +104,26 @@ The C++ overrides and source-level contracts are committed and are being checked
 
 ## 7. CI results — 2026-11-23
 
-The latest stable-claim revision `9d95b2276686c757e9fbccb85144b51d5f68db78` passed both GitHub Actions workflows:
+The latest verified OIDC gateway revision `d0490b75aa471e64da986e72627a74790ee2abd1` passed:
 
-- Stage 5 Multiplayer Preflight: https://github.com/maisuradzee/Ridge/actions/runs/45132841698
-- PostgreSQL 16 Integration: https://github.com/maisuradzee/Ridge/actions/runs/45132841779
+- Stage 5 Multiplayer Preflight: https://github.com/maisuradzee/Ridge/actions/runs/45134162859
+- PostgreSQL 16 Integration: https://github.com/maisuradzee/Ridge/actions/runs/45134168625
 
 | Gate | Result |
 |---|---:|
-| Python / BotLab / UE source regression | 66/66 PASS |
-| Unreal project static validator | 24/24 PASS |
-| UE UBT/UHT build | NOT RUN |
+| Python / BotLab / Unreal source regression | 69/69 PASS |
+| Unreal project static validator | PASS |
 | Load-runner unit tests | 6/6 PASS |
-| Backend Node regression | 38 PASS / 0 FAIL / 2 SKIP |
+| Backend Node suite | 51 PASS / 0 FAIL / 2 SKIP |
 | PostgreSQL migrations 001–005 | PASS |
-| PostgreSQL/live backend integration | 40 PASS / 0 FAIL / 0 SKIP |
-| 500 virtual-client in-memory API preflight | 6,997 requests / 0 failures |
+| Backend + live PostgreSQL suite | 53 PASS / 0 FAIL / 0 SKIP |
+| 500 virtual-client in-memory API preflight | 6,995 requests / 0 failures |
 
-The 15-second development API preflight recorded 437.39 requests/second, p50 0.22 ms, p95 0.47 ms, p99 1.94 ms and max 11.29 ms; maximum observed simultaneous in-flight requests was 7. It uses in-memory development storage and is not a 500-player Unreal network test.
+The 15-second in-memory development API preflight recorded 437.4 requests/second, p50 0.24 ms, p95 0.45 ms, p99 1.17 ms and max 4.09 ms; maximum observed in-flight HTTP requests was 6. It is not a 500-player Unreal network test.
 
-Machine-readable report: `RIDGE_GIS/Data/QA/ridge_stage5_join_ticket_unreal_login_20261123.json`.
+Machine-readable reports: `RIDGE_GIS/Data/QA/ridge_stage5_oidc_gateway_20261123.json` and `RIDGE_GIS/Data/QA/ridge_stage5_join_ticket_unreal_login_20261123.json`.
 
-The branch remains Draft. The results do not prove C++ compilation, UHT, PIE, a reachable Dedicated Server, encrypted game transport, account-provider integration, two-client replication, or 500 concurrent Unreal players.
+UE 5.8 UBT/UHT was not run. The actual provider tenant, authorization-code flow, production TLS ingress, encrypted Unreal game transport, live two-client PIE/Dedicated Server, reconnect and 500 connected Unreal player soak remain open.
 
 
 ## 8. Stable claim ID და duplicate-account protection

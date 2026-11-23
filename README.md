@@ -180,3 +180,20 @@ This is still source/static verification, not UBT/UHT compilation or a live Unre
 The backend now exposes `POST /v1/gateway/session`. It verifies a signed RS256 OIDC JWT against configured HTTPS JWKS, derives an opaque canonical backend player ID from issuer + subject, allocates a healthy shard, and returns the one-time join ticket plus stable claimAttemptId in the Unreal connection options. Production requires OIDC configuration, PostgreSQL storage and a trusted HTTPS reverse proxy. See `docs/59_PUBLIC_OIDC_GATEWAY_GE.md`.
 
 The endpoint is provider-agnostic, but the real provider tenant, authorization-code/redirect/MFA/account lifecycle, ingress rate limits, per-server credentials and encrypted Unreal game transport remain deployment/integration work. This is not yet a complete public account system.
+
+
+### OIDC session gateway — CI verified (2026-11-23)
+
+Revision `d0490b75aa471e64da986e72627a74790ee2abd1` passed:
+- Python/BotLab/Unreal source regression: **69/69**
+- Unreal project static validation: **PASS**
+- Load-runner unit tests: **6/6**
+- Backend Node suite: **51 PASS / 0 FAIL / 2 SKIP**
+- PostgreSQL 16 migrations 001–005 + live backend integration: **53/53 PASS**
+- 500 virtual-client in-memory API preflight: **6,995 requests / 0 errors / 437.4 req/s**, p95 **0.45 ms**
+
+The provider-agnostic `POST /v1/gateway/session` verifies RS256 OIDC JWTs against configured JWKS, derives an opaque canonical player ID from issuer + subject, allocates a healthy shard and returns a one-time ticket plus stable claim attempt ID. Production fails closed without OIDC config, PostgreSQL and a trusted HTTPS proxy.
+
+Evidence: [Stage 5 CI](https://github.com/maisuradzee/Ridge/actions/runs/45134162859) · [PostgreSQL 16 integration](https://github.com/maisuradzee/Ridge/actions/runs/45134168625) · [OIDC gateway runbook](docs/59_PUBLIC_OIDC_GATEWAY_GE.md).
+
+This does not yet configure an actual identity-provider tenant or authorization-code flow, run UE 5.8 UBT/UHT, verify encrypted Unreal connection transport, run live two-client PIE, or prove 500 connected Unreal players. The branch stays Draft.

@@ -115,3 +115,27 @@ The endpoint uses \`Cache-Control: no-store\`. Do not cache session responses or
 Automated tests cover RS256 verification, cache reuse, unknown-kid refresh, invalid signature, wrong issuer/audience, expiry/nbf/iat checks, unsupported JWT header key injection, JWKS transport restrictions, stable pseudonymous player ID derivation, and an end-to-end public session flow against a local JWKS test server.
 
 These tests do not prove the chosen external provider's tenant configuration, real authorization-code flow, MFA/account recovery, real TLS reverse-proxy deployment, encrypted Unreal game transport, Windows UBT/UHT compilation, two-client PIE, or true 500-player Unreal capacity. Those remain explicit integration gates.
+
+
+## 7. CI verification — 2026-11-23
+
+Revision `d0490b75aa471e64da986e72627a74790ee2abd1` passed both workflows:
+
+- Stage 5 Multiplayer Preflight: https://github.com/maisuradzee/Ridge/actions/runs/45134162859
+- PostgreSQL 16 Integration: https://github.com/maisuradzee/Ridge/actions/runs/45134168625
+
+| Gate | Result |
+|---|---:|
+| Python / BotLab / Unreal source regression | 69/69 PASS |
+| Unreal project static validation | PASS |
+| Load-runner unit tests | 6/6 PASS |
+| Backend Node suite | 51 PASS / 0 FAIL / 2 SKIP |
+| PostgreSQL migrations 001–005 | PASS |
+| Backend + live PostgreSQL suite | 53 PASS / 0 FAIL / 0 SKIP |
+| 500 virtual-client API preflight | 6,995 requests / 0 failures |
+
+The 15-second in-memory development API preflight recorded 437.4 requests/second, p50 0.24 ms, p95 0.45 ms, p99 1.17 ms and max 4.09 ms; maximum observed in-flight HTTP requests was 6. It is an API preflight, not a 500-player Unreal network test.
+
+Machine-readable evidence: `RIDGE_GIS/Data/QA/ridge_stage5_oidc_gateway_20261123.json`.
+
+The workflow does not run UE 5.8 UBT/UHT. Real provider tenant/authorization-code configuration, live TLS deployment, protected Unreal game transport, two-client Dedicated Server/PIE and true 500-player Unreal soak remain unverified.
