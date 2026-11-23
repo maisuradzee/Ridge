@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - release/botlab-v14
+      - codex/ridge-stage-5-multiplayer
     paths:
       - 'backend/**'
       - 'database/migrations/**'
@@ -11,6 +12,7 @@ on:
   pull_request:
     branches:
       - main
+      - release/botlab-v14
     paths:
       - 'backend/**'
       - 'database/migrations/**'
@@ -59,7 +61,8 @@ jobs:
           for migration in \
             database/migrations/001_initial_schema.sql \
             database/migrations/002_job_checkpoints.sql \
-            database/migrations/003_postgres_runtime.sql; do
+            database/migrations/003_postgres_runtime.sql \
+            database/migrations/004_session_registry.sql; do
             echo "Applying $migration"
             psql "postgresql://ridge_backend:ridge_ci_password@127.0.0.1:5432/ridge_dev" \
               -X --single-transaction -v ON_ERROR_STOP=1 -f "$migration"

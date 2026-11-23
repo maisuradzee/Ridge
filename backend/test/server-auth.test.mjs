@@ -166,3 +166,83 @@ test('production mode refuses to start with ephemeral in-memory storage', async 
   assert.equal(code, 1);
   assert.match(output, /Production mode cannot use ephemeral in-memory game storage/);
 });
+
+test('trusted game-server session control plane enforces auth and supports allocate, claim, heartbeat and release', async (t) => {
+  const port = await getFreePort();
+  const baseUrl = 'http://127.0.0.1:' + port;
+  const token = 'local-test-session-registry-token';
+  const serverId = 'shard-http-' + Date.now();
+  const playerId = 'player-session-http';
+  const child = spawn(process.execPath, ['src/server.mjs'], {
+    cwd: backendDir,
+    env: { ...process.env, PORT: String(port), RIDGE_ENV: 'development', RIDGE_STORAGE: 'memory', RIDGE_SERVER_EVENT_TOKEN: token },
+    stdio: 'ignore',
+  });
+  t.after(async () => {
+    if (child.exitCode === null) {
+      child.kill('SIGTERM');
+      await Promise.race([once(child, 'exit'), delay(1500)]);
+    }
+  });
+  await waitForHealth(baseUrl, child);
+
+  const serverHeaders = { 'content-type': 'application/json', 'x-ridge-server-token': token };
+  const registerUrl = baseUrl + '/v1/internal/shards/register';
+  const registerBody = JSON.stringify({
+    serverId,
+    region: 'ge-tbilisi',
+    host: '127.0.0.1',
+    port: 24567,
+    maxPlayers: 2,
+    protocolVersion: 'ridge-0.6',
+  });
+
+  const unauthorized = await fetch(registerUrl, {
+    method: 'POST', headers: { 'content-type': 'application/json' }, body: registerBody,
+  });
+  assert.equal(unauthorized.status, 403);
+
+  const registered = await fetch(registerUrl, { method: 'POST', headers: serverHeaders, body: registerBody });
+  assert.equal(registered.status, 201);
+  assert.equal((await registered.json()).serverId, serverId);
+
+  const noAuthList = await fetch(baseUrl + '/v1/internal/shards');
+  assert.equal(noAuthList.status, 403);
+  const list = await fetch(baseUrl + '/v1/internal/shards?region=ge-tbilisi', { headers: serverHeaders });
+  assert.equal(list.status, 200);
+  assert.equal((await list.json()).servers.length, 1);
+
+  const allocationResponse = await fetch(
+    baseUrl + '/v1/internal/players/' + playerId + '/session/allocate',
+    { method: 'POST', headers: serverHeaders, body: JSON.stringify({ region: 'ge-tbilisi' }) },
+  );
+  assert.equal(allocationResponse.status, 201);
+  const allocation = await allocationResponse.json();
+  assert.equal(allocation.server.serverId, serverId);
+  assert.equal(allocation.status, 'allocated');
+
+  const claimUrl = baseUrl + '/v1/internal/shards/' + serverId + '/players/' + playerId + '/claim';
+  const claim = await fetch(claimUrl, {
+    method: 'POST', headers: serverHeaders, body: JSON.stringify({ sessionId: allocation.sessionId }),
+  });
+  assert.equal(claim.status, 200);
+  assert.equal((await claim.json()).replayed, false);
+
+  const replay = await fetch(claimUrl, {
+    method: 'POST', headers: serverHeaders, body: JSON.stringify({ sessionId: allocation.sessionId }),
+  });
+  assert.equal((await replay.json()).replayed, true);
+
+  const heartbeat = await fetch(baseUrl + '/v1/internal/shards/' + serverId + '/heartbeat', {
+    method: 'POST', headers: serverHeaders, body: JSON.stringify({ currentPlayers: 1, status: 'ready' }),
+  });
+  assert.equal(heartbeat.status, 200);
+  assert.equal((await heartbeat.json()).currentPlayers, 1);
+
+  const release = await fetch(
+    baseUrl + '/v1/internal/shards/' + serverId + '/players/' + playerId + '/release',
+    { method: 'POST', headers: serverHeaders, body: JSON.stringify({ sessionId: allocation.sessionId }) },
+  );
+  assert.equal(release.status, 200);
+  assert.equal((await release.json()).released, true);
+});

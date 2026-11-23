@@ -2,6 +2,7 @@ import http from 'node:http';
 import { timingSafeEqual } from 'node:crypto';
 import { createGameService, RidgeError } from './game-service.mjs';
 import { createPostgresGameService } from './postgres-game-service.mjs';
+import { createSessionRegistry } from './session-registry.mjs';
 
 const PORT = Number(process.env.PORT ?? 8787);
 const HOST = process.env.RIDGE_HOST ?? '127.0.0.1';
@@ -79,7 +80,8 @@ async function createStorage() {
   if (STORAGE === 'memory') {
     if (ENV === 'production') throw new Error('Production mode cannot use ephemeral in-memory game storage.');
     const service = createGameService();
-    return { service, close: async () => {} };
+    const sessionRegistry = await createSessionRegistry();
+    return { service, sessionRegistry, close: async () => {} };
   }
   if (STORAGE !== 'postgres') throw new Error(`Unsupported RIDGE_STORAGE value: ${STORAGE}`);
   if (!process.env.DATABASE_URL) throw new Error('RIDGE_STORAGE=postgres requires DATABASE_URL.');
@@ -101,7 +103,8 @@ async function createStorage() {
       pool,
       dedicatedServerId: process.env.RIDGE_DEDICATED_SERVER_ID ?? 'ridge-development-server',
     });
-    return { service, close: async () => service.close() };
+    const sessionRegistry = await createSessionRegistry({ pool });
+    return { service, sessionRegistry, close: async () => service.close() };
   } catch (error) {
     await pool.end().catch(() => {});
     throw error;
@@ -111,6 +114,7 @@ async function createStorage() {
 async function main() {
   const storage = await createStorage();
   const service = storage.service;
+  const sessionRegistry = storage.sessionRegistry;
   const server = http.createServer(async (request, response) => {
     try {
       const url = new URL(request.url ?? '/', `http://${request.headers.host ?? 'localhost'}`);
@@ -125,10 +129,56 @@ async function main() {
       }
       if (request.method === 'GET' && url.pathname === '/ready') {
         if (service.healthCheck) await service.healthCheck();
-        return send(response, 200, { ok: true, storage: service.storageMode ?? 'memory-ephemeral' });
+        const sessionRegistryReady = sessionRegistry?.healthCheck ? await sessionRegistry.healthCheck() : false;
+        if (!sessionRegistryReady) throw new RidgeError(503, 'SESSION_REGISTRY_NOT_READY', 'Session registry მზად არ არის.');
+        return send(response, 200, { ok: true, storage: service.storageMode ?? 'memory-ephemeral', sessionRegistry: true });
       }
       if (request.method === 'GET' && url.pathname === '/v1/world/state') {
         return send(response, 200, await service.getWorldState());
+      }
+
+      // Session and shard control plane. Every route is private to trusted game servers.
+      if (request.method === 'GET' && url.pathname === '/v1/internal/shards') {
+        requireGameServer(request);
+        return send(response, 200, { servers: await sessionRegistry.listServers(url.searchParams.get('region')) });
+      }
+
+      if (request.method === 'POST' && url.pathname === '/v1/internal/shards/register') {
+        requireGameServer(request);
+        const body = await readJson(request);
+        return send(response, 201, await sessionRegistry.registerServer(body));
+      }
+
+      const shardHeartbeatMatch = url.pathname.match(/^\/v1\/internal\/shards\/([A-Za-z0-9._:-]{1,80})\/heartbeat$/);
+      if (request.method === 'POST' && shardHeartbeatMatch) {
+        requireGameServer(request);
+        const body = await readJson(request);
+        return send(response, 200, await sessionRegistry.heartbeatServer(shardHeartbeatMatch[1], body));
+      }
+
+      const allocateSessionMatch = url.pathname.match(/^\/v1\/internal\/players\/([A-Za-z0-9._:-]{1,80})\/session\/allocate$/);
+      if (request.method === 'POST' && allocateSessionMatch) {
+        requireGameServer(request);
+        const body = await readJson(request);
+        return send(response, 201, await sessionRegistry.allocatePlayer(allocateSessionMatch[1], body.region ?? 'ge-tbilisi'));
+      }
+
+      const claimSessionMatch = url.pathname.match(/^\/v1\/internal\/shards\/([A-Za-z0-9._:-]{1,80})\/players\/([A-Za-z0-9._:-]{1,80})\/claim$/);
+      if (request.method === 'POST' && claimSessionMatch) {
+        requireGameServer(request);
+        const body = await readJson(request);
+        return send(response, 200, await sessionRegistry.claimSession({
+          serverId: claimSessionMatch[1], playerId: claimSessionMatch[2], sessionId: body.sessionId,
+        }));
+      }
+
+      const releaseSessionMatch = url.pathname.match(/^\/v1\/internal\/shards\/([A-Za-z0-9._:-]{1,80})\/players\/([A-Za-z0-9._:-]{1,80})\/release$/);
+      if (request.method === 'POST' && releaseSessionMatch) {
+        requireGameServer(request);
+        const body = await readJson(request);
+        return send(response, 200, await sessionRegistry.releaseSession({
+          serverId: releaseSessionMatch[1], playerId: releaseSessionMatch[2], sessionId: body.sessionId,
+        }));
       }
 
       // Internal endpoints are callable only by the trusted Dedicated Server.
