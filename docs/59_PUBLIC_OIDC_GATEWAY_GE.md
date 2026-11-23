@@ -239,3 +239,13 @@ Latest verification on source commit `88b5b2da02c1b5109e5fcc04ffd905bcbba29e25`:
 - [Stage 5 Multiplayer Preflight](https://github.com/maisuradzee/Ridge/actions/runs/45146481336): **77/77 source PASS**, UE static **37/37**, load unit **6/6**, backend **55 PASS / 0 FAIL / 2 SKIP**.
 - 500 virtual API users: **6,995 requests / 0 failures / 437.43 req/s**.
 - [PostgreSQL 16](https://github.com/maisuradzee/Ridge/actions/runs/45146481678): migrations 001–006, live suite **57 PASS / 0 FAIL / 0 SKIP**.
+
+
+## 15. Latest branch-head CI — concurrent login guard
+
+Branch head `10b48cec244db236f0d81a9717535b53945042bd` passed:
+- [Stage 5](https://github.com/maisuradzee/Ridge/actions/runs/45147046969): **77/77 source PASS**, static validator **37/37 PASS**, backend **55 PASS / 0 FAIL / 2 SKIP**.
+- 500 virtual-user API preflight: **6,995 requests / 0 failures / 437.30 req/s**, p95 **0.84 ms**.
+- [PostgreSQL 16](https://github.com/maisuradzee/Ridge/actions/runs/45147046895): migrations 001–006, live suite **57 PASS / 0 FAIL / 0 SKIP**.
+
+Concurrent login and no-ticket-replacement tests are included in this verified source snapshot. UE 5.8 UBT/UHT and actual client/server runtime remain not run.

@@ -289,3 +289,14 @@ Evidence: [Stage 5](https://github.com/maisuradzee/Ridge/actions/runs/4514535062
 Verified on source commit `88b5b2da02c1b5109e5fcc04ffd905bcbba29e25`: Stage 5 **77/77 source PASS**, validator **37/37 STATIC_PASS**, backend **55 PASS / 0 FAIL / 2 SKIP**, virtual API **6,995 requests / 0 errors / 437.43 req/s**, PostgreSQL migrations 001–006 and live suite **57 PASS / 0 FAIL / 0 SKIP**.
 
 Evidence: [Stage 5](https://github.com/maisuradzee/Ridge/actions/runs/45146481336) · [PostgreSQL](https://github.com/maisuradzee/Ridge/actions/runs/45146481678).
+
+
+### Latest branch-head CI after concurrent-login hardening (2026-11-23)
+
+On branch head `10b48cec244db236f0d81a9717535b53945042bd`:
+- Source/regression **77/77 PASS**; UE project validator **37/37 STATIC_PASS**.
+- Load runner **6/6 PASS**; backend Node **55 PASS / 0 FAIL / 2 SKIP**.
+- 500 virtual API users: **6,995 requests / 0 errors / 437.30 req/s**, p50 **0.49 ms**, p95 **0.84 ms**, p99 **2.15 ms**, max **8.93 ms**, maximum in-flight **7**.
+- PostgreSQL 16 migrations 001–006 and live suite **57 PASS / 0 FAIL / 0 SKIP**.
+
+Evidence: [Stage 5](https://github.com/maisuradzee/Ridge/actions/runs/45147046969) · [PostgreSQL](https://github.com/maisuradzee/Ridge/actions/runs/45147046895).

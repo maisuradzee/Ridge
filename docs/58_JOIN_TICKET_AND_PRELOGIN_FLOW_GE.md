@@ -161,3 +161,10 @@ An allocated player session may have at most one unexpired join ticket. A second
 For PostgreSQL this check occurs after selecting the session row `FOR UPDATE`, so concurrent API processes cannot both replace the ticket. After expiry or explicit session cleanup, a fresh login attempt may allocate a new session/ticket.
 
 The concurrent OIDC integration test requires exactly one request to return 201 and one to return 409, then claims the first ticket successfully. Latest source/DB CI: [Stage 5](https://github.com/maisuradzee/Ridge/actions/runs/45146481336) and [PostgreSQL 16](https://github.com/maisuradzee/Ridge/actions/runs/45146481678).
+
+
+## 11. Latest verified concurrency protection
+
+The 10b48cec branch-head Stage 5 run passed **77/77 source tests** and the PostgreSQL 16 run passed **57/57 live integration tests**. Concurrent same-account OIDC requests result in one successful ticket issuance and one pending response; active tickets cannot be replaced in either the memory or PostgreSQL registry.
+
+Evidence: [Stage 5](https://github.com/maisuradzee/Ridge/actions/runs/45147046969) · [PostgreSQL](https://github.com/maisuradzee/Ridge/actions/runs/45147046895).

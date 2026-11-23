@@ -1,12 +1,13 @@
 {
-  "schema": "ridge.stage5.concurrent-login-ticket-integrity.v5",
+  "schema": "ridge.stage5.concurrent-login-ticket-integrity.v6",
   "date": "2026-11-23",
-  "testedCommit": "88b5b2da02c1b5109e5fcc04ffd905bcbba29e25",
+  "testedBranchHead": "10b48cec244db236f0d81a9717535b53945042bd",
+  "sourceImplementationCommit": "88b5b2da02c1b5109e5fcc04ffd905bcbba29e25",
   "workflow": {
     "stage5": {
-      "id": 45146481336,
+      "id": 45147046969,
       "result": "success",
-      "url": "https://github.com/maisuradzee/Ridge/actions/runs/45146481336",
+      "url": "https://github.com/maisuradzee/Ridge/actions/runs/45147046969",
       "pythonBotlabUnrealSource": "77/77 PASS",
       "unrealProjectStatic": "37/37 STATIC_PASS",
       "ueUbtUht": "NOT_RUN",
@@ -14,9 +15,9 @@
       "backendNode": "55 PASS / 0 FAIL / 2 SKIP"
     },
     "postgres": {
-      "id": 45146481678,
+      "id": 45147046895,
       "result": "success",
-      "url": "https://github.com/maisuradzee/Ridge/actions/runs/45146481678",
+      "url": "https://github.com/maisuradzee/Ridge/actions/runs/45147046895",
       "migrations": [
         "001_initial_schema.sql",
         "002_job_checkpoints.sql",
@@ -36,14 +37,14 @@
     "rampSeconds": 3,
     "totalRequests": 6995,
     "failedRequests": 0,
-    "requestsPerSecond": 437.43,
+    "requestsPerSecond": 437.3,
     "latencyMs": {
-      "p50": 0.36,
-      "p95": 0.59,
-      "p99": 1.39,
-      "max": 8.41
+      "p50": 0.49,
+      "p95": 0.84,
+      "p99": 2.15,
+      "max": 8.93
     },
-    "maxObservedInFlightRequests": 6,
+    "maxObservedInFlightRequests": 7,
     "notAnUnrealNetworkLoadTest": true
   },
   "concurrentLoginGuard": {
@@ -105,8 +106,8 @@
     "providerUiOrPkce": "NOT_IMPLEMENTED"
   },
   "backendDatabaseVerification": {
-    "verifiedCommit": "88b5b2da02c1b5109e5fcc04ffd905bcbba29e25",
-    "workflowId": 45146481678,
+    "verifiedBranchHead": "10b48cec244db236f0d81a9717535b53945042bd",
+    "workflowId": 45147046895,
     "result": "success",
     "migrations": [
       "001_initial_schema.sql",
