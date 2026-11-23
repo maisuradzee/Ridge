@@ -95,4 +95,31 @@ Static CI ამოწმებს მხოლოდ source contract-ს. ი�
 - [ ] Two clients can connect and see authoritative replicated movement
 - [ ] Client cannot access server token or internal shard endpoints
 
-**მდგომარეობა:** code wiring committed/CI static checks pending. Production readiness is not claimed.
+**მდგომარეობა:** source wiring committed; static CI checks PASS; real UE build/runtime pending. Production readiness is not claimed.
+
+
+## 7. CI source-contract verification — 2026-11-23
+
+GitHub Actions run **SUCCESS**: https://github.com/maisuradzee/Ridge/actions/runs/45128419607
+
+| შემოწმება | შედეგი |
+|---|---:|
+| Python/BotLab/Unreal source regression | 57/57 PASS |
+| Unreal project static validator | 24/24 PASS |
+| Load runner unit tests | 6/6 PASS |
+| Backend Node regression | 33/33 PASS |
+| 500 virtual-user development API preflight | PASS |
+
+API preflight: 6,995 requests, 0 failed, 437.17 req/s; p50 0.58 ms, p95 1.17 ms, p99 3.23 ms, max 17.7 ms. მაქსიმუმ ერთდროული აქტიური HTTP მოთხოვნები იყო 10. ეს ტესტი memory-ephemeral development API-ზე ჩატარდა და არ წარმოადგენს 500 Unreal Engine player connection-ს.
+
+Static source checks ახლა ადასტურებს:
+- Dedicated Server registration route და unique process instance ID generation;
+- 15-second GameMode heartbeat timer;
+- heartbeat-ში GetNumPlayers()-ის გადაცემა;
+- EndPlay/offline და registration-in-flight shutdown fallback;
+- production HTTPS და non-loopback advertised host guard;
+- server authority guard და client-ისთვის token-ის არგადაცემა.
+
+**ეს არ არის C++ compilation/UHT/PIE შედეგი.** UE 5.8 Editor/Server build, რეალური client connection, UDP reachability, reconnect და actor replication ჯერ უნდა შესრულდეს Windows Unreal გარემოში.
+
+Machine-readable result: `RIDGE_GIS/Data/QA/ridge_stage5_unreal_shard_wiring_20261123.json`.

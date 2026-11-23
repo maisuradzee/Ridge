@@ -107,3 +107,14 @@ This still does not prove 500 connected Unreal players. Player login/authenticat
 The Stage 5 branch adds GameMode-driven shard registration on startup, 15-second heartbeat updates, and an offline heartbeat during EndPlay. Production mode now requires an HTTPS backend URL and an explicitly advertised non-loopback server host. See docs/57_UNREAL_DEDICATED_SERVER_REGISTRATION_GE.md.
 
 This is source-level integration only until the Editor/Server targets compile and the server + two clients pass a real UE 5.8 network test. Player login/session allocation, signed join tickets, per-server credentials, reconnect and shard transfer remain open gates.
+
+
+### Dedicated Server registration — static CI verified (2026-11-23)
+
+- GameMode starts server-side shard registration and a 15-second heartbeat timer.
+- The backend subsystem publishes current active player count and reports offline on EndPlay (including registration-in-flight shutdown fallback).
+- Production configuration requires HTTPS and an explicitly configured non-loopback shard host.
+- Stage 5 CI: Python/source regression **57/57**, UE static validator **24/24**, load unit tests **6/6**, backend Node **33/33**, all PASS.
+- API preflight: **6,995 requests / 0 errors / 437.17 req/s**, p95 **1.17 ms** on in-memory development storage.
+
+This is source-contract verification, not a real UE build. Unreal Engine 5.8 UBT/UHT, Dedicated Server runtime, two-client PIE, reconnect, and true 500-player load remain unverified. See the [Dedicated Server runbook](docs/57_UNREAL_DEDICATED_SERVER_REGISTRATION_GE.md).
