@@ -9,6 +9,7 @@ const HOST = process.env.RIDGE_HOST ?? '127.0.0.1';
 const ENV = process.env.RIDGE_ENV ?? 'development';
 const STORAGE = process.env.RIDGE_STORAGE ?? (process.env.DATABASE_URL ? 'postgres' : 'memory');
 const GAME_SERVER_TOKEN = process.env.RIDGE_SERVER_EVENT_TOKEN ?? '';
+const GATEWAY_TOKEN = process.env.RIDGE_GATEWAY_TOKEN ?? '';
 
 function safeTokenEquals(provided, expected) {
   const a = Buffer.from(String(provided ?? ''), 'utf8');
@@ -22,6 +23,15 @@ function requireGameServer(request) {
   }
   if (!safeTokenEquals(request.headers['x-ridge-server-token'], GAME_SERVER_TOKEN)) {
     throw new RidgeError(403, 'GAME_SERVER_FORBIDDEN', 'შიდა სათამაშო სერვერის ავტორიზაცია ვერ დადასტურდა.');
+  }
+}
+
+function requireGateway(request) {
+  if (!GATEWAY_TOKEN) {
+    throw new RidgeError(503, 'GATEWAY_AUTH_NOT_CONFIGURED', 'Session gateway-ის შიდა ავტორიზაცია კონფიგურირებული არ არის.');
+  }
+  if (!safeTokenEquals(request.headers['x-ridge-gateway-token'], GATEWAY_TOKEN)) {
+    throw new RidgeError(403, 'GATEWAY_FORBIDDEN', 'Session gateway-ის ავტორიზაცია ვერ დადასტურდა.');
   }
 }
 
@@ -158,14 +168,14 @@ async function main() {
 
       const allocateSessionMatch = url.pathname.match(/^\/v1\/internal\/players\/([A-Za-z0-9._:-]{1,80})\/session\/allocate$/);
       if (request.method === 'POST' && allocateSessionMatch) {
-        requireGameServer(request);
+        requireGateway(request);
         const body = await readJson(request);
         return send(response, 201, await sessionRegistry.allocatePlayer(allocateSessionMatch[1], body.region ?? 'ge-tbilisi'));
       }
 
       const issueJoinTicketMatch = url.pathname.match(/^\/v1\/internal\/players\/([A-Za-z0-9._:-]{1,80})\/session\/join-ticket$/);
       if (request.method === 'POST' && issueJoinTicketMatch) {
-        requireGameServer(request);
+        requireGateway(request);
         const body = await readJson(request);
         return send(response, 201, await sessionRegistry.issueJoinTicket({
           playerId: issueJoinTicketMatch[1],

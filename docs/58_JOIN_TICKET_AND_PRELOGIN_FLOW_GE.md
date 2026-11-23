@@ -65,6 +65,34 @@ Legacy direct-claim route, რომელიც playerId + sessionId-ით პ
 - ticket-ის გადაცემა connection options-იდან და successful claim-ის შემდეგ verified PlayerState identity;
 - ორი client-ის რეალური PIE/Dedicated Server test.
 
-ამ ეტაპზე gateway და Dedicated Server ერთ shared internal token-ს იყენებენ. ეს მხოლოდ development/prototype control plane-ისთვისაა. Production-ში shared token უნდა ჩანაცვლდეს service-specific credentials-ით და HTTPS-ით.
+Gateway და Dedicated Server ცალკე shared role token-ებს იყენებენ: RIDGE_GATEWAY_TOKEN და RIDGE_SERVER_EVENT_TOKEN. ეს ამცირებს უფლებების გადაკვეთის რისკს, მაგრამ ჯერ არ იძლევა თითოეული server instance-ის ინდივიდუალურ credential-ს ან rotation/revocation-ს. Production-მდე ეს per-server credential-ებით უნდა ჩანაცვლდეს და UE game-connection transport-ის encryption-იც უნდა დადასტურდეს.
 
 მნიშვნელოვანი: RidgePublicId კვლავ prototype identifier-ია, სანამ verified account identity არ მიეწოდება gateway-ს. Join ticket არ ცვლის ანგარიშის ავტორიზაციას — ის მხოლოდ ერთჯერადი, მოკლევადიანი დაშვებაა კონკრეტულ Dedicated Server session-ზე.
+
+
+## 6. Unreal Engine server login lifecycle — source wiring added
+
+The Stage 5 Unreal GameMode now wires the backend one-time ticket to the Unreal login lifecycle:
+
+- PreLoginAsync first invokes Super::PreLoginAsync, preserving the engine's normal pre-login checks and event broadcast, then validates the ridgeJoinTicket connection option against the backend asynchronously.
+- A successful server claim is held in a short-lived in-memory pending map (25 seconds).
+- InitNewPlayer requires the same ticket to have a matching backend-verified claim; missing/expired claims are rejected.
+- PostLogin sets the canonical backend identity on the server-only PlayerState field. Unexpected unverified connections are kicked through GameSession->KickPlayer.
+- Logout releases the exact player/session pair through the Dedicated Server API.
+- A 5-second cleanup timer releases verified claims that were never promoted to a controller; server shutdown reports the shard offline, which expires any remaining sessions.
+
+RidgePublicId remains the replicated public game ID. The canonical account/player ID is stored in a private, non-replicated VerifiedPlayerId field and is only read by server-side backend calls.
+
+The backend now separates the service roles:
+- RIDGE_GATEWAY_TOKEN / x-ridge-gateway-token: session allocation and ticket issuance.
+- RIDGE_SERVER_EVENT_TOKEN / x-ridge-server-token: shard registration/heartbeat, join-ticket claim and session release.
+
+The gateway token must exist only in the gateway process. Dedicated Server processes must not receive it. The gateway service and external identity-provider integration are not implemented yet; current gateway endpoints are internal service-to-service primitives.
+
+### Production transport caution
+
+The bearer ticket is passed through Unreal's ridgeJoinTicket connection option and is short-lived (30 seconds). The application-side registry validation is single-use, but a production deployment must also verify encrypted/protected Unreal connection transport for the initial login options. HTTPS to the backend does not encrypt the separate UE game connection by itself.
+
+### Current acceptance boundary
+
+The C++ overrides and source-level contracts are committed and are being checked by static CI. This does not prove Unreal Engine 5.8 UBT/UHT compilation or a live network join. Still required: Windows UE 5.8 Editor/Server build, two-client PIE/Dedicated Server, rejection of a ticketless client, successful claim, public PlayerState replication, logout release, reconnect, and server shutdown recovery.

@@ -176,7 +176,7 @@ test('trusted gateway issues one-time join tickets and only the assigned shard c
   const claimAttemptId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
   const child = spawn(process.execPath, ['src/server.mjs'], {
     cwd: backendDir,
-    env: { ...process.env, PORT: String(port), RIDGE_ENV: 'development', RIDGE_STORAGE: 'memory', RIDGE_SERVER_EVENT_TOKEN: token },
+    env: { ...process.env, PORT: String(port), RIDGE_ENV: 'development', RIDGE_STORAGE: 'memory', RIDGE_SERVER_EVENT_TOKEN: token, RIDGE_GATEWAY_TOKEN: 'local-test-gateway-token' },
     stdio: 'ignore',
   });
   t.after(async () => {
@@ -188,6 +188,7 @@ test('trusted gateway issues one-time join tickets and only the assigned shard c
   await waitForHealth(baseUrl, child);
 
   const serverHeaders = { 'content-type': 'application/json', 'x-ridge-server-token': token };
+  const gatewayHeaders = { 'content-type': 'application/json', 'x-ridge-gateway-token': 'local-test-gateway-token' };
   const registerUrl = baseUrl + '/v1/internal/shards/register';
   const registerBody = JSON.stringify({
     serverId,
@@ -203,9 +204,22 @@ test('trusted gateway issues one-time join tickets and only the assigned shard c
   });
   assert.equal(unauthorizedRegister.status, 403);
 
+  const gatewayCannotRegister = await fetch(registerUrl, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', 'x-ridge-gateway-token': 'local-test-gateway-token' },
+    body: registerBody,
+  });
+  assert.equal(gatewayCannotRegister.status, 403);
+
   const registered = await fetch(registerUrl, { method: 'POST', headers: serverHeaders, body: registerBody });
   assert.equal(registered.status, 201);
   assert.equal((await registered.json()).serverId, serverId);
+
+  const serverCannotAllocate = await fetch(
+    baseUrl + '/v1/internal/players/' + playerId + '/session/allocate',
+    { method: 'POST', headers: serverHeaders, body: JSON.stringify({ region: 'ge-tbilisi' }) },
+  );
+  assert.equal(serverCannotAllocate.status, 403);
 
   const noAuthList = await fetch(baseUrl + '/v1/internal/shards');
   assert.equal(noAuthList.status, 403);
@@ -215,7 +229,7 @@ test('trusted gateway issues one-time join tickets and only the assigned shard c
 
   const allocationResponse = await fetch(
     baseUrl + '/v1/internal/players/' + playerId + '/session/allocate',
-    { method: 'POST', headers: serverHeaders, body: JSON.stringify({ region: 'ge-tbilisi' }) },
+    { method: 'POST', headers: gatewayHeaders, body: JSON.stringify({ region: 'ge-tbilisi' }) },
   );
   assert.equal(allocationResponse.status, 201);
   const allocation = await allocationResponse.json();
@@ -229,12 +243,17 @@ test('trusted gateway issues one-time join tickets and only the assigned shard c
   });
   assert.equal(unauthorizedIssue.status, 403);
 
-  const issuedResponse = await fetch(issueUrl, { method: 'POST', headers: serverHeaders, body: issueBody });
+  const issuedResponse = await fetch(issueUrl, { method: 'POST', headers: gatewayHeaders, body: issueBody });
   assert.equal(issuedResponse.status, 201);
   const issued = await issuedResponse.json();
   assert.equal(issued.sessionId, allocation.sessionId);
   assert.equal(issued.server.serverId, serverId);
   assert.match(issued.ticket, /^[A-Za-z0-9_-]{43}$/);
+
+  const serverCannotIssue = await fetch(issueUrl, {
+    method: 'POST', headers: serverHeaders, body: issueBody,
+  });
+  assert.equal(serverCannotIssue.status, 403);
 
   const legacyClaimUrl = baseUrl + '/v1/internal/shards/' + serverId + '/players/' + playerId + '/claim';
   const legacyClaim = await fetch(legacyClaimUrl, {
@@ -253,6 +272,13 @@ test('trusted gateway issues one-time join tickets and only the assigned shard c
   assert.equal((await wrongShardClaim.json()).error.code, 'JOIN_TICKET_INVALID');
 
   const claimUrl = baseUrl + '/v1/internal/shards/' + serverId + '/join/claim';
+
+  const gatewayCannotClaim = await fetch(claimUrl, {
+    method: 'POST',
+    headers: gatewayHeaders,
+    body: JSON.stringify({ ticket: issued.ticket, claimAttemptId }),
+  });
+  assert.equal(gatewayCannotClaim.status, 403);
   const noAuthClaim = await fetch(claimUrl, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },

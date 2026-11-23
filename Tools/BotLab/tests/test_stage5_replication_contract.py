@@ -23,6 +23,8 @@ class Stage5ReplicationContractTests(unittest.TestCase):
         cls.backend_bridge = (ROOT / "Source/RIDGE/Private/RidgeBackendSubsystem.cpp").read_text(encoding="utf-8")
         cls.backend_header = (ROOT / "Source/RIDGE/Public/RidgeBackendSubsystem.h").read_text(encoding="utf-8")
         cls.game_mode_header = (ROOT / "Source/RIDGE/Public/RidgeGameMode.h").read_text(encoding="utf-8")
+        cls.backend_server_source = (ROOT / "backend/src/server.mjs").read_text(encoding="utf-8")
+        cls.mission_source = (ROOT / "Source/RIDGE/Private/RidgeMissionCheckpoint.cpp").read_text(encoding="utf-8")
 
     def test_character_uses_actor_and_character_movement_replication(self) -> None:
         self.assertIn("bReplicates = true;", self.character_source)
@@ -107,6 +109,81 @@ class Stage5ReplicationContractTests(unittest.TestCase):
         self.assertIn("GetNetMode() == NM_Client", self.backend_bridge)
         self.assertIn("HasAuthority()", self.game_mode_source)
         self.assertIn("GetNetMode() == NM_Client", self.game_mode_source)
+
+
+    def test_prelogin_async_preserves_engine_checks_and_uses_the_documented_delegate_signature(self) -> None:
+        self.assertIn("virtual void PreLoginAsync(", self.game_mode_header)
+        self.assertIn("const FString& Options", self.game_mode_header)
+        self.assertIn("const FUniqueNetIdRepl& UniqueId", self.game_mode_header)
+        self.assertIn("const FOnPreLoginCompleteDelegate& OnComplete", self.game_mode_header)
+        self.assertIn("Super::PreLoginAsync(", self.game_mode_source)
+        self.assertIn("Completion.ExecuteIfBound", self.game_mode_source)
+        self.assertIn("UGameplayStatics::ParseOption(Options, TEXT(\"ridgeJoinTicket\"))", self.game_mode_source)
+
+    def test_dedicated_server_rejects_missing_or_unverified_join_tickets(self) -> None:
+        self.assertIn("GetNetMode() == NM_DedicatedServer", self.game_mode_source)
+        self.assertIn("A valid RIDGE join ticket is required.", self.game_mode_source)
+        self.assertIn("Backend->ClaimJoinTicket(", self.game_mode_source)
+        self.assertIn("RIDGE join ticket verification failed.", self.game_mode_source)
+        self.assertIn("VerifiedClaimsByTicket.Add(Ticket", self.game_mode_source)
+
+    def test_init_new_player_binds_only_the_preverified_session_claim(self) -> None:
+        self.assertIn("ARidgeGameMode::InitNewPlayer(", self.game_mode_source)
+        self.assertIn("VerifiedClaimsByTicket.Find(Ticket)", self.game_mode_source)
+        self.assertIn("RIDGE join ticket verification is missing or expired.", self.game_mode_source)
+        self.assertIn("PendingJoinClaimsByController.Add", self.game_mode_source)
+
+    def test_postlogin_assigns_canonical_identity_and_kicks_unverified_connections(self) -> None:
+        self.assertIn("ARidgeGameMode::PostLogin(", self.game_mode_source)
+        self.assertIn("RidgeState->SetVerifiedPlayerId(Claim.PlayerId)", self.game_mode_source)
+        self.assertIn("GameSession->KickPlayer", self.game_mode_source)
+        self.assertIn("pending join claim expired", self.game_mode_source)
+        self.assertIn("GameFramework/GameSession.h", self.game_mode_source)
+        self.assertIn("GameFramework/PlayerController.h", self.game_mode_source)
+        self.assertIn("ActiveJoinClaimsByController.Add", self.game_mode_source)
+
+    def test_logout_releases_backend_session_and_expired_pending_claims_are_pruned(self) -> None:
+        self.assertIn("ARidgeGameMode::Logout(", self.game_mode_source)
+        self.assertIn("ReleaseJoinClaim(*ActiveClaim)", self.game_mode_source)
+        self.assertIn("Backend->ReleasePlayerSession(Claim.PlayerId, Claim.SessionId)", self.game_mode_source)
+        self.assertIn("PruneExpiredJoinClaims", self.game_mode_source)
+        self.assertIn("JoinClaimCleanupTimer", self.game_mode_header)
+        self.assertIn("5.0f", self.game_mode_source)
+
+    def test_canonical_account_id_is_server_only_and_public_id_remains_replicated(self) -> None:
+        self.assertIn("FString VerifiedPlayerId;", self.player_state_header)
+        self.assertIn("bool SetVerifiedPlayerId", self.player_state_header)
+        self.assertIn("FString GetBackendPlayerId() const", self.player_state_header)
+        self.assertIn("DOREPLIFETIME(ARidgePlayerState, RidgePublicId)", self.player_state_source)
+        self.assertNotIn("DOREPLIFETIME(ARidgePlayerState, VerifiedPlayerId)", self.player_state_source)
+        self.assertIn("VerifiedPlayerId = InVerifiedPlayerId", self.player_state_source)
+
+    def test_backend_job_and_checkpoint_requests_use_canonical_backend_identity(self) -> None:
+        self.assertIn("RidgeState->GetBackendPlayerId()", self.character_source)
+        self.assertIn("Backend->AcceptDeliveryJob(BackendPlayerId)", self.character_source)
+        self.assertIn("RidgeState->GetBackendPlayerId()", self.mission_source)
+        self.assertIn("Backend->RecordDeliveryCheckpoint(BackendPlayerId", self.mission_source)
+        self.assertNotIn("RidgeState->RidgePublicId", self.character_source)
+        self.assertNotIn("RidgeState->RidgePublicId", self.mission_source)
+
+    def test_backend_join_claim_and_release_are_private_server_only_operations(self) -> None:
+        self.assertIn("void ClaimJoinTicket(", self.backend_header)
+        self.assertIn("void ReleasePlayerSession(", self.backend_header)
+        self.assertIn("/join/claim", self.backend_bridge)
+        self.assertIn("/release", self.backend_bridge)
+        self.assertIn('TEXT("x-ridge-server-token")', self.backend_bridge)
+        self.assertIn("ClaimedServerId != Self->ServerId", self.backend_bridge)
+
+
+    def test_gateway_and_game_server_credentials_are_separate(self) -> None:
+        self.assertIn("RIDGE_GATEWAY_TOKEN", self.backend_server_source)
+        self.assertIn("x-ridge-gateway-token", self.backend_server_source)
+        self.assertIn("RIDGE_SERVER_EVENT_TOKEN", self.backend_server_source)
+        self.assertIn("x-ridge-server-token", self.backend_server_source)
+        self.assertIn("requireGateway(request)", self.backend_server_source)
+        self.assertIn("requireGameServer(request)", self.backend_server_source)
+        self.assertIn("requireGateway(request);", self.backend_server_source)
+        self.assertIn("requireGameServer(request);", self.backend_server_source)
 
     def test_backend_secret_is_not_marked_for_network_replication(self) -> None:
         self.assertIn('GetEnvironmentVariable(TEXT("RIDGE_SERVER_EVENT_TOKEN"))', self.backend_bridge)

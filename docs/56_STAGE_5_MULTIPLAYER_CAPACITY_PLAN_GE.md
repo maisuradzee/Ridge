@@ -191,3 +191,10 @@ Committed machine-readable report: `RIDGE_GIS/Data/QA/ridge_stage5_session_regis
 - 25/50/100 UE client capacity measurements and 500-CCU soak with server CPU, memory, tick, network bandwidth and replication profiling.
 
 The current work is the backend control-plane foundation, not proof of a 500-player playable world.
+
+
+### Join-ticket + Unreal login lifecycle (source wiring)
+
+Migration 005 and the backend issue/claim endpoints are now connected in Unreal source through PreLoginAsync, InitNewPlayer, PostLogin and Logout. The server stores canonical verified player ID only in a non-replicated PlayerState field. Gateway allocation/issue routes now require a separate RIDGE_GATEWAY_TOKEN; Dedicated Server operations require RIDGE_SERVER_EVENT_TOKEN. See docs/58_JOIN_TICKET_AND_PRELOGIN_FLOW_GE.md.
+
+This is source implementation, not a verified UE build/runtime. The gateway/identity provider, encrypted UE game-connection transport, UBT/UHT and real two-client Dedicated Server test remain release gates.

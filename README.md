@@ -125,3 +125,12 @@ This is source-contract verification, not a real UE build. Unreal Engine 5.8 UBT
 Stage 5 backend adds migration 005 for short-lived, single-use join tickets. The gateway receives a random 256-bit Base64URL ticket, while PostgreSQL stores only its SHA-256 digest. Tickets are bound to a specific shard, expire within 30 seconds (and never outlive their session lease), allow same-attempt idempotent retry, and reject reuse from another connection attempt. The legacy direct claim route is removed.
 
 See docs/58_JOIN_TICKET_AND_PRELOGIN_FLOW_GE.md. This is not yet a full account login: verified identity-provider/gateway integration and Unreal PreLoginAsync/PostLogin/Logout wiring remain open.
+
+
+### Unreal join-ticket enforcement
+
+The Stage 5 Unreal GameMode source now binds one-time tickets to UE 5.8 PreLoginAsync -> InitNewPlayer -> PostLogin and releases sessions on Logout. Canonical backend identity is stored privately on the server-side PlayerState; the replicated RidgePublicId remains a separate public game identifier. Unverified connections are rejected/kicked.
+
+Session allocation and ticket issuance now require a separate RIDGE_GATEWAY_TOKEN; shard operations retain RIDGE_SERVER_EVENT_TOKEN. The gateway implementation and account identity provider remain open. The bearer ticket is carried in the UE login options, so production also requires verified encrypted game-connection transport.
+
+See docs/58_JOIN_TICKET_AND_PRELOGIN_FLOW_GE.md. C++ UBT/UHT and live UE 5.8 two-client runtime have not yet been executed.

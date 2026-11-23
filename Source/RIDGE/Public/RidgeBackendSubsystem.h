@@ -23,6 +23,11 @@ public:
     void SendShardHeartbeat(int32 CurrentPlayers, const FString& Status);
     void MarkDedicatedServerOffline(int32 CurrentPlayers);
     bool IsDedicatedServerRegistered() const { return bShardRegistered; }
+    void ClaimJoinTicket(
+        const FString& Ticket,
+        const FString& ClaimAttemptId,
+        TFunction<void(bool, const FString&, const FString&, const FString&)> Completion);
+    void ReleasePlayerSession(const FString& PlayerId, const FString& SessionId);
     void AcceptDeliveryJob(const FString& PlayerId);
     void RecordDeliveryCheckpoint(const FString& PlayerId, const FString& CheckpointId, const FVector& ObservedPositionMeters);
 

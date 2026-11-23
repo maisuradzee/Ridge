@@ -175,7 +175,12 @@ void ARidgeCharacter::ServerRequestDeliveryJob_Implementation()
     }
 
     ARidgePlayerState* RidgeState = GetPlayerState<ARidgePlayerState>();
-    if (!RidgeState || RidgeState->RidgePublicId.IsEmpty())
+    if (!RidgeState)
+    {
+        return;
+    }
+    const FString BackendPlayerId = RidgeState->GetBackendPlayerId();
+    if (BackendPlayerId.IsEmpty())
     {
         return;
     }
@@ -184,7 +189,7 @@ void ARidgeCharacter::ServerRequestDeliveryJob_Implementation()
     {
         if (URidgeBackendSubsystem* Backend = GameInstance->GetSubsystem<URidgeBackendSubsystem>())
         {
-            Backend->AcceptDeliveryJob(RidgeState->RidgePublicId);
+            Backend->AcceptDeliveryJob(BackendPlayerId);
         }
     }
 }

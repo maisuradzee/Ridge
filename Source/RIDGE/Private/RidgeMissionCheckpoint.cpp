@@ -39,7 +39,12 @@ void ARidgeMissionCheckpoint::HandleOverlapBegin(UPrimitiveComponent* Overlapped
     }
 
     ARidgePlayerState* RidgeState = Character->GetPlayerState<ARidgePlayerState>();
-    if (!RidgeState || RidgeState->RidgePublicId.IsEmpty())
+    if (!RidgeState)
+    {
+        return;
+    }
+    const FString BackendPlayerId = RidgeState->GetBackendPlayerId();
+    if (BackendPlayerId.IsEmpty())
     {
         return;
     }
@@ -48,7 +53,7 @@ void ARidgeMissionCheckpoint::HandleOverlapBegin(UPrimitiveComponent* Overlapped
     {
         if (URidgeBackendSubsystem* Backend = GameInstance->GetSubsystem<URidgeBackendSubsystem>())
         {
-            Backend->RecordDeliveryCheckpoint(RidgeState->RidgePublicId, CheckpointId, Character->GetActorLocation() / 100.0f);
+            Backend->RecordDeliveryCheckpoint(BackendPlayerId, CheckpointId, Character->GetActorLocation() / 100.0f);
         }
     }
 }

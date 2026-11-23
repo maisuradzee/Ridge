@@ -304,6 +304,144 @@ void URidgeBackendSubsystem::MarkDedicatedServerOffline(int32 CurrentPlayers)
     }
 }
 
+void URidgeBackendSubsystem::ClaimJoinTicket(
+    const FString& Ticket,
+    const FString& ClaimAttemptId,
+    TFunction<void(bool, const FString&, const FString&, const FString&)> Completion)
+{
+    if (!Completion)
+    {
+        return;
+    }
+
+    const TSharedRef<TFunction<void(bool, const FString&, const FString&, const FString&)>> CompletionRef =
+        MakeShared<TFunction<void(bool, const FString&, const FString&, const FString&)>>(MoveTemp(Completion));
+    const auto Complete = [CompletionRef](
+        const bool bSuccess,
+        const FString& PlayerId,
+        const FString& SessionId,
+        const FString& ErrorMessage)
+    {
+        if (CompletionRef->IsSet())
+        {
+            TFunction<void(bool, const FString&, const FString&, const FString&)> Callback = MoveTemp(*CompletionRef);
+            Callback(bSuccess, PlayerId, SessionId, ErrorMessage);
+        }
+    };
+
+    if (Ticket.IsEmpty() || ClaimAttemptId.IsEmpty() || !bShardRegistered || !EnsureServerConfiguration())
+    {
+        Complete(false, FString(), FString(), TEXT("Dedicated Server is not registered or join ticket is missing."));
+        return;
+    }
+
+    TSharedRef<FJsonObject> Payload = MakeShared<FJsonObject>();
+    Payload->SetStringField(TEXT("ticket"), Ticket);
+    Payload->SetStringField(TEXT("claimAttemptId"), ClaimAttemptId);
+
+    TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
+    Request->SetURL(ApiBaseUrl + TEXT("/v1/internal/shards/") + ServerId + TEXT("/join/claim"));
+    Request->SetVerb(TEXT("POST"));
+    Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+    Request->SetHeader(TEXT("x-ridge-server-token"), ServerToken);
+    Request->SetContentAsString(RidgeSerializeJson(Payload));
+    Request->SetTimeout(8.0f);
+
+    const TWeakObjectPtr<URidgeBackendSubsystem> WeakThis(this);
+    Request->OnProcessRequestComplete().BindLambda(
+        [WeakThis, Complete](FHttpRequestPtr Req, FHttpResponsePtr Response, bool bConnected) mutable
+        {
+            URidgeBackendSubsystem* Self = WeakThis.Get();
+            if (!Self)
+            {
+                Complete(false, FString(), FString(), TEXT("Dedicated Server subsystem is no longer available."));
+                return;
+            }
+
+            if (!bConnected || !Response.IsValid() || !EHttpResponseCodes::IsOk(Response->GetResponseCode()))
+            {
+                FString ErrorMessage = TEXT("Join ticket verification failed.");
+                if (Response.IsValid())
+                {
+                    TSharedPtr<FJsonObject> ErrorJson;
+                    const TSharedRef<TJsonReader<>> ErrorReader = TJsonReaderFactory<>::Create(Response->GetContentAsString());
+                    if (FJsonSerializer::Deserialize(ErrorReader, ErrorJson) && ErrorJson.IsValid())
+                    {
+                        const TSharedPtr<FJsonObject>* ErrorObject = nullptr;
+                        if (ErrorJson->TryGetObjectField(TEXT("error"), ErrorObject) && ErrorObject && ErrorObject->IsValid())
+                        {
+                            (*ErrorObject)->TryGetStringField(TEXT("message"), ErrorMessage);
+                        }
+                    }
+                }
+                Complete(false, FString(), FString(), ErrorMessage);
+                return;
+            }
+
+            TSharedPtr<FJsonObject> Json;
+            const TSharedRef<TJsonReader<>> Reader = TJsonReaderFactory<>::Create(Response->GetContentAsString());
+            FString PlayerId;
+            FString SessionId;
+            FString ClaimedServerId;
+            FString Status;
+            if (!FJsonSerializer::Deserialize(Reader, Json) || !Json.IsValid() ||
+                !Json->TryGetStringField(TEXT("playerId"), PlayerId) ||
+                !Json->TryGetStringField(TEXT("sessionId"), SessionId) ||
+                !Json->TryGetStringField(TEXT("serverId"), ClaimedServerId) ||
+                !Json->TryGetStringField(TEXT("status"), Status) ||
+                PlayerId.IsEmpty() || SessionId.IsEmpty() ||
+                ClaimedServerId != Self->ServerId || Status != TEXT("connected"))
+            {
+                Complete(false, FString(), FString(), TEXT("Join ticket response failed server identity validation."));
+                return;
+            }
+
+            Complete(true, PlayerId, SessionId, FString());
+        });
+
+    if (!Request->ProcessRequest())
+    {
+        Complete(false, FString(), FString(), TEXT("Could not start join ticket verification request."));
+    }
+}
+
+void URidgeBackendSubsystem::ReleasePlayerSession(const FString& PlayerId, const FString& SessionId)
+{
+    if (PlayerId.IsEmpty() || SessionId.IsEmpty() || ServerId.IsEmpty() ||
+        ServerToken.IsEmpty() || ApiBaseUrl.IsEmpty() || !bShardRegistered)
+    {
+        return;
+    }
+
+    TSharedRef<FJsonObject> Payload = MakeShared<FJsonObject>();
+    Payload->SetStringField(TEXT("sessionId"), SessionId);
+
+    TSharedRef<IHttpRequest, ESPMode::ThreadSafe> Request = FHttpModule::Get().CreateRequest();
+    Request->SetURL(
+        ApiBaseUrl + TEXT("/v1/internal/shards/") + ServerId +
+        TEXT("/players/") + FGenericPlatformHttp::UrlEncode(PlayerId) + TEXT("/release"));
+    Request->SetVerb(TEXT("POST"));
+    Request->SetHeader(TEXT("Content-Type"), TEXT("application/json"));
+    Request->SetHeader(TEXT("x-ridge-server-token"), ServerToken);
+    Request->SetContentAsString(RidgeSerializeJson(Payload));
+    Request->SetTimeout(8.0f);
+
+    Request->OnProcessRequestComplete().BindLambda(
+        [PlayerId](FHttpRequestPtr Req, FHttpResponsePtr Response, bool bConnected)
+        {
+            if (!bConnected || !Response.IsValid() || !EHttpResponseCodes::IsOk(Response->GetResponseCode()))
+            {
+                const int32 Code = Response.IsValid() ? Response->GetResponseCode() : 0;
+                UE_LOG(LogTemp, Warning, TEXT("[RIDGE Backend] Session release failed (HTTP %d)."), Code);
+            }
+        });
+
+    if (!Request->ProcessRequest())
+    {
+        UE_LOG(LogTemp, Warning, TEXT("[RIDGE Backend] Could not start session release request."));
+    }
+}
+
 void URidgeBackendSubsystem::LogServerMessage(const FString& Message) const
 {
     UE_LOG(LogTemp, Log, TEXT("[RIDGE Backend] %s"), *Message);
