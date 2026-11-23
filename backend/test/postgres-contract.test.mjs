@@ -70,6 +70,21 @@ test('server exposes PostgreSQL mode and refuses ephemeral production storage', 
 });
 
 
+test('migration 005 stores ticket hash, expiry and stable claim attempt as an all-or-none tuple', async () => {
+  const migration = await readFile(new URL('database/migrations/005_session_join_tickets.sql', root), 'utf8');
+  assert.match(migration, /join_ticket_hash TEXT/);
+  assert.match(migration, /join_ticket_expires_at TIMESTAMPTZ/);
+  assert.match(migration, /join_attempt_id UUID/);
+  assert.match(migration, /join_ticket_hash IS NULL AND join_ticket_expires_at IS NULL AND join_attempt_id IS NULL/);
+  assert.match(migration, /join_ticket_hash IS NOT NULL AND join_ticket_expires_at IS NOT NULL AND join_attempt_id IS NOT NULL/);
+
+  const registry = await readFile(new URL('backend/src/session-registry.mjs', root), 'utf8');
+  assert.match(registry, /column_name = 'join_ticket_hash'/);
+  assert.match(registry, /column_name = 'join_ticket_expires_at'/);
+  assert.match(registry, /column_name = 'join_attempt_id'/);
+  assert.match(registry, /JOIN_TICKET_CLAIM_ATTEMPT_MISMATCH/);
+});
+
 test('PostgreSQL service initializes only after required migrations and preserves world epoch', async () => {
   const seen = [];
   const pool = {

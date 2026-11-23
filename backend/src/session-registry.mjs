@@ -26,7 +26,7 @@ function hashJoinTicket(ticket) {
 }
 
 function validateClaimAttemptId(value) {
-  if (typeof value !== 'string' || !/^[0-9a-f-]{36}$/i.test(value)) {
+  if (typeof value !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)) {
     fail(400, 'INVALID_CLAIM_ATTEMPT_ID', 'Claim attempt ID არასწორია.');
   }
   return value.toLowerCase();
@@ -265,13 +265,15 @@ function createMemoryRegistry({ clock, leaseMs, heartbeatTtlMs, joinTicketMs }) 
         fail(409, 'SHARD_NOT_LIVE', 'Shard heartbeat მოძველებულია ან სერვერი მზად არ არის.');
       }
       const ticket = randomBytes(32).toString('base64url');
+      const claimAttemptId = randomUUID();
       const expiresAt = Math.min(session.leaseExpiresAt, now + joinTicketMs);
       session.joinTicketHash = hashJoinTicket(ticket);
       session.joinTicketExpiresAt = expiresAt;
-      session.joinAttemptId = null;
+      session.joinAttemptId = claimAttemptId;
       session.updatedAt = now;
       return {
         ticket,
+        claimAttemptId,
         expiresAt: new Date(expiresAt).toISOString(),
         sessionId,
         playerId,
@@ -288,6 +290,10 @@ function createMemoryRegistry({ clock, leaseMs, heartbeatTtlMs, joinTicketMs }) 
         (item) => item.serverId === serverId && item.joinTicketHash === ticketHash,
       );
       if (!session) fail(403, 'JOIN_TICKET_INVALID', 'Join ticket არასწორია, უკვე გამოყენებულია ან ვადაგასულია.');
+      const server = findServer(serverId);
+      if (!serverIsLive(server, now, heartbeatTtlMs)) {
+        fail(409, 'SHARD_NOT_LIVE', 'Shard heartbeat მოძველებულია ან სერვერი მზად არ არის.');
+      }
       if (session.status === 'connected') {
         if (session.joinAttemptId === attemptId) {
           return {
@@ -304,14 +310,13 @@ function createMemoryRegistry({ clock, leaseMs, heartbeatTtlMs, joinTicketMs }) 
       if (session.status !== 'allocated') {
         fail(403, 'JOIN_TICKET_INVALID', 'Join ticket აქტიურ allocation-ს აღარ ეკუთვნის.');
       }
+      if (session.joinAttemptId !== attemptId) {
+        fail(409, 'JOIN_TICKET_CLAIM_ATTEMPT_MISMATCH', 'Join ticket-ის claim attempt ID არ ემთხვევა.');
+      }
       if (!session.joinTicketExpiresAt || session.joinTicketExpiresAt <= now ||
           !session.leaseExpiresAt || session.leaseExpiresAt <= now) {
         expireSession(session);
         fail(409, 'JOIN_TICKET_EXPIRED', 'Join ticket ან session lease ვადაგასულია.');
-      }
-      const server = findServer(serverId);
-      if (!serverIsLive(server, now, heartbeatTtlMs)) {
-        fail(409, 'SHARD_NOT_LIVE', 'Shard heartbeat მოძველებულია ან სერვერი მზად არ არის.');
       }
       session.status = 'connected';
       session.leaseExpiresAt = null;
@@ -542,6 +547,7 @@ function createPostgresRegistry({ pool, clock, leaseMs, heartbeatTtlMs, joinTick
         fail(400, 'INVALID_SESSION_ID', 'Session ID არასწორია.');
       }
       const ticket = randomBytes(32).toString('base64url');
+      const claimAttemptId = randomUUID();
       const ticketHash = hashJoinTicket(ticket);
       return inTransaction(pool, async (client) => {
         const selected = await client.query(
@@ -563,13 +569,14 @@ function createPostgresRegistry({ pool, clock, leaseMs, heartbeatTtlMs, joinTick
         const updated = await client.query(
           'UPDATE ridge.player_sessions SET join_ticket_hash = $2, ' +
           "join_ticket_expires_at = LEAST(lease_expires_at, clock_timestamp() + ($3::bigint * interval '1 millisecond')), " +
-          'join_attempt_id = NULL, updated_at = clock_timestamp() WHERE session_id = $1 ' +
+          'join_attempt_id = $4, updated_at = clock_timestamp() WHERE session_id = $1 ' +
           'RETURNING join_ticket_expires_at',
-          [sessionId, ticketHash, joinTicketMs],
+          [sessionId, ticketHash, joinTicketMs, claimAttemptId],
         );
         if (!updated.rows[0]) fail(404, 'SESSION_NOT_FOUND', 'მოთამაშის სესია ვერ მოიძებნა.');
         return {
           ticket,
+          claimAttemptId,
           expiresAt: new Date(updated.rows[0].join_ticket_expires_at).toISOString(),
           sessionId: row.session_id,
           playerId: row.player_id,
@@ -612,6 +619,9 @@ function createPostgresRegistry({ pool, clock, leaseMs, heartbeatTtlMs, joinTick
         }
         if (row.status !== 'allocated') {
           fail(403, 'JOIN_TICKET_INVALID', 'Join ticket აქტიურ allocation-ს აღარ ეკუთვნის.');
+        }
+        if (row.join_attempt_id !== attemptId) {
+          fail(409, 'JOIN_TICKET_CLAIM_ATTEMPT_MISMATCH', 'Join ticket-ის claim attempt ID არ ემთხვევა.');
         }
         const now = clock();
         if (!row.join_ticket_expires_at || new Date(row.join_ticket_expires_at).getTime() <= now ||
@@ -713,7 +723,9 @@ export async function createSessionRegistry({
   }
   const schema = await pool.query(
     "SELECT to_regclass('ridge.dedicated_servers') AS servers, to_regclass('ridge.player_sessions') AS sessions, " +
-    "EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'ridge' AND table_name = 'player_sessions' AND column_name = 'join_ticket_hash') AS join_ticket_schema",
+    "EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'ridge' AND table_name = 'player_sessions' AND column_name = 'join_ticket_hash') " +
+    "AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'ridge' AND table_name = 'player_sessions' AND column_name = 'join_ticket_expires_at') " +
+    "AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'ridge' AND table_name = 'player_sessions' AND column_name = 'join_attempt_id') AS join_ticket_schema",
   );
   if (!schema.rows[0]?.servers || !schema.rows[0]?.sessions) {
     throw new Error('RIDGE session registry migration 004 is required before PostgreSQL startup.');

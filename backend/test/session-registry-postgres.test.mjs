@@ -73,12 +73,17 @@ test('PostgreSQL session registry serializes shard capacity, reuses leases, clai
     });
     assert.match(issued.ticket, /^[A-Za-z0-9_-]{43}$/);
     const storedTicket = await pool.query(
-      'SELECT join_ticket_hash FROM ridge.player_sessions WHERE session_id = $1',
+      'SELECT join_ticket_hash, join_attempt_id FROM ridge.player_sessions WHERE session_id = $1',
       [first.sessionId],
     );
     assert.notEqual(storedTicket.rows[0].join_ticket_hash, issued.ticket);
     assert.match(storedTicket.rows[0].join_ticket_hash, /^[a-f0-9]{64}$/);
-    const claimAttemptId = randomUUID();
+    assert.equal(storedTicket.rows[0].join_attempt_id, issued.claimAttemptId);
+    const claimAttemptId = issued.claimAttemptId;
+    await assert.rejects(
+      registry.claimJoinTicket({ serverId, ticket: issued.ticket, claimAttemptId: randomUUID() }),
+      (error) => error.code === 'JOIN_TICKET_CLAIM_ATTEMPT_MISMATCH',
+    );
     const claimed = await registry.claimJoinTicket({
       serverId,
       ticket: issued.ticket,

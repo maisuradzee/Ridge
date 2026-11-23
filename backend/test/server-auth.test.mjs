@@ -173,7 +173,6 @@ test('trusted gateway issues one-time join tickets and only the assigned shard c
   const token = 'local-test-join-ticket-token';
   const serverId = 'shard-join-' + Date.now();
   const playerId = 'player-join-http';
-  const claimAttemptId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
   const child = spawn(process.execPath, ['src/server.mjs'], {
     cwd: backendDir,
     env: { ...process.env, PORT: String(port), RIDGE_ENV: 'development', RIDGE_STORAGE: 'memory', RIDGE_SERVER_EVENT_TOKEN: token, RIDGE_GATEWAY_TOKEN: 'local-test-gateway-token' },
@@ -249,6 +248,8 @@ test('trusted gateway issues one-time join tickets and only the assigned shard c
   assert.equal(issued.sessionId, allocation.sessionId);
   assert.equal(issued.server.serverId, serverId);
   assert.match(issued.ticket, /^[A-Za-z0-9_-]{43}$/);
+  assert.match(issued.claimAttemptId, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+  const claimAttemptId = issued.claimAttemptId;
 
   const serverCannotIssue = await fetch(issueUrl, {
     method: 'POST', headers: serverHeaders, body: issueBody,

@@ -37,6 +37,7 @@ private:
     {
         FString PlayerId;
         FString SessionId;
+        FString ClaimAttemptId;
         FDateTime ExpiresAtUtc;
     };
 
@@ -48,4 +49,5 @@ private:
     void ReleaseJoinClaim(const FVerifiedJoinClaim& Claim);
     void PruneExpiredJoinClaims();
     bool ShouldRequireJoinTicket() const;
+    bool HasPlayerJoinInFlight(const FString& PlayerId) const;
 };

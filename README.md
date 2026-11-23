@@ -151,3 +151,8 @@ Workflow evidence:
 - PostgreSQL: https://github.com/maisuradzee/Ridge/actions/runs/45131346543
 
 The UE project validator explicitly reports UBT/UHT build as NOT_RUN_STATIC_ONLY. No real UE 5.8 compile, two-client PIE or 500 connected-player soak is claimed. See docs/58_JOIN_TICKET_AND_PRELOGIN_FLOW_GE.md.
+
+
+### Stable join-ticket retry and duplicate-account protection
+
+Ticket issuance now returns a stable `claimAttemptId`, which the gateway must preserve and pass with the bearer ticket through Unreal connection options. PreLogin reuses this ID across retries; a duplicate pending/active backend player ID on the same shard is rejected. The schema enforces that ticket hash, expiry and claim attempt ID are stored together.

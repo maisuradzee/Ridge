@@ -102,7 +102,7 @@ test('only the assigned live shard can claim a join ticket; same-claim replay is
   const issued = await registry.issueJoinTicket({
     playerId: 'player-1', sessionId: allocation.sessionId, serverId: allocation.server.serverId,
   });
-  const claimAttemptId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+  const claimAttemptId = issued.claimAttemptId;
   const wrongShard = allocation.server.serverId === 'shard-a' ? 'shard-b' : 'shard-a';
   await assert.rejects(
     registry.claimJoinTicket({ serverId: wrongShard, ticket: issued.ticket, claimAttemptId }),
@@ -131,7 +131,7 @@ test('draining shard accepts existing join tickets but receives no new allocatio
   const claimed = await registry.claimJoinTicket({
     serverId: 'shard-a',
     ticket: issued.ticket,
-    claimAttemptId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+    claimAttemptId: issued.claimAttemptId,
   });
   assert.equal(claimed.connected, true);
   await assert.rejects(
@@ -152,7 +152,7 @@ test('offline or stale shards are never selected and offline heartbeat invalidat
     registry.claimJoinTicket({
       serverId: 'shard-a',
       ticket: issued.ticket,
-      claimAttemptId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      claimAttemptId: issued.claimAttemptId,
     }),
     (error) => error.code === 'JOIN_TICKET_INVALID',
   );
@@ -228,7 +228,12 @@ test('join ticket is short-lived, stored as a digest, single-use and idempotent 
   assert.equal(issued.server.serverId, 'shard-ticket');
   assert.ok(Date.parse(issued.expiresAt) > Date.now() || Date.parse(issued.expiresAt) > 0);
 
-  const claimAttemptId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+  const claimAttemptId = issued.claimAttemptId;
+  assert.match(claimAttemptId, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i);
+  await assert.rejects(
+    registry.claimJoinTicket({ serverId: 'shard-ticket', ticket: issued.ticket, claimAttemptId: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' }),
+    (error) => error.code === 'JOIN_TICKET_CLAIM_ATTEMPT_MISMATCH',
+  );
   const claimed = await registry.claimJoinTicket({
     serverId: 'shard-ticket',
     ticket: issued.ticket,
@@ -271,14 +276,14 @@ test('issuing a replacement ticket invalidates the previous bearer ticket', asyn
     registry.claimJoinTicket({
       serverId: 'shard-reissue',
       ticket: first.ticket,
-      claimAttemptId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+      claimAttemptId: first.claimAttemptId,
     }),
     (error) => error.code === 'JOIN_TICKET_INVALID',
   );
   const claim = await registry.claimJoinTicket({
     serverId: 'shard-reissue',
     ticket: second.ticket,
-    claimAttemptId: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+    claimAttemptId: second.claimAttemptId,
   });
   assert.equal(claim.connected, true);
 });
@@ -297,7 +302,7 @@ test('join ticket expiry is enforced against the server lease', async () => {
     registry.claimJoinTicket({
       serverId: 'shard-ticket-expiry',
       ticket: issued.ticket,
-      claimAttemptId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+      claimAttemptId: issued.claimAttemptId,
     }),
     (error) => error.code === 'JOIN_TICKET_EXPIRED',
   );

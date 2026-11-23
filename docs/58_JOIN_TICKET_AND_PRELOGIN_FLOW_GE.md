@@ -1,7 +1,7 @@
 # RIDGE — ერთჯერადი Join Ticket და Dedicated Server claim
 
 **ეტაპი:** Stage 5 / player session entry  
-**მდგომარეობა:** Backend registry + authenticated internal HTTP routes implemented; UE PreLogin/PostLogin/Logout wiring is the next increment.  
+**მდგომარეობა:** Backend registry + authenticated internal HTTP routes and UE PreLogin/PostLogin/Logout source wiring implemented; real UE runtime validation remains open.  
 **უსაფრთხოების პრინციპი:** კლიენტი არ წყვეტს საკუთარ player ID-ს, server ID-ს ან session ID-ს. მოთამაშის იდენტობა დადასტურებული gateway-იდან მოდის.
 
 ## 1. შესვლის ნაკადი
@@ -11,9 +11,9 @@
 3. Registry აბრუნებს რეგიონში ყველაზე ნაკლებად დატვირთული ჯანმრთელი shard-ის მისამართსა და დროებით session reservation-ს.
 4. Gateway იძახებს POST /v1/internal/players/{playerId}/session/join-ticket სხეულით sessionId და serverId.
 5. Registry ქმნის 256-bit random bearer ticket-ს, აბრუნებს მას მხოლოდ ერთხელ და PostgreSQL-ში ინახავს მხოლოდ SHA-256 hash-ს.
-6. Gateway კლიენტს აწვდის Dedicated Server-ის მისამართსა და ticket-ს. Ticket გადაეცემა UE connection options-ით (ridgeJoinTicket).
-7. შესაბამისი Dedicated Server PreLoginAsync-ში აგზავნის ticket-ს POST /v1/internal/shards/{serverId}/join/claim-ზე.
-8. Backend ticket-ს ამოწმებს, allocated session-ს connected-ად ცვლის და აბრუნებს verified playerId + sessionId.
+6. Gateway კლიენტს აწვდის Dedicated Server-ის მისამართს, ticket-ს და მის სტაბილურ claimAttemptId-ს. ორივე მნიშვნელობა გადაეცემა UE connection options-ით (ridgeJoinTicket და ridgeClaimAttemptId).
+7. შესაბამისი Dedicated Server PreLoginAsync-ში აგზავნის ticket-ს და claimAttemptId-ს POST /v1/internal/shards/{serverId}/join/claim-ზე.
+8. Backend ამოწმებს ორივე მნიშვნელობას, allocated session-ს connected-ად ცვლის და აბრუნებს verified playerId + sessionId. იმავე ID-ით განმეორებითი claim უსაფრთხო replay-ია, განსხვავებული ID კი იბლოკება.
 9. მხოლოდ successful claim-ის შემდეგ GameMode უშვებს მოთამაშეს და PlayerState-ში წერს verified identity-ს.
 10. Logout/disconnect-ზე Dedicated Server იძახებს session release endpoint-ს. თუ სერვერი crash-ით გაითიშა, offline heartbeat/lease recovery ამცირებს stale reservation-ს.
 
@@ -25,8 +25,10 @@
 - ახალი ticket-ის გაცემა იმავე allocation-ზე ძველ ticket-ს აუქმებს.
 - Ticket მიბმულია კონკრეტულ serverId-ზე; სხვა shard-ზე claim უარყოფილია.
 - პირველი claim ატომურად ცვლის session-ს allocated-იდან connected-ში.
-- ერთი და იმავე claimAttemptId-ით retry idempotent-ია, რათა HTTP timeout-ის შემდეგ იგივე async claim-ის გამეორება შესაძლებელი იყოს.
-- იგივე ticket სხვა claimAttemptId-ით იღებს JOIN_TICKET_ALREADY_USED-ს.
+- Ticket-ის გაცემისას registry ქმნის სტაბილურ random UUID claimAttemptId-ს და ინახავს მას ticket-ის hash/expiry-სთან ერთად.
+- Gateway ორივე მნიშვნელობას უცვლელად ინახავს და client-ს გადასცემს; PreLoginAsync ახალ ID-ს აღარ ქმნის.
+- იმავე claimAttemptId-ით retry idempotent-ია, რათა DB claim-ის შემდეგ HTTP response-ის დაკარგვამ მოთამაშე არ დაბლოკოს.
+- სხვა ID-ით claim იწვევს JOIN_TICKET_CLAIM_ATTEMPT_MISMATCH (ჯერ არ გამოყენებულ ticket-ზე) ან JOIN_TICKET_ALREADY_USED-ს (უკვე დაკავშირებულ სესიაზე).
 - Ticket-ის დასრულების ან session release/offline/expiry შემდეგ ხელახალი გამოყენება შეუძლებელია.
 
 ## 3. შიდა API
@@ -121,3 +123,16 @@ The 15-second development API preflight recorded 437.29 requests/second, p50 0.4
 Machine-readable report: RIDGE_GIS/Data/QA/ridge_stage5_join_ticket_unreal_login_20261123.json.
 
 The branch remains Draft. The results do not prove C++ compilation, UHT, PIE, a reachable Dedicated Server, encrypted game transport, account-provider integration, two-client replication, or 500 concurrent Unreal players.
+
+
+## 8. Stable claim ID და duplicate-account protection
+
+Ticket issuance response შეიცავს `claimAttemptId`-ს. Gateway-მა უნდა გადასცეს ორივე მნიშვნელობა:
+
+`?ridgeJoinTicket=<ticket>?ridgeClaimAttemptId=<uuid>`
+
+Unreal `PreLoginAsync` ორივეს კითხულობს. Claim ID-ის შექმნა Gateway/registry-ის მხარეს ხდება, არა PreLogin callback-ის შიგნით; ამიტომ იგივე join URL-ის ხელახლა ცდა DB claim-ის შემდეგ დაკარგული HTTP response-ის შემთხვევაშიც idempotent რჩება.
+
+GameMode ინახავს verified, pending და active claims-ს. ერთი canonical backend Player ID-ის მეორე პარალელური/აქტიური connection იმავე shard-ზე უარყოფილია. claimAttemptId არის idempotency binding და არა დამოუკიდებელი authentication factor; bearer ticket კვლავ აუცილებელია.
+
+Migration 005 ამოწმებს, რომ `join_ticket_hash`, `join_ticket_expires_at` და `join_attempt_id` ან სამივე ერთად იყოს მითითებული, ან არცერთი.

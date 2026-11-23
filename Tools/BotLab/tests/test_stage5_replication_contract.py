@@ -119,10 +119,12 @@ class Stage5ReplicationContractTests(unittest.TestCase):
         self.assertIn("Super::PreLoginAsync(", self.game_mode_source)
         self.assertIn("Completion.ExecuteIfBound", self.game_mode_source)
         self.assertIn("UGameplayStatics::ParseOption(Options, TEXT(\"ridgeJoinTicket\"))", self.game_mode_source)
+        self.assertIn('UGameplayStatics::ParseOption(Options, TEXT("ridgeClaimAttemptId"))', self.game_mode_source)
+        self.assertNotIn("FGuid::NewGuid()", self.game_mode_source)
 
     def test_dedicated_server_rejects_missing_or_unverified_join_tickets(self) -> None:
         self.assertIn("GetNetMode() == NM_DedicatedServer", self.game_mode_source)
-        self.assertIn("A valid RIDGE join ticket is required.", self.game_mode_source)
+        self.assertIn("A valid RIDGE join ticket and claim attempt ID are required.", self.game_mode_source)
         self.assertIn("Backend->ClaimJoinTicket(", self.game_mode_source)
         self.assertIn("RIDGE join ticket verification failed.", self.game_mode_source)
         self.assertIn("VerifiedClaimsByTicket.Add(Ticket", self.game_mode_source)

@@ -10,7 +10,6 @@
 #include "GameFramework/GameSession.h"
 #include "GameFramework/PlayerController.h"
 #include "Kismet/GameplayStatics.h"
-#include "Misc/Guid.h"
 #include "GenericPlatform/GenericPlatformMisc.h"
 #include "TimerManager.h"
 
@@ -30,6 +29,38 @@ bool ARidgeGameMode::ShouldRequireJoinTicket() const
 
     const FString Environment = FPlatformMisc::GetEnvironmentVariable(TEXT("RIDGE_ENV"));
     return Environment.Equals(TEXT("production"), ESearchCase::IgnoreCase);
+}
+
+
+bool ARidgeGameMode::HasPlayerJoinInFlight(const FString& PlayerId) const
+{
+    if (PlayerId.IsEmpty())
+    {
+        return true;
+    }
+
+    for (const TPair<FString, FVerifiedJoinClaim>& Entry : VerifiedClaimsByTicket)
+    {
+        if (Entry.Value.PlayerId == PlayerId)
+        {
+            return true;
+        }
+    }
+    for (const TPair<TWeakObjectPtr<AController>, FVerifiedJoinClaim>& Entry : PendingJoinClaimsByController)
+    {
+        if (Entry.Value.PlayerId == PlayerId)
+        {
+            return true;
+        }
+    }
+    for (const TPair<TWeakObjectPtr<AController>, FVerifiedJoinClaim>& Entry : ActiveJoinClaimsByController)
+    {
+        if (Entry.Value.PlayerId == PlayerId)
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 void ARidgeGameMode::PreLoginAsync(
@@ -69,9 +100,10 @@ void ARidgeGameMode::PreLoginAsync(
                 }
 
                 const FString Ticket = UGameplayStatics::ParseOption(Options, TEXT("ridgeJoinTicket"));
-                if (Ticket.IsEmpty())
+                const FString ClaimAttemptId = UGameplayStatics::ParseOption(Options, TEXT("ridgeClaimAttemptId"));
+                if (Ticket.IsEmpty() || ClaimAttemptId.IsEmpty())
                 {
-                    Completion.ExecuteIfBound(TEXT("A valid RIDGE join ticket is required."));
+                    Completion.ExecuteIfBound(TEXT("A valid RIDGE join ticket and claim attempt ID are required."));
                     return;
                 }
 
@@ -85,11 +117,10 @@ void ARidgeGameMode::PreLoginAsync(
                     return;
                 }
 
-                const FString ClaimAttemptId = FGuid::NewGuid().ToString(EGuidFormats::DigitsWithHyphens);
                 Backend->ClaimJoinTicket(
                     Ticket,
                     ClaimAttemptId,
-                    [WeakThis, Ticket, Completion](bool bSuccess,
+                    [WeakThis, Ticket, ClaimAttemptId, Completion](bool bSuccess,
                                                    const FString& PlayerId,
                                                    const FString& SessionId,
                                                    const FString& ErrorMessage) mutable
@@ -110,9 +141,27 @@ void ARidgeGameMode::PreLoginAsync(
                             return;
                         }
 
+                        if (const FVerifiedJoinClaim* ExistingTicketClaim = Current->VerifiedClaimsByTicket.Find(Ticket))
+                        {
+                            if (ExistingTicketClaim->PlayerId == PlayerId &&
+                                ExistingTicketClaim->ClaimAttemptId == ClaimAttemptId)
+                            {
+                                // Same ticket + same attempt: safe retry before InitNewPlayer consumes the claim.
+                                Completion.ExecuteIfBound(FString());
+                                return;
+                            }
+                        }
+
+                        if (Current->HasPlayerJoinInFlight(PlayerId))
+                        {
+                            Completion.ExecuteIfBound(TEXT("This RIDGE account already has a pending or active connection."));
+                            return;
+                        }
+
                         FVerifiedJoinClaim Claim;
                         Claim.PlayerId = PlayerId;
                         Claim.SessionId = SessionId;
+                        Claim.ClaimAttemptId = ClaimAttemptId;
                         Claim.ExpiresAtUtc = FDateTime::UtcNow() + FTimespan::FromSeconds(25.0);
                         Current->VerifiedClaimsByTicket.Add(Ticket, MoveTemp(Claim));
                         Completion.ExecuteIfBound(FString());

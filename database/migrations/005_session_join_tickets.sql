@@ -8,23 +8,16 @@ ALTER TABLE ridge.player_sessions
     ADD COLUMN IF NOT EXISTS join_ticket_expires_at TIMESTAMPTZ,
     ADD COLUMN IF NOT EXISTS join_attempt_id UUID;
 
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1
-          FROM pg_constraint
-         WHERE conname = 'ck_player_sessions_join_ticket_pair'
-           AND conrelid = 'ridge.player_sessions'::regclass
-    ) THEN
-        ALTER TABLE ridge.player_sessions
-            ADD CONSTRAINT ck_player_sessions_join_ticket_pair
-            CHECK (
-                (join_ticket_hash IS NULL AND join_ticket_expires_at IS NULL)
-                OR (join_ticket_hash IS NOT NULL AND join_ticket_expires_at IS NOT NULL)
-            );
-    END IF;
-END
-$$;
+ALTER TABLE ridge.player_sessions
+    DROP CONSTRAINT IF EXISTS ck_player_sessions_join_ticket_pair;
+
+ALTER TABLE ridge.player_sessions
+    ADD CONSTRAINT ck_player_sessions_join_ticket_pair
+    CHECK (
+        (join_ticket_hash IS NULL AND join_ticket_expires_at IS NULL AND join_attempt_id IS NULL)
+        OR
+        (join_ticket_hash IS NOT NULL AND join_ticket_expires_at IS NOT NULL AND join_attempt_id IS NOT NULL)
+    );
 
 CREATE UNIQUE INDEX IF NOT EXISTS uq_player_sessions_join_ticket_hash
     ON ridge.player_sessions(join_ticket_hash)
