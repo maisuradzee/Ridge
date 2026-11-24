@@ -53,6 +53,10 @@ test('Dedicated Server credential issuance, rotation and revocation produce immu
     registry.listServerCredentialEvents({ serverId, limit: 101 }),
     (error) => error.code === 'INVALID_CREDENTIAL_AUDIT_LIMIT',
   );
+  await assert.rejects(
+    registry.issueServerCredential({ serverId, actorId: 'invalid actor id' }),
+    (error) => error.code === 'INVALID_CREDENTIAL_ACTOR_ID',
+  );
 });
 
 test('credential audit history is isolated by server ID and respects a bounded limit', async () => {
