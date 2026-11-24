@@ -321,6 +321,18 @@ async function main() {
         return send(response, 201, credential);
       }
 
+      const serverCredentialAuditMatch = url.pathname.match(/^\/v1\/control\/shards\/([A-Za-z0-9._:-]{1,80})\/credentials\/audit$/);
+      if (request.method === 'GET' && serverCredentialAuditMatch) {
+        requireServerProvisioner(request);
+        const limitParam = url.searchParams.get('limit');
+        const limit = limitParam === null ? 50 : Number(limitParam);
+        const events = await sessionRegistry.listServerCredentialEvents({
+          serverId: serverCredentialAuditMatch[1],
+          limit,
+        });
+        return send(response, 200, { serverId: serverCredentialAuditMatch[1], events });
+      }
+
       const revokeServerCredentialMatch = url.pathname.match(/^\/v1\/control\/shards\/([A-Za-z0-9._:-]{1,80})\/credentials\/revoke$/);
       if (request.method === 'POST' && revokeServerCredentialMatch) {
         requireServerProvisioner(request);
