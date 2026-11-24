@@ -253,7 +253,9 @@ test('PostgreSQL session registry serializes shard capacity, reuses leases, clai
     assert.equal(replacement.server.serverId, serverId);
 
     await registry.heartbeatServer(serverId, { currentPlayers: 1, status: 'ready' });
-    const [listed] = await registry.listServers('ge-tbilisi');
+    const listedServers = await registry.listServers('ge-tbilisi');
+    const listed = listedServers.find((item) => item.serverId === serverId);
+    assert.ok(listed, 'the fixture shard must remain visible in the registry');
     assert.equal(listed.heartbeatFresh, true);
     assert.equal(listed.connectedSessions, 1);
     assert.equal(listed.reservedPlayers, 3);
