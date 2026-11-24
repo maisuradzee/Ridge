@@ -137,6 +137,12 @@ function validateX25519PublicKey(publicKey) {
   return publicKey;
 }
 
+// Reuse the exact canonical base64url, X25519 point and low-order validation
+// for client ephemeral keys accepted by the public Gateway.
+export function validateClientTransportPublicKey(publicKey) {
+  return validateX25519PublicKey(publicKey);
+}
+
 function validateServerTransportKey(input = {}, now = Date.now()) {
   const serverId = validIdentifier(input.serverId, 'server_id');
   const keyId = validIdentifier(input.keyId, 'transport_key_id');

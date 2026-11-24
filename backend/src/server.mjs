@@ -3,7 +3,7 @@ import { isIP } from 'node:net';
 import { timingSafeEqual } from 'node:crypto';
 import { createGameService, RidgeError } from './game-service.mjs';
 import { createPostgresGameService } from './postgres-game-service.mjs';
-import { createSessionRegistry } from './session-registry.mjs';
+import { createSessionRegistry, validateClientTransportPublicKey } from './session-registry.mjs';
 import { createOidcVerifier, deriveCanonicalPlayerId } from './oidc-verifier.mjs';
 import { assertGameTransportReady, getGameTransportReadiness } from './game-transport-policy.mjs';
 
@@ -286,6 +286,9 @@ async function main() {
         }
 
         const body = await readJson(request, 4 * 1024);
+        const clientTransportPublicKey = body.clientTransportPublicKey === undefined
+          ? null
+          : validateClientTransportPublicKey(body.clientTransportPublicKey);
         const playerId = deriveCanonicalPlayerId(identity.issuer, identity.subject);
         const allocation = await sessionRegistry.allocatePlayer(playerId, body.region ?? 'ge-tbilisi');
         if (allocation.status !== 'allocated') {
@@ -297,12 +300,36 @@ async function main() {
         }
 
         let issued;
+        let serverTransportKey = null;
         try {
+          if (clientTransportPublicKey) {
+            serverTransportKey = await sessionRegistry.getServerTransportKey({
+              serverId: allocation.server.serverId,
+            });
+            if (!serverTransportKey || serverTransportKey.serverId !== allocation.server.serverId ||
+                serverTransportKey.algorithm !== 'X25519') {
+              throw new RidgeError(
+                503,
+                'TRANSPORT_KEY_NOT_AVAILABLE',
+                'არჩეულ shard-ს მოქმედი X25519 transport public key არ აქვს.',
+              );
+            }
+          }
+
           issued = await sessionRegistry.issueJoinTicket({
             playerId,
             sessionId: allocation.sessionId,
             serverId: allocation.server.serverId,
           });
+
+          if (serverTransportKey &&
+              Date.parse(serverTransportKey.expiresAt) < Date.parse(issued.expiresAt)) {
+            throw new RidgeError(
+              503,
+              'TRANSPORT_KEY_EXPIRES_BEFORE_JOIN_TICKET',
+              'Shard transport key-ის ვადა join ticket-ის ვადაზე ნაკლებია.',
+            );
+          }
         } catch (error) {
           if (!allocation.reused) {
             await sessionRegistry.releaseSession({
@@ -314,13 +341,7 @@ async function main() {
           throw error;
         }
 
-        const encodedTicket = encodeURIComponent(issued.ticket);
-        const encodedAttempt = encodeURIComponent(issued.claimAttemptId);
-        const connectionOptions = 'ridgeJoinTicket=' + encodedTicket +
-          '?ridgeClaimAttemptId=' + encodedAttempt;
-        const connectUrl = issued.server.host + ':' + issued.server.port + '?' + connectionOptions;
-
-        return send(response, 201, {
+        const result = {
           sessionId: issued.sessionId,
           expiresAt: issued.expiresAt,
           server: {
@@ -333,9 +354,31 @@ async function main() {
             ticket: issued.ticket,
             claimAttemptId: issued.claimAttemptId,
           },
-          connectionOptions,
-          connectUrl,
-        });
+        };
+
+        if (serverTransportKey) {
+          // The client must seal the bearer ticket into the versioned join
+          // envelope before ClientTravel. Never put it in URL options.
+          result.transport = {
+            protocolVersion: 1,
+            suite: 'X25519-HKDF-SHA256-AES-256-GCM',
+            algorithm: serverTransportKey.algorithm,
+            keyId: serverTransportKey.keyId,
+            serverId: serverTransportKey.serverId,
+            serverPublicKey: serverTransportKey.publicKey,
+            expiresAt: serverTransportKey.expiresAt,
+          };
+        } else {
+          // Development-only legacy handoff. Production is blocked above until
+          // encrypted Unreal transport has passed runtime acceptance.
+          const encodedTicket = encodeURIComponent(issued.ticket);
+          const encodedAttempt = encodeURIComponent(issued.claimAttemptId);
+          result.connectionOptions = 'ridgeJoinTicket=' + encodedTicket +
+            '?ridgeClaimAttemptId=' + encodedAttempt;
+          result.connectUrl = issued.server.host + ':' + issued.server.port + '?' + result.connectionOptions;
+        }
+
+        return send(response, 201, result);
       }
 
       if (request.method === 'GET' && url.pathname === '/v1/world/state') {
