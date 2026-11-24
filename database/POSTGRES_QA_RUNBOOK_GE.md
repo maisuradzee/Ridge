@@ -16,12 +16,13 @@ Set-ExecutionPolicy -Scope Process Bypass
 ## რას ამოწმებს
 
 1. დროებითი PostgreSQL 16 კონტეინერის გაშვება loopback მისამართზე.
-2. `database/migrations/001–003`-ის თანმიმდევრული გამოყენება `ON_ERROR_STOP` რეჟიმით.
+2. `database/migrations/001–007`-ის თანმიმდევრული გამოყენება `ON_ERROR_STOP` რეჟიმით.
 3. player/job/checkpoint მონაცემების შექმნა Dedicated Server service-ის მეშვეობით.
 4. checkpoint-ის თანმიმდევრობა და completion proof.
 5. ჯილდოს ერთჯერადი გაცემის, idempotency-ისა და balanced ledger-ის შემოწმება.
 6. Backend service-ის დახურვა/ხელახლა გახსნა და wallet/job მონაცემების აღდგენა.
-7. დროებითი კონტეინერისა და მისი მონაცემების წაშლა.
+7. Dedicated Server credential issuance/rotation/revocation audit-ისა და append-only trigger-ის შემოწმება.
+8. დროებითი კონტეინერისა და მისი მონაცემების წაშლა.
 
 ## უსაფრთხოების საზღვრები
 
