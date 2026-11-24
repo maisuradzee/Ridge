@@ -11,7 +11,7 @@ class UEProjectIntegrationTests(unittest.TestCase):
     def test_ue58_project_and_bot_controller_are_wired(self):
         report = validate_project(ROOT)
         self.assertEqual(report["status"], "STATIC_PASS", report["checks_detail"])
-        self.assertGreaterEqual(report["checks"], 15)
+        self.assertGreaterEqual(report["checks"], 17)
         self.assertEqual(report["ue_build_status"], "NOT_RUN_STATIC_ONLY")
         self.assertEqual(report["runtime_status"], "NOT_RUN_STATIC_ONLY")
 
@@ -32,6 +32,8 @@ class UEProjectIntegrationTests(unittest.TestCase):
             "session_login_loopback_http_allowlist",
             "session_login_no_internal_service_secrets",
             "session_login_gateway_config",
+            "transport_platform_crypto_plugin_enabled",
+            "transport_aes_gcm_handler_plugin_enabled",
         ]
         for check_id in expected:
             self.assertIn(check_id, checks)
