@@ -235,7 +235,14 @@ function createMemoryRegistry({ clock, leaseMs, heartbeatTtlMs, joinTicketMs, se
       return serverCredentialEvents
         .filter((event) => event.serverId === serverId)
         .slice(0, limit)
-        .map((event) => ({ ...event }));
+        .map((event) => ({
+          eventId: event.eventId,
+          serverId: event.serverId,
+          credentialId: event.credentialId,
+          previousCredentialId: event.previousCredentialId,
+          action: event.action,
+          occurredAt: event.occurredAt,
+        }));
     },
 
 
