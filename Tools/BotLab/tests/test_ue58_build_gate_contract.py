@@ -27,6 +27,9 @@ class UE58BuildGateContractTests(unittest.TestCase):
         self.assertEqual("5.8", self.project["EngineAssociation"])
         module_names = {module["Name"] for module in self.project["Modules"]}
         self.assertIn("RIDGE", module_names)
+        plugins = {plugin["Name"]: plugin["Enabled"] for plugin in self.project.get("Plugins", [])}
+        self.assertIs(plugins.get("PlatformCrypto"), True)
+        self.assertIs(plugins.get("AESGCMHandlerComponent"), True)
         for filename, (class_name, target_type) in TARGET_RULES.items():
             path = ROOT / "Source" / filename
             self.assertTrue(path.is_file(), filename)
@@ -72,6 +75,13 @@ class UE58BuildGateContractTests(unittest.TestCase):
         self.assertNotIn("\n  push:", self.workflow)
         self.assertIn("permissions:\n  contents: read", self.workflow)
         self.assertIn("persist-credentials: false", self.workflow)
+
+    def test_workflow_preflights_crypto_plugins_in_engine_installation(self):
+        for required in (
+            "Engine\\\\Plugins\\\\Experimental\\\\PlatformCrypto\\\\PlatformCrypto.uplugin",
+            "Engine\\\\Plugins\\\\Runtime\\\\PacketHandlers\\\\AESGCMHandlerComponent\\\\AESGCMHandlerComponent.uplugin",
+        ):
+            self.assertIn(required, self.workflow)
 
     def test_workflow_checks_engine_version_and_machine_toolchain(self):
         for required in (
