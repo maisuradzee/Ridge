@@ -365,6 +365,7 @@ async function main() {
             algorithm: serverTransportKey.algorithm,
             keyId: serverTransportKey.keyId,
             serverId: serverTransportKey.serverId,
+            clientPublicKey: clientTransportPublicKey,
             serverPublicKey: serverTransportKey.publicKey,
             expiresAt: serverTransportKey.expiresAt,
           };

@@ -322,3 +322,10 @@ Remaining:
 - Dedicated Server ephemeral private-key lifecycle, envelope opening and ticket claim integration: **NOT_IMPLEMENTED**;
 - UE PacketHandler AES-GCM traffic-key install: **NOT_IMPLEMENTED**;
 - Game/Editor/Server UBT/UHT and encrypted two-client runtime: **NOT_RUN**.
+
+
+### Client-key echo and pre-allocation validation — 2026-11-24
+
+The secure response now echoes the exact validated `clientPublicKey` next to the selected shard's `serverPublicKey`. This makes both public keys explicit inputs to the future client/server AAD transcript and avoids a client needing to infer which submitted key the Gateway accepted.
+
+The integration test now submits an invalid low-order client key, then retries using the same OIDC subject with a valid key. The successful reservation proves invalid client public keys are rejected before session allocation and do not leave a pending login lock. It also asserts the response echoes the exact client public key.

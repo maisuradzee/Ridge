@@ -145,7 +145,7 @@ test('Gateway binds an authenticated client ephemeral key to the allocated shard
   assert.equal(invalid.status, 400);
   assert.equal((await invalid.json()).error.code, 'INVALID_TRANSPORT_PUBLIC_KEY');
 
-  const response = await requestSession(baseUrl, privateKey, kid, 'encrypted-handoff-subject', {
+  const response = await requestSession(baseUrl, privateKey, kid, 'invalid-client-key-subject', {
     region: 'ge-tbilisi',
     clientTransportPublicKey: clientPublicKey,
   });
@@ -159,6 +159,7 @@ test('Gateway binds an authenticated client ephemeral key to the allocated shard
   assert.equal(session.transport.algorithm, 'X25519');
   assert.equal(session.transport.keyId, serverKeyId);
   assert.equal(session.transport.serverId, serverId);
+  assert.equal(session.transport.clientPublicKey, clientPublicKey);
   assert.equal(session.transport.serverPublicKey, serverPublicKey);
   assert.ok(Date.parse(session.transport.expiresAt) >= Date.parse(session.expiresAt));
   assert.equal('connectionOptions' in session, false);
