@@ -73,8 +73,9 @@ test('PostgreSQL transport-key registry persists, rotates, revokes and audits pu
       (error) => error.code === '55000',
     );
   } finally {
-    // This workflow uses a disposable PostgreSQL service. Keep append-only audit rows intact;
-    // they intentionally prevent deleting their parent server/key records.
+    // Retain append-only audit rows and parent records in the disposable CI database,
+    // but mark this fixture shard offline so later capacity tests cannot allocate to it.
+    await registry.heartbeatServer(serverId, { currentPlayers: 0, status: 'offline' }).catch(() => {});
     await pool.end();
   }
 });
