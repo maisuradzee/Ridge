@@ -148,3 +148,22 @@ Updated acceptance status:
 - UBT/UHT Game + Editor + Dedicated Server: **NOT_RUN**.
 - ECDH/HKDF provider selection and per-connection handshake: **NOT_IMPLEMENTED**.
 - AES-GCM traffic-key install and encrypted packet runtime: **NOT_IMPLEMENTED**.
+
+
+## 9. Production Gateway fail-closed enforcement — 2026-11-24
+
+The backend now enforces the documented Production boundary in code, not only in the design document.
+
+- `backend/src/game-transport-policy.mjs` defines `GAME_TRANSPORT_ENCRYPTION_RUNTIME_VERIFIED = false`.
+- The public `POST /v1/gateway/session` route calls `assertGameTransportReady({ environment: ENV })` before OIDC identity verification, shard allocation or join-ticket issuance.
+- In Production, the route returns HTTP 503 with `GAME_TRANSPORT_ENCRYPTION_NOT_READY` until a reviewed source change flips the runtime-verification constant after all encrypted-handshake acceptance tests pass.
+- The gate is not controlled by an environment variable or caller-supplied request value. A deployment operator cannot accidentally enable insecure Production join tickets by setting a config flag.
+- Development and isolated test flows remain available.
+- Added backend tests verify development behavior, Production fail-closed behavior, the explicit positive policy branch and that the Gateway guard runs before identity verification/allocation/ticket issuance.
+
+This is an intentional temporary Production blocker. It does not claim that AES-GCM transport exists; instead, it prevents the current plaintext join-ticket URL handoff from being used for Production network sessions.
+
+Acceptance state:
+- Production session gate: **IMPLEMENTED / CI-VERIFIED**.
+- Actual encrypted UE transport: **NOT_IMPLEMENTED**.
+- UBT/UHT and encrypted PIE/two-client test: **NOT_RUN**.
