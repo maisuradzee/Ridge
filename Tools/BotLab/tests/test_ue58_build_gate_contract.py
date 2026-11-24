@@ -69,8 +69,8 @@ class UE58BuildGateContractTests(unittest.TestCase):
         self.assertIn("workflow_dispatch:", self.workflow)
         self.assertIn("runs-on: [self-hosted, Windows, X64, ridge-ue58]", self.workflow)
         self.assertNotIn("pull_request:", self.workflow)
-        self.assertNotIn("\\n  push:", self.workflow)
-        self.assertIn("permissions:\\n  contents: read", self.workflow)
+        self.assertNotIn("\n  push:", self.workflow)
+        self.assertIn("permissions:\n  contents: read", self.workflow)
         self.assertIn("persist-credentials: false", self.workflow)
 
     def test_workflow_checks_engine_version_and_machine_toolchain(self):
