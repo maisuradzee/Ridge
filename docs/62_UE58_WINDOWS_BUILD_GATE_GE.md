@@ -109,3 +109,16 @@ On head 97d67d25064713c1654a60f8f2e7a82d7235cb0d:
 - Static validator JSON is uploaded as ridge-ue-project-static-validation, with 14-day retention.
 
 The manual Windows UE build workflow has not been dispatched; UBT/UHT remains NOT_RUN pending the ridge-ue58 runner.
+
+
+## 8. Crypto provider inspection artifact — 2026-11-24
+
+Before compiling Game, Editor and Dedicated Server, the manual workflow now runs Tools/BotLab/Inspect-UE58CryptoProvider.ps1. It reads the selected UE 5.8 installation and produces:
+
+    RIDGE_GIS/Data/QA/ridge_ue58_crypto_provider_probe.json
+
+The report is uploaded with the UBT/UHT build report and logs. It inventories the PlatformCrypto/AES-GCM plugin descriptors, PlatformCryptoContext public header, OpenSSL third-party version/header candidates, X25519/HKDF EVP declarations and candidate library artifacts.
+
+The script is diagnostic only: it does not compile/link any crypto function and cannot enable the Production Gateway. Header discovery is not a substitute for UBT compile/link or Windows/Linux runtime acceptance. Provider selection remains open until the actual engine report and target tests are reviewed.
+
+Current status: script and Linux static contracts **IMPLEMENTED**; actual selected UE 5.8 provider report **NOT_RUN** pending the restricted runner.

@@ -62,6 +62,12 @@ jobs:
           Write-Host "Visual Studio C++: $vsPath"
           Write-Host "RIDGE_UE_ROOT: $engineRoot"
 
+      - name: Inspect UE 5.8 crypto provider surface (diagnostic only)
+        shell: pwsh
+        run: |
+          & .\Tools\BotLab\Inspect-UE58CryptoProvider.ps1 -UnrealRoot $env:RIDGE_UE_ROOT
+          if ($LASTEXITCODE -ne 0) { throw "UE 5.8 crypto provider inspection failed with exit code $LASTEXITCODE." }
+
       - name: Build RIDGE Game, Editor and optional Dedicated Server
         shell: pwsh
         run: |
@@ -117,6 +123,7 @@ jobs:
           name: ridge-ue58-windows-build
           path: |
             RIDGE_GIS/Data/QA/ridge_ue58_build_report.json
+            RIDGE_GIS/Data/QA/ridge_ue58_crypto_provider_probe.json
             RIDGE_GIS/Data/QA/ue58_build_logs/*.log
           if-no-files-found: warn
           retention-days: 30

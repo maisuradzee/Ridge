@@ -214,3 +214,50 @@ Acceptance state:
 - Live Production-mode HTTP 503 gate: **CI_INTEGRATION_TESTED** when the PostgreSQL workflow passes.
 - Database side-effect check for blocked login: **CI_INTEGRATION_TESTED** when the PostgreSQL workflow passes.
 - Encrypted UE transport: **NOT_IMPLEMENTED**; Production player sessions remain blocked.
+
+
+## 12. UE 5.8 crypto provider investigation — 2026-11-24
+
+The provider decision is intentionally split into two verified layers:
+
+1. **Packet AEAD:** Epic documents FEncryptionContextOpenSSL operations for AES-256-GCM, cryptographic random bytes, SHA-256 and RSA. The AES-GCM PacketHandler remains the intended Unreal packet-protection component.
+2. **Ephemeral key agreement and KDF:** the public UE 5.8 FEncryptionContextOpenSSL API surface does not list X25519/ECDH or HKDF operations. OpenSSL itself documents X25519 key generation/derivation through EVP_PKEY and HKDF-SHA256 through EVP_PKEY_HKDF, but this does not prove that the exact OpenSSL headers/libraries bundled with the selected UE 5.8 installation expose and link those APIs for every target.
+
+Official references:
+- UE 5.8 FEncryptionContextOpenSSL: https://dev.epicgames.com/documentation/unreal-engine/API/Plugins/PlatformCryptoContext/FEncryptionContextOpenSSL?application_version=5.8
+- UE 5.8 Platform Crypto plugin and its platform/OpenSSL abstraction: https://dev.epicgames.com/documentation/unreal-engine/API/PluginIndex/PlatformCrypto
+- OpenSSL X25519 EVP_PKEY support: https://docs.openssl.org/3.4/man7/X25519/
+- OpenSSL HKDF-SHA256 EVP_PKEY support: https://docs.openssl.org/3.0/man3/EVP_PKEY_CTX_set_hkdf_md/
+
+### Candidate assessment
+
+The leading candidate for the initial PC-only implementation is to inspect the OpenSSL third-party package already present in the actual UE 5.8 installation, then decide whether to consume it through a private Unreal module dependency. Do not add an OpenSSL dependency to RIDGE.Build.cs or call OpenSSL functions until all of the following are confirmed:
+
+- exact bundled OpenSSL version and headers;
+- X25519 and HKDF API declarations for the target toolchains;
+- matching import/static libraries and their linkage rules;
+- Windows Game/Editor and Dedicated Server compile/link;
+- Linux Dedicated Server compile/link and clean start/stop lifecycle;
+- no duplicate OpenSSL runtime or incompatible symbol/allocator ownership.
+
+This caution is material: public Unreal community reports describe OpenSSL 1.1.1t symbol interactions in UE 5.7.x Linux and a separate UE 5.8.3 Linux non-Shipping exit issue involving the HTTP/Curl/OpenSSL lifecycle. These are reports, not proof that every UE 5.8 installation is affected; nevertheless, RIDGE must run a Dedicated Server Linux lifecycle test before selecting the bundled provider:
+- https://forums.unrealengine.com/t/ue-5-7-4-linux-sigsegv-in-openssl-lh-retrieve-during-vulkan-device-creation-openssl-1-1-1t-3-x-symbol-conflict-with-nvidia-driver/2747023
+- https://forums.unrealengine.com/t/linux-non-shipping-process-aborts-at-exit-with-free-invalid-size-in-openssl-cleanup-because-uecurls-conditionalshutdown-restores-openssls-allocator-while-openssl-still-holds-memory-from-unreals-allocator/2842149
+
+### Automated engine inspection
+
+Added Tools/BotLab/Inspect-UE58CryptoProvider.ps1. The manual Windows Build Gate runs it before UBT and uploads ridge_ue58_crypto_provider_probe.json. It reports:
+
+- actual UE 5.8 build version and the two required plugin descriptors;
+- whether the public PlatformCryptoContext header exposes AES-GCM, random, SHA-256, RSA, X25519 or HKDF methods;
+- OpenSSL third-party opensslv.h, EVP/KDF header candidates and X25519/HKDF declarations;
+- candidate OpenSSL library artifacts and whether an OpenSSL Build.cs file is present.
+
+The probe is diagnostic only. It does not compile or link a cryptographic call, does not pick a provider, does not enable PacketHandler encryption and cannot change the Production Gateway block. A positive header report is only a prerequisite for a real C++ compile and target runtime acceptance.
+
+Acceptance state:
+- Provider documentation review: **COMPLETED**.
+- Engine-local provider inspection script: **IMPLEMENTED / STATIC_CONTRACT_TESTED**.
+- Actual UE 5.8 header/library report: **NOT_RUN** until the restricted runner is registered and the manual workflow runs.
+- X25519/HKDF C++ compile and runtime: **NOT_IMPLEMENTED / NOT_RUN**.
+- AES-GCM transport and Production game admission: **NOT_IMPLEMENTED / BLOCKED**.

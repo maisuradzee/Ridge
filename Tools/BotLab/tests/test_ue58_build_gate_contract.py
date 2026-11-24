@@ -7,6 +7,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 WORKFLOW = ROOT / ".github/workflows/ridge-ue58-windows-build.yml"
 BUILD_SCRIPT = ROOT / "Tools/BotLab/Run-UE58BotLabBuild.ps1"
+CRYPTO_PROBE = ROOT / "Tools/BotLab/Inspect-UE58CryptoProvider.ps1"
 PROJECT = ROOT / "RIDGE.uproject"
 
 TARGET_RULES = {
@@ -21,6 +22,7 @@ class UE58BuildGateContractTests(unittest.TestCase):
     def setUpClass(cls):
         cls.workflow = WORKFLOW.read_text(encoding="utf-8")
         cls.build_script = BUILD_SCRIPT.read_text(encoding="utf-8")
+        cls.crypto_probe = CRYPTO_PROBE.read_text(encoding="utf-8")
         cls.project = json.loads(PROJECT.read_text(encoding="utf-8"))
 
     def test_project_and_target_rules_match_engine_58(self):
@@ -113,6 +115,52 @@ class UE58BuildGateContractTests(unittest.TestCase):
         self.assertIn("ue58_build_logs/*.log", self.workflow)
         self.assertIn("ridge-ue58-windows-build", self.workflow)
         self.assertIn("upload-artifact@v4", self.workflow)
+
+
+    def test_crypto_provider_probe_is_present_and_reports_a_versioned_json_contract(self):
+        self.assertTrue(CRYPTO_PROBE.is_file())
+        for required in (
+            "ridge.ue58.crypto-provider-probe.v1",
+            "Engine\\Build\\Build.version",
+            "PlatformCryptoApi",
+            "OpenSSLThirdParty",
+            "ProviderAssessment",
+            "ridge_ue58_crypto_provider_probe.json",
+        ):
+            self.assertIn(required, self.crypto_probe)
+
+    def test_crypto_provider_probe_inspects_x25519_hkdf_and_engine_crypto_context(self):
+        for required in (
+            "opensslv.h",
+            "evp.h",
+            "kdf.h",
+            "EVP_PKEY_X25519",
+            "EVP_PKEY_HKDF",
+            "EncryptionContextOpenSSL.h",
+            "CreateEncryptor_AES_256_GCM",
+            "CreateRandomBytes",
+            "CalcSHA256",
+        ):
+            self.assertIn(required, self.crypto_probe)
+
+    def test_crypto_probe_is_diagnostic_and_does_not_select_or_enable_transport(self):
+        for required in (
+            "does not compile or link a crypto probe",
+            "no ECDH/HKDF provider is selected automatically",
+            "no production transport gate is changed",
+        ):
+            self.assertIn(required, self.crypto_probe)
+        self.assertNotIn("GAME_TRANSPORT_ENCRYPTION_RUNTIME_VERIFIED", self.crypto_probe)
+
+    def test_workflow_runs_crypto_probe_before_ubt_build(self):
+        probe = self.workflow.index("Inspect UE 5.8 crypto provider surface")
+        build = self.workflow.index("Build RIDGE Game, Editor and optional Dedicated Server")
+        self.assertLess(probe, build)
+        self.assertIn("Inspect-UE58CryptoProvider.ps1", self.workflow)
+
+    def test_workflow_uploads_crypto_provider_probe_report(self):
+        self.assertIn("ridge_ue58_crypto_provider_probe.json", self.workflow)
+        self.assertIn("if: always()", self.workflow)
 
 
 if __name__ == "__main__":
