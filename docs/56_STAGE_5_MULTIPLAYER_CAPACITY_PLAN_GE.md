@@ -311,3 +311,20 @@ Evidence: [Stage 5](https://github.com/maisuradzee/Ridge/actions/runs/4514704696
 - The Windows workflow is ready but has not run because a ridge-ue58 runner is not yet confirmed online.
 
 Guide: docs/62_UE58_WINDOWS_BUILD_GATE_GE.md. Static validation report is uploaded by CI as ridge-ue-project-static-validation; generated local build reports and logs are ignored by Git.
+
+
+### UE 5.8 Windows build gate — latest verified state (2026-11-24)
+
+A manual-only Windows workflow is now committed at .github/workflows/ridge-ue58-windows-build.yml. It requires a restricted self-hosted runner labelled ridge-ue58 and RIDGE_UE_ROOT pointing to an installed UE 5.8 directory. It builds RIDGE Game + RIDGEEditor by default and adds RIDGEServer when build_dedicated_server=true. The report and target logs are uploaded as ridge-ue58-windows-build; the workflow does not run on Pull Requests or use Production secrets.
+
+The Linux Stage 5 CI for branch snapshot 7e1156c4ff462387165a2548afc55dabffecf402 passed:
+- Source/regression: **79/79 PASS**
+- Unreal project static validation: **37/37 STATIC_PASS** (not a compile)
+- Load runner: **6/6 PASS**
+- Backend Node: **55 PASS / 0 FAIL / 2 SKIP**
+- PostgreSQL 16 migrations 001–006/live backend: **57 PASS / 0 FAIL / 0 SKIP**
+- 500 virtual HTTP users: **6,996 requests / 0 errors / 437.31 req/s**, p50 **0.33 ms**, p95 **0.59 ms**, p99 **1.59 ms**, max **8.11 ms**, max in-flight **7**
+
+Evidence: [Stage 5](https://github.com/maisuradzee/Ridge/actions/runs/45363645444) · [PostgreSQL 16](https://github.com/maisuradzee/Ridge/actions/runs/45363645446). The UE static report is also uploaded as the artifact ridge-ue-project-static-validation (14-day retention).
+
+**UBT/UHT remains NOT_RUN.** The Windows workflow has not been manually dispatched and its runner availability has not been verified. Follow docs/62_UE58_WINDOWS_BUILD_GATE_GE.md to register the machine and run the real compile.

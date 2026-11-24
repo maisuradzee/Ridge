@@ -1,23 +1,23 @@
 {
-  "schema": "ridge.stage5.ue58-windows-build-gate.v7",
+  "schema": "ridge.stage5.ue58-windows-build-gate.v8",
   "date": "2026-11-24",
-  "testedBranchHead": "79a450e3fed39c0a38b3d4b2f400b896dcee36ea",
+  "testedBranchHead": "7e1156c4ff462387165a2548afc55dabffecf402",
   "sourceImplementationCommit": "88b5b2da02c1b5109e5fcc04ffd905bcbba29e25",
   "workflow": {
     "stage5": {
-      "id": 45147440898,
+      "id": 45363645444,
       "result": "success",
-      "url": "https://github.com/maisuradzee/Ridge/actions/runs/45147440898",
-      "pythonBotlabUnrealSource": "77/77 PASS",
+      "url": "https://github.com/maisuradzee/Ridge/actions/runs/45363645444",
+      "pythonBotlabUnrealSource": "79/79 PASS",
       "unrealProjectStatic": "37/37 STATIC_PASS",
       "ueUbtUht": "NOT_RUN",
       "loadRunnerUnit": "6/6 PASS",
       "backendNode": "55 PASS / 0 FAIL / 2 SKIP"
     },
     "postgres": {
-      "id": 45147440909,
+      "id": 45363645446,
       "result": "success",
-      "url": "https://github.com/maisuradzee/Ridge/actions/runs/45147440909",
+      "url": "https://github.com/maisuradzee/Ridge/actions/runs/45363645446",
       "migrations": [
         "001_initial_schema.sql",
         "002_job_checkpoints.sql",
@@ -35,16 +35,16 @@
     "virtualUsers": 500,
     "durationSeconds": 15,
     "rampSeconds": 3,
-    "totalRequests": 6995,
+    "totalRequests": 6996,
     "failedRequests": 0,
-    "requestsPerSecond": 437.24,
+    "requestsPerSecond": 437.31,
     "latencyMs": {
-      "p50": 0.5,
-      "p95": 0.89,
-      "p99": 2.54,
-      "max": 9.1
+      "p50": 0.33,
+      "p95": 0.59,
+      "p99": 1.59,
+      "max": 8.11
     },
-    "maxObservedInFlightRequests": 8,
+    "maxObservedInFlightRequests": 7,
     "notAnUnrealNetworkLoadTest": true
   },
   "concurrentLoginGuard": {
@@ -120,7 +120,7 @@
     "liveIntegration": "57 PASS / 0 FAIL / 0 SKIP"
   },
   "outstanding": [
-    "Register a restricted Windows self-hosted Actions runner labelled ridge-ue58 and set RIDGE_UE_ROOT",
+    "Register or verify a restricted Windows self-hosted Actions runner labelled ridge-ue58 and set RIDGE_UE_ROOT",
     "Run manual UE 5.8 Game + Editor + RIDGEServer UBT/UHT workflow and inspect per-target logs",
     "Execute Editor PIE and Dedicated Server runtime validation",
     "Actual identity-provider authorization-code/PKCE UI and token refresh",
@@ -150,6 +150,7 @@
   "ue58BuildGate": {
     "manualWorkflow": ".github/workflows/ridge-ue58-windows-build.yml",
     "workflowDispatch": true,
+    "automaticPullRequestTrigger": false,
     "runnerLabels": [
       "self-hosted",
       "Windows",
@@ -157,6 +158,11 @@
       "ridge-ue58"
     ],
     "machineEnvironmentVariable": "RIDGE_UE_ROOT",
+    "requiredTools": [
+      "Unreal Engine 5.8",
+      "Visual Studio C++ x64 toolchain",
+      "compatible Windows SDK"
+    ],
     "defaultTargets": [
       "RIDGE",
       "RIDGEEditor"
@@ -170,11 +176,14 @@
       "RIDGE_GIS/Data/QA/ue58_build_logs/*.log",
       "ridge-ue58-windows-build artifact"
     ],
-    "staticValidatorReportArtifact": "ridge-ue-project-static-validation",
-    "staticValidatorArtifactRetentionDays": 14,
-    "buildArtifactRetentionDays": 30,
+    "staticValidatorReportArtifact": {
+      "name": "ridge-ue-project-static-validation",
+      "uploaded": true,
+      "retentionDays": 14
+    },
     "actualBuildExecuted": false,
     "status": "READY_NOT_EXECUTED",
-    "reason": "A dedicated Windows self-hosted runner with UE 5.8 and Visual Studio C++ must be registered and online."
+    "runnerPresence": "NOT_VERIFIED",
+    "reason": "The manual Windows workflow is committed; it needs a dedicated runner with the ridge-ue58 label and RIDGE_UE_ROOT. No UBT/UHT result has been produced yet."
   }
 }

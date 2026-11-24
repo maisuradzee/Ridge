@@ -72,3 +72,14 @@ Workflow ატვირთავს artifact-ს ridge-ue58-windows-build, რ�
 - 500 ერთდროულ Unreal client-ს.
 
 ამ ეტაპებს ცალკე runtime test და telemetry სჭირდება.
+
+
+## 6. Latest Linux CI evidence — 2026-11-24
+
+The Windows workflow source and static contracts are covered by the latest Linux Stage 5 run, but that run does not perform the Unreal compile:
+
+- [Stage 5 Multiplayer Preflight](https://github.com/maisuradzee/Ridge/actions/runs/45363645444): **SUCCESS** — 79/79 source tests, 37/37 static checks, load 6/6, backend 55 PASS / 0 FAIL / 2 SKIP.
+- [PostgreSQL 16 Integration](https://github.com/maisuradzee/Ridge/actions/runs/45363645446): **SUCCESS** — migrations 001–006, 57 PASS / 0 FAIL / 0 SKIP.
+- The UE project static report is uploaded as ridge-ue-project-static-validation (14-day retention).
+
+Actual Windows UBT/UHT remains NOT_RUN until the manual workflow is dispatched on a registered ridge-ue58 runner.

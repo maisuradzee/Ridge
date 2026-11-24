@@ -94,3 +94,16 @@ If the runner is not registered/online, the workflow stays queued; a Linux stati
 ### What a successful build proves
 
 A successful UBT/UHT build proves the Game, Editor and selected Server targets compile against the installed UE 5.8 toolchain. It still does not prove PIE, network reachability, the login provider flow, two-player replication, encryption or 500 connected players. Those are separate runtime acceptance tests.
+
+
+## 7. Latest Linux CI and Windows compile gate state — 2026-11-24
+
+Branch snapshot 7e1156c4ff462387165a2548afc55dabffecf402 passed:
+- Python/BotLab/Unreal source regression: 79/79 PASS;
+- UE project static validation: 37/37 STATIC_PASS;
+- load runner: 6/6 PASS;
+- backend Node: 55 PASS / 0 FAIL / 2 SKIP;
+- PostgreSQL 16 migrations 001–006/live backend: 57 PASS / 0 FAIL / 0 SKIP;
+- 500 virtual HTTP users: 6,996 requests / 0 failures / 437.31 req/s.
+
+The static validator JSON is uploaded as artifact ridge-ue-project-static-validation for 14 days. Real UBT/UHT is not yet run. The manual Windows workflow is committed and documented in docs/62_UE58_WINDOWS_BUILD_GATE_GE.md; it requires the ridge-ue58 self-hosted runner.
