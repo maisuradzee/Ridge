@@ -91,3 +91,25 @@ ECDH-ის curve, UE platform-ებზე მხარდაჭერილი
 - True 500 connected Unreal clients: **NOT_RUN**.
 
 ამიტომ PR3 რჩება Draft-ად და Production release არ არის დაშვებული.
+
+
+## 7. UE 5.8 crypto plugin preparation — 2026-11-24
+
+The project descriptor now explicitly enables the engine plugins `PlatformCrypto` and `AESGCMHandlerComponent`. The manual Windows Build Gate also verifies that both plugin descriptors exist in the selected UE 5.8 engine installation before starting UBT/UHT.
+
+This is a build prerequisite only. It does **not** add a PacketHandler profile, does not supply encryption keys, does not enable encryption on a connection and does not make Production multiplayer safe.
+
+Verified against Epic's UE 5.8 API documentation:
+- `FAESGCMHandlerComponent` is the AES-256-GCM packet-handler implementation and uses a 32-byte key: https://dev.epicgames.com/documentation/unreal-engine/API/Plugins/AESGCMHandlerComponent/FAESGCMHandlerComponent?lang=en-US
+- `FEncryptionComponent::SetEncryptionData` must be called before `EnableEncryption`: https://dev.epicgames.com/documentation/unreal-engine/API/Runtime/PacketHandler/FEncryptionComponent/SetEncryptionData
+- `FNetDelegates` exposes the encryption-token, acknowledgement and failure delegates: https://dev.epicgames.com/documentation/unreal-engine/API/Runtime/Engine/FNetDelegates?application_version=5.8
+- `UGameInstance::ReceivedNetworkEncryptionToken` must complete its response delegate when asynchronous key preparation finishes: https://dev.epicgames.com/documentation/unreal-engine/API/Runtime/Engine/UGameInstance/ReceivedNetworkEncryptionToken
+- `UNetConnection` provides separate client and server encryption enable methods: https://dev.epicgames.com/documentation/unreal-engine/API/Runtime/Engine/UNetConnection?application_version=5.8
+
+Before configuring a PacketHandler profile, RIDGE must implement and verify ephemeral key agreement, server identity authentication, ticket envelope protection, distinct per-direction/connection key derivation, and Shipping fail-closed behavior. The exact `FEncryptionData` mapping and supported platform crypto operations remain gated on the actual UE 5.8 headers and Windows compile.
+
+Current acceptance status remains:
+- Plugin descriptors enabled in project: **STATIC_CHECKED**.
+- Plugin binaries/module discovery on an actual UE 5.8 installation: **NOT_RUN**.
+- UBT/UHT Game + Editor + Server: **NOT_RUN**.
+- AES-GCM handshake and encrypted packet transport: **NOT_IMPLEMENTED**.
