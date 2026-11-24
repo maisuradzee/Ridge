@@ -53,6 +53,9 @@ jobs:
           sudo cp deploy/production/nginx-ridge.conf /etc/nginx/conf.d/ridge-api.conf
           sudo nginx -t
 
+      - name: Nginx TLS, proxy-header, host and rate-limit runtime tests
+        run: bash Tools/Deployment/test_nginx_ingress_runtime.sh
+
       - name: Unreal Engine 5.8 project static validation
         run: python Tools/BotLab/validate_ue_project.py --project-root .
 
