@@ -12,5 +12,15 @@
   ],
   "TargetPlatforms": [
     "Win64"
+  ],
+  "Plugins": [
+    {
+      "Name": "PlatformCrypto",
+      "Enabled": true
+    },
+    {
+      "Name": "AESGCMHandlerComponent",
+      "Enabled": true
+    }
   ]
 }
