@@ -174,8 +174,10 @@ function createMemoryRegistry({ clock, leaseMs, heartbeatTtlMs, joinTicketMs, se
   return Object.freeze({
     storageMode: 'memory-ephemeral',
 
-    async issueServerCredential({ serverId }) {
+    async issueServerCredential({ serverId, actorType = 'service', actorId }) {
       validIdentifier(serverId, 'server_id');
+      if (actorType !== 'service') fail(400, 'INVALID_CREDENTIAL_ACTOR_TYPE', 'Credential actor type must be service.');
+      validIdentifier(actorId, 'credential_actor_id');
       const token = randomBytes(32).toString('base64url');
       const credentialId = randomUUID();
       const now = clock();
@@ -195,6 +197,8 @@ function createMemoryRegistry({ clock, leaseMs, heartbeatTtlMs, joinTicketMs, se
         credentialId,
         previousCredentialId: isActivePrevious ? previous.credentialId : null,
         action: isActivePrevious ? 'rotated' : 'issued',
+        actorType,
+        actorId,
         occurredAt: new Date(now).toISOString(),
       });
       return { serverId, credentialId, token, expiresAt: new Date(expiresAt).toISOString() };
@@ -209,8 +213,10 @@ function createMemoryRegistry({ clock, leaseMs, heartbeatTtlMs, joinTicketMs, se
         credential.expiresAt > clock() && secureHashEquals(tokenHash, credential.tokenHash));
     },
 
-    async revokeServerCredential({ serverId }) {
+    async revokeServerCredential({ serverId, actorType = 'service', actorId }) {
       validIdentifier(serverId, 'server_id');
+      if (actorType !== 'service') fail(400, 'INVALID_CREDENTIAL_ACTOR_TYPE', 'Credential actor type must be service.');
+      validIdentifier(actorId, 'credential_actor_id');
       const credential = serverCredentials.get(serverId);
       if (!credential || credential.revokedAt) return { revoked: false };
       const now = clock();
@@ -222,6 +228,8 @@ function createMemoryRegistry({ clock, leaseMs, heartbeatTtlMs, joinTicketMs, se
         credentialId: credential.credentialId,
         previousCredentialId: null,
         action: 'revoked',
+        actorType,
+        actorId,
         occurredAt: new Date(now).toISOString(),
       });
       return { revoked: true, credentialId: credential.credentialId };
@@ -241,6 +249,8 @@ function createMemoryRegistry({ clock, leaseMs, heartbeatTtlMs, joinTicketMs, se
           credentialId: event.credentialId,
           previousCredentialId: event.previousCredentialId,
           action: event.action,
+          actorType: event.actorType,
+          actorId: event.actorId,
           occurredAt: event.occurredAt,
         }));
     },
@@ -527,8 +537,10 @@ function createPostgresRegistry({ pool, clock, leaseMs, heartbeatTtlMs, joinTick
   return Object.freeze({
     storageMode: 'postgresql',
 
-    async issueServerCredential({ serverId }) {
+    async issueServerCredential({ serverId, actorType = 'service', actorId }) {
       validIdentifier(serverId, 'server_id');
+      if (actorType !== 'service') fail(400, 'INVALID_CREDENTIAL_ACTOR_TYPE', 'Credential actor type must be service.');
+      validIdentifier(actorId, 'credential_actor_id');
       const token = randomBytes(32).toString('base64url');
       const tokenHash = hashServerCredential(token);
       const credentialId = randomUUID();
@@ -557,8 +569,9 @@ function createPostgresRegistry({ pool, clock, leaseMs, heartbeatTtlMs, joinTick
         );
         await client.query(
           'INSERT INTO ridge.dedicated_server_credential_events ' +
-          '(server_id, credential_id, previous_credential_id, action) VALUES ($1, $2, $3, $4)',
-          [serverId, result.rows[0].credential_id, previousCredentialId, action],
+          '(server_id, credential_id, previous_credential_id, action, actor_type, actor_id) ' +
+          'VALUES ($1, $2, $3, $4, $5, $6)',
+          [serverId, result.rows[0].credential_id, previousCredentialId, action, actorType, actorId],
         );
         return {
           serverId,
@@ -581,8 +594,10 @@ function createPostgresRegistry({ pool, clock, leaseMs, heartbeatTtlMs, joinTick
       return Boolean(result.rows[0] && secureHashEquals(tokenHash, result.rows[0].token_hash));
     },
 
-    async revokeServerCredential({ serverId }) {
+    async revokeServerCredential({ serverId, actorType = 'service', actorId }) {
       validIdentifier(serverId, 'server_id');
+      if (actorType !== 'service') fail(400, 'INVALID_CREDENTIAL_ACTOR_TYPE', 'Credential actor type must be service.');
+      validIdentifier(actorId, 'credential_actor_id');
       return inTransaction(pool, async (client) => {
         await client.query(
           'SELECT pg_advisory_xact_lock(hashtextextended($1, 0))',
@@ -596,8 +611,9 @@ function createPostgresRegistry({ pool, clock, leaseMs, heartbeatTtlMs, joinTick
         if (!result.rows[0]) return { revoked: false };
         await client.query(
           'INSERT INTO ridge.dedicated_server_credential_events ' +
-          '(server_id, credential_id, previous_credential_id, action) VALUES ($1, $2, NULL, $3)',
-          [serverId, result.rows[0].credential_id, 'revoked'],
+          '(server_id, credential_id, previous_credential_id, action, actor_type, actor_id) ' +
+          'VALUES ($1, $2, NULL, $3, $4, $5)',
+          [serverId, result.rows[0].credential_id, 'revoked', actorType, actorId],
         );
         return { revoked: true, credentialId: result.rows[0].credential_id };
       });
@@ -609,7 +625,7 @@ function createPostgresRegistry({ pool, clock, leaseMs, heartbeatTtlMs, joinTick
         fail(400, 'INVALID_CREDENTIAL_AUDIT_LIMIT', 'Audit limit უნდა იყოს 1-დან 100-მდე.');
       }
       const result = await pool.query(
-        'SELECT event_id, server_id, credential_id, previous_credential_id, action, occurred_at ' +
+        'SELECT event_id, server_id, credential_id, previous_credential_id, action, actor_type, actor_id, occurred_at ' +
         'FROM ridge.dedicated_server_credential_events WHERE server_id = $1 ' +
         'ORDER BY audit_sequence DESC LIMIT $2',
         [serverId, limit],
@@ -620,6 +636,8 @@ function createPostgresRegistry({ pool, clock, leaseMs, heartbeatTtlMs, joinTick
         credentialId: row.credential_id,
         previousCredentialId: row.previous_credential_id,
         action: row.action,
+        actorType: row.actor_type,
+        actorId: row.actor_id,
         occurredAt: new Date(row.occurred_at).toISOString(),
       }));
     },
@@ -897,13 +915,15 @@ function createPostgresRegistry({ pool, clock, leaseMs, heartbeatTtlMs, joinTick
         "SELECT to_regclass('ridge.dedicated_servers') AS servers, " +
         "to_regclass('ridge.player_sessions') AS sessions, " +
         "to_regclass('ridge.dedicated_server_credentials') AS credentials, " +
-        "to_regclass('ridge.dedicated_server_credential_events') AS credential_events",
+        "to_regclass('ridge.dedicated_server_credential_events') AS credential_events, " +
+        "EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'ridge' AND table_name = 'dedicated_server_credential_events' AND column_name = 'actor_id') AS credential_audit_actor_schema",
       );
       return Boolean(
         result.rows[0]?.servers &&
         result.rows[0]?.sessions &&
         result.rows[0]?.credentials &&
-        result.rows[0]?.credential_events
+        result.rows[0]?.credential_events &&
+        result.rows[0]?.credential_audit_actor_schema
       );
     },
   });
@@ -938,7 +958,8 @@ export async function createSessionRegistry({
     "EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'ridge' AND table_name = 'player_sessions' AND column_name = 'join_ticket_hash') " +
     "AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'ridge' AND table_name = 'player_sessions' AND column_name = 'join_ticket_expires_at') " +
     "AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'ridge' AND table_name = 'player_sessions' AND column_name = 'join_attempt_id') AS join_ticket_schema, " +
-    "to_regclass('ridge.dedicated_server_credentials') AS server_credentials",
+    "to_regclass('ridge.dedicated_server_credentials') AS server_credentials, " +
+    "EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'ridge' AND table_name = 'dedicated_server_credential_events' AND column_name = 'actor_id') AS credential_audit_actor_schema",
   );
   if (!schema.rows[0]?.servers || !schema.rows[0]?.sessions) {
     throw new Error('RIDGE session registry migration 004 is required before PostgreSQL startup.');
@@ -948,6 +969,9 @@ export async function createSessionRegistry({
   }
   if (!schema.rows[0]?.server_credentials) {
     throw new Error('RIDGE per-instance server credential migration 006 is required before PostgreSQL startup.');
+  }
+  if (!schema.rows[0]?.credential_audit_actor_schema) {
+    throw new Error('RIDGE credential audit actor migration 008 is required before PostgreSQL startup.');
   }
   return createPostgresRegistry({ pool, clock, leaseMs, heartbeatTtlMs, joinTicketMs, serverCredentialMs });
 }
