@@ -109,3 +109,54 @@ test('offline or stale Dedicated Servers cannot publish or serve transport publi
   advance(1_001);
   assert.equal(await registry.getServerTransportKey({ serverId: 'transport-shard-c' }), null);
 });
+
+
+test('key revocation is immediate, idempotent and recorded with the trusted actor', async () => {
+  const { registry, now } = await setup({ heartbeatTtlMs: 300_000 });
+  const serverId = 'transport-revoke-shard';
+  await registry.registerServer(server(serverId));
+  await registry.publishServerTransportKey({
+    serverId, keyId: 'key-server-revoke', publicKey: publicKey(0x61),
+    expiresAt: new Date(now() + 120_000).toISOString(),
+  });
+  await registry.publishServerTransportKey({
+    serverId, keyId: 'key-service-revoke', publicKey: publicKey(0x62),
+    expiresAt: new Date(now() + 120_000).toISOString(),
+  });
+
+  await assert.rejects(
+    registry.revokeServerTransportKey({
+      serverId, keyId: 'key-service-revoke',
+      actorType: 'dedicated_server', actorId: 'some-other-shard',
+    }),
+    (error) => error.code === 'TRANSPORT_KEY_ACTOR_SERVER_MISMATCH',
+  );
+
+  const selfRevoked = await registry.revokeServerTransportKey({
+    serverId, keyId: 'key-server-revoke',
+  });
+  assert.equal(selfRevoked.revoked, true);
+  assert.equal(await registry.getServerTransportKey({ serverId, keyId: 'key-server-revoke' }), null);
+  assert.deepEqual(
+    await registry.revokeServerTransportKey({ serverId, keyId: 'key-server-revoke' }),
+    { revoked: false, serverId, keyId: 'key-server-revoke' },
+  );
+
+  const provisionerRevoked = await registry.revokeServerTransportKey({
+    serverId, keyId: 'key-service-revoke',
+    actorType: 'service', actorId: 'ridge-test-provisioner',
+  });
+  assert.equal(provisionerRevoked.revoked, true);
+  assert.equal(await registry.getServerTransportKey({ serverId }), null);
+
+  const events = await registry.listServerTransportKeyEvents({ serverId, limit: 10 });
+  assert.equal(events.length, 4);
+  assert.ok(events.some((event) => event.action === 'published' && event.keyId === 'key-server-revoke' && event.actorType === 'dedicated_server' && event.actorId === serverId));
+  assert.ok(events.some((event) => event.action === 'revoked' && event.keyId === 'key-server-revoke' && event.actorType === 'dedicated_server' && event.actorId === serverId));
+  assert.ok(events.some((event) => event.action === 'published' && event.keyId === 'key-service-revoke'));
+  assert.ok(events.some((event) => event.action === 'revoked' && event.keyId === 'key-service-revoke' && event.actorType === 'service' && event.actorId === 'ridge-test-provisioner'));
+  await assert.rejects(
+    registry.listServerTransportKeyEvents({ serverId, limit: 101 }),
+    (error) => error.code === 'INVALID_TRANSPORT_KEY_AUDIT_LIMIT',
+  );
+});

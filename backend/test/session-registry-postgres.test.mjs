@@ -9,7 +9,7 @@ const hasDatabaseUrl = Boolean(process.env.DATABASE_URL);
 
 
 
-test('PostgreSQL transport-key registry persists public-only X25519 metadata and rotates without overwriting old key', { skip: !enabled }, async () => {
+test('PostgreSQL transport-key registry persists, rotates, revokes and audits public-only X25519 metadata', { skip: !enabled }, async () => {
   assert.ok(process.env.DATABASE_URL);
   const { Pool } = await import('pg');
   const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 2, connectionTimeoutMillis: 3000 });
@@ -22,9 +22,9 @@ test('PostgreSQL transport-key registry persists public-only X25519 metadata and
       serverId, region: 'ge-tbilisi', host: '127.0.0.1',
       port: 27000 + Math.floor(Math.random() * 1000), maxPlayers: 4, protocolVersion: 'ridge-0.6',
     });
-    const firstExpiry = new Date(Date.now() + 120_000).toISOString();
     const first = await registry.publishServerTransportKey({
-      serverId, keyId: 'it-key-old', publicKey: rawPublic(0x71), expiresAt: firstExpiry,
+      serverId, keyId: 'it-key-old', publicKey: rawPublic(0x71),
+      expiresAt: new Date(Date.now() + 120_000).toISOString(),
     });
     assert.equal(first.replayed, false);
     const stored = await pool.query(
@@ -41,11 +41,40 @@ test('PostgreSQL transport-key registry persists public-only X25519 metadata and
     assert.equal(second.replayed, false);
     assert.equal((await registry.getServerTransportKey({ serverId })).keyId, 'it-key-new');
     assert.equal((await registry.getServerTransportKey({ serverId, keyId: 'it-key-old' })).keyId, 'it-key-old');
+
+    const serverRevocation = await registry.revokeServerTransportKey({
+      serverId, keyId: 'it-key-old', actorType: 'dedicated_server', actorId: serverId,
+    });
+    assert.equal(serverRevocation.revoked, true);
+    assert.equal(await registry.getServerTransportKey({ serverId, keyId: 'it-key-old' }), null);
+    assert.equal((await registry.revokeServerTransportKey({
+      serverId, keyId: 'it-key-old', actorType: 'dedicated_server', actorId: serverId,
+    })).revoked, false);
+
+    const provisionerRevocation = await registry.revokeServerTransportKey({
+      serverId, keyId: 'it-key-new', actorType: 'service', actorId: 'ridge-pg-key-provisioner',
+    });
+    assert.equal(provisionerRevocation.revoked, true);
+    assert.equal(await registry.getServerTransportKey({ serverId }), null);
+
+    const events = await registry.listServerTransportKeyEvents({ serverId, limit: 10 });
+    assert.equal(events.length, 4);
+    assert.ok(events.some((event) => event.action === 'published' && event.keyId === 'it-key-old' && event.actorType === 'dedicated_server' && event.actorId === serverId));
+    assert.ok(events.some((event) => event.action === 'revoked' && event.keyId === 'it-key-old' && event.actorId === serverId));
+    assert.ok(events.some((event) => event.action === 'published' && event.keyId === 'it-key-new'));
+    assert.ok(events.some((event) => event.action === 'revoked' && event.keyId === 'it-key-new' && event.actorType === 'service' && event.actorId === 'ridge-pg-key-provisioner'));
+
+    await assert.rejects(
+      pool.query('UPDATE ridge.dedicated_server_transport_key_events SET action = action WHERE server_id = $1', [serverId]),
+      (error) => error.code === '55000',
+    );
+    await assert.rejects(
+      pool.query('DELETE FROM ridge.dedicated_server_transport_key_events WHERE server_id = $1', [serverId]),
+      (error) => error.code === '55000',
+    );
   } finally {
-    await pool.query('DELETE FROM ridge.dedicated_server_transport_keys WHERE server_id = $1', [serverId]).catch(() => {});
-    await pool.query('DELETE FROM ridge.dedicated_server_credentials WHERE server_id = $1', [serverId]).catch(() => {});
-    await pool.query('DELETE FROM ridge.player_sessions WHERE server_id = $1', [serverId]).catch(() => {});
-    await pool.query('DELETE FROM ridge.dedicated_servers WHERE server_id = $1', [serverId]).catch(() => {});
+    // This workflow uses a disposable PostgreSQL service. Keep append-only audit rows intact;
+    // they intentionally prevent deleting their parent server/key records.
     await pool.end();
   }
 });

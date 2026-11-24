@@ -38,3 +38,17 @@ This stage does not yet:
 - enable game packet encryption or change the Production fail-closed constant.
 
 Production gameplay admission stays blocked until all these stages and runtime acceptance tests pass.
+
+
+## Revocation and audit lifecycle
+
+The transport-key registry now supports immediate, auditable key revocation.
+
+- `POST /v1/internal/shards/{serverId}/transport-key/{keyId}/revoke` allows the authenticated Dedicated Server instance to revoke only its own key.
+- `POST /v1/control/shards/{serverId}/transport-key/{keyId}/revoke` allows the trusted deployment Provisioner to revoke a key during emergency response.
+- `GET /v1/control/shards/{serverId}/transport-key-audit?limit=50` exposes the bounded audit history to the Provisioner.
+- Revocation and event insertion share one PostgreSQL transaction. Repeated revocation is idempotent and does not create duplicate events.
+- Audit events record actor type/ID, key ID, action and timestamp, but never key material.
+- PostgreSQL UPDATE/DELETE of the audit table is blocked by an append-only trigger.
+
+A revoked key is immediately excluded from Gateway key retrieval, even if its expiry timestamp is still in the future. A new key must use a new key ID.

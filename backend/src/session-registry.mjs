@@ -123,6 +123,14 @@ function validateServerTransportKey(input = {}, now = Date.now()) {
   return { serverId, keyId, algorithm: 'X25519', publicKey, expiresAtMs };
 }
 
+function validateTransportKeyActor(actorType, actorId) {
+  if (!['dedicated_server', 'service'].includes(actorType)) {
+    fail(400, 'INVALID_TRANSPORT_KEY_ACTOR_TYPE', 'Transport key actor type is invalid.');
+  }
+  validIdentifier(actorId, 'transport_key_actor_id');
+  return { actorType, actorId };
+}
+
 function publicServerTransportKey(record) {
   return {
     serverId: record.serverId ?? record.server_id,
@@ -174,6 +182,7 @@ function createMemoryRegistry({ clock, leaseMs, heartbeatTtlMs, joinTicketMs, se
   const serverCredentials = new Map();
   const serverCredentialEvents = [];
   const serverTransportKeys = new Map();
+  const serverTransportKeyEvents = [];
   let nextCredentialAuditSequence = 1;
 
   function findServer(serverId) {
@@ -306,6 +315,10 @@ function createMemoryRegistry({ clock, leaseMs, heartbeatTtlMs, joinTicketMs, se
 
     async publishServerTransportKey(input) {
       const key = validateServerTransportKey(input, clock());
+      const actor = validateTransportKeyActor(input.actorType ?? 'dedicated_server', input.actorId ?? key.serverId);
+      if (actor.actorType === 'dedicated_server' && actor.actorId !== key.serverId) {
+        fail(403, 'TRANSPORT_KEY_ACTOR_SERVER_MISMATCH', 'Dedicated Server may publish keys only for its own instance.');
+      }
       const server = findServer(key.serverId);
       if (!serverIsLive(server, clock(), heartbeatTtlMs)) {
         fail(409, 'SHARD_NOT_LIVE', 'Transport key can be published only by a live Dedicated Server.');
@@ -324,6 +337,11 @@ function createMemoryRegistry({ clock, leaseMs, heartbeatTtlMs, joinTicketMs, se
       }
       const record = { ...key, expiresAt: key.expiresAtMs, createdAt: clock(), revokedAt: null };
       keys.set(key.keyId, record);
+      serverTransportKeyEvents.unshift({
+        eventId: randomUUID(), serverId: key.serverId, keyId: key.keyId,
+        action: 'published', actorType: actor.actorType, actorId: actor.actorId,
+        occurredAt: new Date(record.createdAt).toISOString(),
+      });
       return { ...publicServerTransportKey(record), replayed: false };
     },
 
@@ -340,6 +358,38 @@ function createMemoryRegistry({ clock, leaseMs, heartbeatTtlMs, joinTicketMs, se
         .sort((a, b) => b.createdAt - a.createdAt || b.keyId.localeCompare(a.keyId));
       return candidates[0] ? publicServerTransportKey(candidates[0]) : null;
     },
+
+    async revokeServerTransportKey({ serverId, keyId, actorType = 'dedicated_server', actorId } = {}) {
+      validIdentifier(serverId, 'server_id');
+      validIdentifier(keyId, 'transport_key_id');
+      const actor = validateTransportKeyActor(actorType, actorId ?? (actorType === 'dedicated_server' ? serverId : ''));
+      if (actor.actorType === 'dedicated_server' && actor.actorId !== serverId) {
+        fail(403, 'TRANSPORT_KEY_ACTOR_SERVER_MISMATCH', 'Dedicated Server may revoke keys only for its own instance.');
+      }
+      const record = serverTransportKeys.get(serverId)?.get(keyId);
+      if (!record || record.revokedAt) return { revoked: false, serverId, keyId };
+      const now = clock();
+      record.revokedAt = now;
+      serverTransportKeyEvents.unshift({
+        eventId: randomUUID(), serverId, keyId,
+        action: 'revoked', actorType: actor.actorType, actorId: actor.actorId,
+        occurredAt: new Date(now).toISOString(),
+      });
+      return { revoked: true, serverId, keyId, revokedAt: new Date(now).toISOString() };
+    },
+
+    async listServerTransportKeyEvents({ serverId, limit = 50 } = {}) {
+      validIdentifier(serverId, 'server_id');
+      if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+        fail(400, 'INVALID_TRANSPORT_KEY_AUDIT_LIMIT', 'Transport key audit limit must be between 1 and 100.');
+      }
+      return serverTransportKeyEvents
+        .filter((event) => event.serverId === serverId)
+        .slice(0, limit)
+        .map((event) => ({ ...event }));
+    },
+
+
 
     async registerServer(input) {
       const registration = validateRegistration(input);
@@ -730,6 +780,10 @@ function createPostgresRegistry({ pool, clock, leaseMs, heartbeatTtlMs, joinTick
 
     async publishServerTransportKey(input) {
       const key = validateServerTransportKey(input, clock());
+      const actor = validateTransportKeyActor(input.actorType ?? 'dedicated_server', input.actorId ?? key.serverId);
+      if (actor.actorType === 'dedicated_server' && actor.actorId !== key.serverId) {
+        fail(403, 'TRANSPORT_KEY_ACTOR_SERVER_MISMATCH', 'Dedicated Server may publish keys only for its own instance.');
+      }
       return inTransaction(pool, async (client) => {
         const serverResult = await client.query(
           'SELECT server_id, status, last_heartbeat_at FROM ridge.dedicated_servers WHERE server_id = $1 FOR UPDATE',
@@ -761,6 +815,11 @@ function createPostgresRegistry({ pool, clock, leaseMs, heartbeatTtlMs, joinTick
           'RETURNING server_id, key_id, algorithm, public_key, expires_at, created_at',
           [key.serverId, key.keyId, key.algorithm, key.publicKey, key.expiresAtMs],
         );
+        await client.query(
+          'INSERT INTO ridge.dedicated_server_transport_key_events ' +
+          '(server_id, key_id, action, actor_type, actor_id) VALUES ($1, $2, $3, $4, $5)',
+          [key.serverId, key.keyId, 'published', actor.actorType, actor.actorId],
+        );
         return { ...publicServerTransportKey(inserted.rows[0]), replayed: false };
       });
     },
@@ -787,6 +846,53 @@ function createPostgresRegistry({ pool, clock, leaseMs, heartbeatTtlMs, joinTick
       if (!row || !serverIsLive({ status: row.status, lastHeartbeatAt: row.last_heartbeat_at }, clock(), heartbeatTtlMs)) return null;
       return publicServerTransportKey(row);
     },
+
+    async revokeServerTransportKey({ serverId, keyId, actorType = 'dedicated_server', actorId } = {}) {
+      validIdentifier(serverId, 'server_id');
+      validIdentifier(keyId, 'transport_key_id');
+      const actor = validateTransportKeyActor(actorType, actorId ?? (actorType === 'dedicated_server' ? serverId : ''));
+      if (actor.actorType === 'dedicated_server' && actor.actorId !== serverId) {
+        fail(403, 'TRANSPORT_KEY_ACTOR_SERVER_MISMATCH', 'Dedicated Server may revoke keys only for its own instance.');
+      }
+      return inTransaction(pool, async (client) => {
+        const updated = await client.query(
+          'UPDATE ridge.dedicated_server_transport_keys SET revoked_at = clock_timestamp() ' +
+          'WHERE server_id = $1 AND key_id = $2 AND revoked_at IS NULL ' +
+          'RETURNING server_id, key_id, revoked_at',
+          [serverId, keyId],
+        );
+        if (!updated.rows[0]) return { revoked: false, serverId, keyId };
+        await client.query(
+          'INSERT INTO ridge.dedicated_server_transport_key_events ' +
+          '(server_id, key_id, action, actor_type, actor_id) VALUES ($1, $2, $3, $4, $5)',
+          [serverId, keyId, 'revoked', actor.actorType, actor.actorId],
+        );
+        return {
+          revoked: true, serverId, keyId,
+          revokedAt: new Date(updated.rows[0].revoked_at).toISOString(),
+        };
+      });
+    },
+
+    async listServerTransportKeyEvents({ serverId, limit = 50 } = {}) {
+      validIdentifier(serverId, 'server_id');
+      if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+        fail(400, 'INVALID_TRANSPORT_KEY_AUDIT_LIMIT', 'Transport key audit limit must be between 1 and 100.');
+      }
+      const result = await pool.query(
+        'SELECT event_id, server_id, key_id, action, actor_type, actor_id, occurred_at ' +
+        'FROM ridge.dedicated_server_transport_key_events WHERE server_id = $1 ' +
+        'ORDER BY occurred_at DESC, event_id DESC LIMIT $2',
+        [serverId, limit],
+      );
+      return result.rows.map((row) => ({
+        eventId: row.event_id, serverId: row.server_id, keyId: row.key_id,
+        action: row.action, actorType: row.actor_type, actorId: row.actor_id,
+        occurredAt: new Date(row.occurred_at).toISOString(),
+      }));
+    },
+
+
 
     async registerServer(input) {
       const r = validateRegistration(input);
@@ -1061,6 +1167,7 @@ function createPostgresRegistry({ pool, clock, leaseMs, heartbeatTtlMs, joinTick
         "to_regclass('ridge.dedicated_server_credentials') AS credentials, " +
         "to_regclass('ridge.dedicated_server_credential_events') AS credential_events, " +
         "to_regclass('ridge.dedicated_server_transport_keys') AS transport_keys, " +
+        "to_regclass('ridge.dedicated_server_transport_key_events') AS transport_key_events, " +
         "EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'ridge' AND table_name = 'dedicated_server_credential_events' AND column_name = 'actor_id') AS credential_audit_actor_schema",
       );
       return Boolean(
@@ -1069,6 +1176,7 @@ function createPostgresRegistry({ pool, clock, leaseMs, heartbeatTtlMs, joinTick
         result.rows[0]?.credentials &&
         result.rows[0]?.credential_events &&
         result.rows[0]?.transport_keys &&
+        result.rows[0]?.transport_key_events &&
         result.rows[0]?.credential_audit_actor_schema
       );
     },
@@ -1106,6 +1214,7 @@ export async function createSessionRegistry({
     "AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'ridge' AND table_name = 'player_sessions' AND column_name = 'join_attempt_id') AS join_ticket_schema, " +
     "to_regclass('ridge.dedicated_server_credentials') AS server_credentials, " +
     "to_regclass('ridge.dedicated_server_transport_keys') AS transport_keys, " +
+    "to_regclass('ridge.dedicated_server_transport_key_events') AS transport_key_events, " +
     "EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'ridge' AND table_name = 'dedicated_server_credential_events' AND column_name = 'actor_id') AS credential_audit_actor_schema",
   );
   if (!schema.rows[0]?.servers || !schema.rows[0]?.sessions) {
@@ -1122,6 +1231,9 @@ export async function createSessionRegistry({
   }
   if (!schema.rows[0]?.transport_keys) {
     throw new Error('RIDGE server transport key migration 009 is required before PostgreSQL startup.');
+  }
+  if (!schema.rows[0]?.transport_key_events) {
+    throw new Error('RIDGE server transport key audit schema from migration 009 is required before PostgreSQL startup.');
   }
   return createPostgresRegistry({ pool, clock, leaseMs, heartbeatTtlMs, joinTicketMs, serverCredentialMs });
 }

@@ -19,3 +19,8 @@ The initial schema provides the player identity anchor, ledger accounts, double-
 ## Migration 009 — Dedicated Server X25519 public keys
 
 Migration `009_dedicated_server_transport_keys.sql` creates the per-instance transport public-key registry. It stores only canonical 32-byte X25519 public keys, key IDs, algorithm and expiry/revocation metadata. Private key material is never sent to or stored in PostgreSQL. A key can remain active until its own expiry so already-issued short-lived envelopes can finish during rotation.
+
+
+### Transport-key revocation audit
+
+Migration 009 also creates the append-only `ridge.dedicated_server_transport_key_events` audit table. It records `published` and `revoked` actions, authenticated actor type/ID and timestamp. UPDATE/DELETE is rejected by a PostgreSQL trigger. Neither public-key audit events nor the registry store private key bytes, derived secrets or join tickets.

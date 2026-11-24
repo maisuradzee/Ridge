@@ -393,7 +393,7 @@ async function main() {
         const serverId = shardTransportKeyMatch[1];
         await requireGameServer(request, serverId, sessionRegistry);
         const body = await readJson(request, 4 * 1024);
-        const published = await sessionRegistry.publishServerTransportKey({ ...body, serverId });
+        const published = await sessionRegistry.publishServerTransportKey({ ...body, serverId, actorType: 'dedicated_server', actorId: serverId });
         return send(response, published.replayed ? 200 : 201, published);
       }
 
@@ -402,6 +402,37 @@ async function main() {
         const key = await sessionRegistry.getServerTransportKey({ serverId: shardTransportKeyMatch[1] });
         if (!key) throw new RidgeError(404, 'TRANSPORT_KEY_NOT_AVAILABLE', 'Shard-ის მოქმედი transport public key ვერ მოიძებნა.');
         return send(response, 200, key);
+      }
+
+      const shardTransportKeyRevokeMatch = url.pathname.match(/^\\/v1\\/internal\\/shards\\/([A-Za-z0-9._:-]{1,80})\\/transport-key\\/([A-Za-z0-9._:-]{1,80})\\/revoke$/);
+      if (request.method === 'POST' && shardTransportKeyRevokeMatch) {
+        const [, serverId, keyId] = shardTransportKeyRevokeMatch;
+        await requireGameServer(request, serverId, sessionRegistry);
+        const result = await sessionRegistry.revokeServerTransportKey({
+          serverId, keyId, actorType: 'dedicated_server', actorId: serverId,
+        });
+        return send(response, 200, result);
+      }
+
+      const controlTransportKeyRevokeMatch = url.pathname.match(/^\\/v1\\/control\\/shards\\/([A-Za-z0-9._:-]{1,80})\\/transport-key\\/([A-Za-z0-9._:-]{1,80})\\/revoke$/);
+      if (request.method === 'POST' && controlTransportKeyRevokeMatch) {
+        const actor = requireServerProvisioner(request);
+        const [, serverId, keyId] = controlTransportKeyRevokeMatch;
+        const result = await sessionRegistry.revokeServerTransportKey({
+          serverId, keyId, actorType: actor.actorType, actorId: actor.actorId,
+        });
+        return send(response, 200, result);
+      }
+
+      const transportKeyAuditMatch = url.pathname.match(/^\\/v1\\/control\\/shards\\/([A-Za-z0-9._:-]{1,80})\\/transport-key-audit$/);
+      if (request.method === 'GET' && transportKeyAuditMatch) {
+        requireServerProvisioner(request);
+        const limitParam = url.searchParams.get('limit');
+        const limit = limitParam === null ? 50 : Number(limitParam);
+        const events = await sessionRegistry.listServerTransportKeyEvents({
+          serverId: transportKeyAuditMatch[1], limit,
+        });
+        return send(response, 200, { serverId: transportKeyAuditMatch[1], events });
       }
 
       const shardHeartbeatMatch = url.pathname.match(/^\/v1\/internal\/shards\/([A-Za-z0-9._:-]{1,80})\/heartbeat$/);
