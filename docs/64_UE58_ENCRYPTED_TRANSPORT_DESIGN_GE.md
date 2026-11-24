@@ -113,3 +113,38 @@ Current acceptance status remains:
 - Plugin binaries/module discovery on an actual UE 5.8 installation: **NOT_RUN**.
 - UBT/UHT Game + Editor + Server: **NOT_RUN**.
 - AES-GCM handshake and encrypted packet transport: **NOT_IMPLEMENTED**.
+
+
+## 8. UE 5.8 crypto plugin preparation — verified API boundary (2026-11-24)
+
+Project descriptor `RIDGE.uproject` explicitly enables:
+- `PlatformCrypto`
+- `AESGCMHandlerComponent`
+
+The manual Windows Build Gate checks that both plugin descriptor files exist in the selected UE 5.8 installation before starting UBT/UHT. This proves only project configuration and engine-file availability; it does not prove module compilation or runtime availability.
+
+Epic's UE 5.8 API reference confirms the following concrete fields in `FEncryptionData`:
+- `Key`: `TArray<uint8>`
+- `Identifier`: `FString`
+- `Fingerprint`: `TArray<uint8>`
+
+The AES-GCM handler is documented as AES-256-GCM and requires a 32-byte key. The PacketHandler API says `SetEncryptionData` must be called before `EnableEncryption`. This is the intended handoff boundary for the final connection traffic key, but the exact fingerprint/identifier semantics must be confirmed from the installed UE 5.8 headers and tests before assignment.
+
+The public UE 5.8 `FEncryptionContextOpenSSL` reference lists AES-256-GCM, random-byte generation, SHA-256 and RSA operations. It does not list ECDH or HKDF methods in that API surface. Therefore the current `PlatformCrypto` documentation is not sufficient evidence that RIDGE can implement its required ephemeral ECDH + HKDF flow through that interface alone. The actual supported provider/API must be verified from the installed headers and target platform toolchains before the handshake is implemented.
+
+No PacketHandler profile is enabled yet. No key is supplied, and no game connection encryption is active. This is intentional: enabling the handler without a complete per-connection key exchange, authenticated server identity and fail-closed failure policy would create a misleading or unsafe partial deployment.
+
+Official UE 5.8 API references:
+- `FEncryptionData`: https://dev.epicgames.com/documentation/unreal-engine/API/Runtime/CoreUObject/FEncryptionData
+- `FAESGCMHandlerComponent`: https://dev.epicgames.com/documentation/unreal-engine/API/Plugins/AESGCMHandlerComponent/FAESGCMHandlerComponent?lang=en-US
+- `FEncryptionComponent::SetEncryptionData`: https://dev.epicgames.com/documentation/unreal-engine/API/Runtime/PacketHandler/FEncryptionComponent/SetEncryptionData
+- `FNetDelegates`: https://dev.epicgames.com/documentation/unreal-engine/API/Runtime/Engine/FNetDelegates?application_version=5.8
+- `FEncryptionContextOpenSSL`: https://dev.epicgames.com/documentation/unreal-engine/API/Plugins/PlatformCryptoContext/FEncryptionContextOpenSSL
+
+Updated acceptance status:
+- Project plugin enablement: **IMPLEMENTED / STATIC_CHECKED**.
+- Windows Build Gate plugin-file checks: **IMPLEMENTED / CI-CONTRACT_CHECKED**.
+- UE plugin presence on the user's actual installation: **NOT_RUN**.
+- UBT/UHT Game + Editor + Dedicated Server: **NOT_RUN**.
+- ECDH/HKDF provider selection and per-connection handshake: **NOT_IMPLEMENTED**.
+- AES-GCM traffic-key install and encrypted packet runtime: **NOT_IMPLEMENTED**.
