@@ -300,3 +300,14 @@ On branch head `10b48cec244db236f0d81a9717535b53945042bd`:
 - PostgreSQL 16 migrations 001–006 and live suite **57 PASS / 0 FAIL / 0 SKIP**.
 
 Evidence: [Stage 5](https://github.com/maisuradzee/Ridge/actions/runs/45147046969) · [PostgreSQL](https://github.com/maisuradzee/Ridge/actions/runs/45147046895).
+
+
+### UE 5.8 Windows UBT/UHT build gate — 2026-11-24
+
+- Build runner compiles RIDGE Game + RIDGEEditor by default and optionally RIDGEServer with -BuildDedicatedServer.
+- The manual workflow .github/workflows/ridge-ue58-windows-build.yml requires a restricted self-hosted Windows X64 runner labelled ridge-ue58 and a machine-level RIDGE_UE_ROOT.
+- Successful builds upload one JSON report and per-target logs as ridge-ue58-windows-build. Linux static CI is not represented as an Unreal compile.
+- Stage 5 Linux verification on branch snapshot 79a450e3fed39c0a38b3d4b2f400b896dcee36ea: source/regression 77/77 PASS; UE static 37/37 PASS; load unit 6/6 PASS; backend Node 55 PASS / 0 FAIL / 2 SKIP; PostgreSQL 16 migrations 001–006/live 57 PASS / 0 FAIL / 0 SKIP; 500 virtual HTTP clients 6,995 requests / 0 errors / 437.24 req/s.
+- The Windows workflow is ready but has not run because a ridge-ue58 runner is not yet confirmed online.
+
+Guide: docs/62_UE58_WINDOWS_BUILD_GATE_GE.md. Static validation report is uploaded by CI as ridge-ue-project-static-validation; generated local build reports and logs are ignored by Git.

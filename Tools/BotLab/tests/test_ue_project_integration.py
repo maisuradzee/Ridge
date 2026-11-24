@@ -45,6 +45,22 @@ class UEProjectIntegrationTests(unittest.TestCase):
         self.assertIn("ridge.ue58.build-report.v1", script)
         self.assertIn("Build.version", script)
 
+    def test_ue58_windows_build_workflow_is_manual_and_isolated(self):
+        workflow = (ROOT / ".github/workflows/ridge-ue58-windows-build.yml").read_text(encoding="utf-8")
+        self.assertIn("workflow_dispatch:", workflow)
+        self.assertIn("runs-on: [self-hosted, Windows, X64, ridge-ue58]", workflow)
+        self.assertIn("RIDGE_UE_ROOT", workflow)
+        self.assertIn("Run-UE58BotLabBuild.ps1", workflow)
+        self.assertIn("BuildDedicatedServer", workflow)
+        self.assertIn("upload-artifact@v4", workflow)
+        self.assertNotIn("pull_request:", workflow)
+
+    def test_linux_preflight_uploads_static_ue_validation_report(self):
+        workflow = (ROOT / ".github/workflows/ridge-stage5-preflight.yml").read_text(encoding="utf-8")
+        self.assertIn("ridge-ue-project-static-validation", workflow)
+        self.assertIn("ridge_ue_project_static_validation.json", workflow)
+        self.assertIn("upload-artifact@v4", workflow)
+
     def test_missing_project_descriptor_is_a_failure_not_a_false_pass(self):
         with tempfile.TemporaryDirectory() as directory:
             report = validate_project(Path(directory))

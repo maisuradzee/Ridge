@@ -294,3 +294,10 @@ Branch head `10b48cec244db236f0d81a9717535b53945042bd` passed the complete sourc
 - PostgreSQL 16 migrations 001–006/live suite: **57 PASS / 0 FAIL / 0 SKIP**
 
 Evidence: [Stage 5](https://github.com/maisuradzee/Ridge/actions/runs/45147046969) · [PostgreSQL](https://github.com/maisuradzee/Ridge/actions/runs/45147046895).
+
+
+## Unreal Engine 5.8 — real Windows compile gate
+
+The build script compiles Game + Editor and optionally Dedicated Server, and writes per-target logs plus a JSON report. A manual GitHub Actions workflow is available for a dedicated Windows self-hosted runner labeled ridge-ue58. It is not run by Linux CI and is not a compile result until the Windows runner completes.
+
+See docs/62_UE58_WINDOWS_BUILD_GATE_GE.md and Tools/BotLab/UE58_INTEGRATION_CHECKLIST_GE.md.

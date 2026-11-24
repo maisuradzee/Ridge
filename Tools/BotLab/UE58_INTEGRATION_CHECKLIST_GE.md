@@ -4,7 +4,7 @@
 python Tools\BotLab\validate_ue_project.py --project-root .
 ```
 
-Expected current result: 24/24 PASS. This checks the UE 5.8 project descriptor, Build.cs dependencies, Game/Editor/Server targets and Bot QA Controller source wiring. It does **not** prove C++ compilation, UHT, PIE, NavMesh, physics or Dedicated Server operation.
+Expected current result: 37/37 STATIC_PASS on the latest Stage 5 branch snapshot. This remains source/project validation only; UBT/UHT are not executed here. This checks the UE 5.8 project descriptor, Build.cs dependencies, Game/Editor/Server targets and Bot QA Controller source wiring. It does **not** prove C++ compilation, UHT, PIE, NavMesh, physics or Dedicated Server operation.
 
 # RIDGE BotLab — Unreal Engine 5.8 გაშვების checklist
 
@@ -67,3 +67,30 @@ The project validator now includes the client login subsystem:
 - Http module dependency and the non-secret development Gateway URL are required.
 
 CI on commit `55b2f1ccfe59cd3d97be1d941efc53d942406c77` reports **37/37 STATIC_PASS** and **77/77** source/regression checks PASS. It does not execute UBT/UHT. Run the PowerShell build script on the UE 5.8 workstation to produce the first real compile report.
+
+
+## 6. Automated Windows UE 5.8 build workflow
+
+A separate manual workflow exists at .github/workflows/ridge-ue58-windows-build.yml. It is intentionally restricted to a dedicated self-hosted Windows runner with the custom label ridge-ue58; the normal Linux Stage 5 CI never claims to be a real Unreal compile.
+
+### Runner setup
+
+1. In the private RIDGE repository, open Settings → Actions → Runners → New self-hosted runner and choose Windows x64.
+2. Follow GitHub's generated download/configuration commands on the Windows build machine. Add the custom label ridge-ue58 while configuring the runner.
+3. Install Unreal Engine 5.8, Visual Studio C++ x64 build tools and the Windows SDK required by that UE installation.
+4. Set the machine-level environment variable RIDGE_UE_ROOT to the UE 5.8 installation folder, for example D:Epic GamesUE_5.8. Restart the runner service after changing the environment.
+5. Keep this runner restricted to the RIDGE repository. Do not register it for public repositories and do not add production game/API secrets to its environment.
+
+### Run the real build
+
+1. Open Actions → RIDGE Unreal Engine 5.8 Windows Build.
+2. Select branch codex/ridge-stage-5-multiplayer and press Run workflow.
+3. Keep build_dedicated_server=true for the complete Game + Editor + Dedicated Server gate.
+
+The workflow checks the UE version and Visual Studio C++ toolchain, then runs Run-UE58BotLabBuild.ps1. A successful report must show all requested targets as PASS and UBTAndUHT=PASS. The workflow uploads ridge_ue58_build_report.json and one log per target as the ridge-ue58-windows-build artifact.
+
+If the runner is not registered/online, the workflow stays queued; a Linux static PASS is not a substitute for this build. The build does not require or use RIDGE_SERVER_EVENT_TOKEN, gateway credentials or production secrets.
+
+### What a successful build proves
+
+A successful UBT/UHT build proves the Game, Editor and selected Server targets compile against the installed UE 5.8 toolchain. It still does not prove PIE, network reachability, the login provider flow, two-player replication, encryption or 500 connected players. Those are separate runtime acceptance tests.

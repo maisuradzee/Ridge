@@ -40,6 +40,15 @@ jobs:
       - name: Unreal Engine 5.8 project static validation
         run: python Tools/BotLab/validate_ue_project.py --project-root .
 
+      - name: Upload Unreal project static validation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ridge-ue-project-static-validation
+          path: RIDGE_GIS/Data/QA/ridge_ue_project_static_validation.json
+          if-no-files-found: ignore
+          retention-days: 14
+
       - name: Stage 5 load-test harness unit tests
         run: node --test Tools/LoadTest/test_load_test.mjs
 
