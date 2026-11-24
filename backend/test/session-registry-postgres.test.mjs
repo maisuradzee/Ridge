@@ -9,7 +9,7 @@ const hasDatabaseUrl = Boolean(process.env.DATABASE_URL);
 
 
 
-test('PostgreSQL transport-key registry persists public-only X25519 metadata and rotates without overwriting old key', { skip: !runAgainstPostgres }, async () => {
+test('PostgreSQL transport-key registry persists public-only X25519 metadata and rotates without overwriting old key', { skip: !enabled }, async () => {
   assert.ok(process.env.DATABASE_URL);
   const { Pool } = await import('pg');
   const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 2, connectionTimeoutMillis: 3000 });
