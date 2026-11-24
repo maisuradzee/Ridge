@@ -27,6 +27,22 @@ Stage 5-ის ჩვეულებრივი CI Linux runner-ზე ას�
    გამოიყენეთ თქვენი რეალური install path და არა აუცილებლად ზემოთ მოყვანილი მაგალითი. თუ runner Windows service-ად მუშაობს, environment variable-ის შეცვლის შემდეგ restart გაუკეთეთ service-ს.
 6. Runner შეზღუდეთ მხოლოდ RIDGE repository-ზე. არ გამოიყენოთ public repository-ებისთვის და არ დაამატოთ Production server/gateway/provisioning secrets.
 
+## 2A. უსაფრთხოება — RIDGE საცავი საჯაროა
+
+RIDGE repository საჯაროა. ამიტომ მუდმივად ჩართული self-hosted runner არ უნდა იყოს ყოველდღიური სამუშაო კომპიუტერი ან კომპიუტერი, სადაც ინახება პირადი ფაილები, SSH გასაღებები, ბრაუზერის სესიები ან სხვა პროექტების წვდომები.
+
+აუცილებელი შეზღუდვები:
+
+1. გამოიყენეთ ცალკე Windows VM ან build მანქანა, რომელიც არ შეიცავს პირად/საწარმოო მონაცემებს და არ აქვს Production ქსელთან წვდომა.
+2. Runner დაარეგისტრირეთ მხოლოდ RIDGE repository-ზე და გამოიყენეთ მხოლოდ `ridge-ue58` label.
+3. გამოიყენეთ არაპრივილეგირებული, ცალკე Windows ანგარიში; არ გაუშვათ runner Administrator-ად.
+4. Runner-ის გარემოში არ შეინახოთ Supabase, Gateway, Provisioner, SSH ან Production secrets. ეს build workflow-ს არ სჭირდება.
+5. Workflow ხელით გაუშვით მხოლოდ შემოწმებული, სანდო branch-იდან. არ გაუშვათ build უცნობი fork-ის ან დაუმოწმებელი commit-ის კოდზე.
+6. უპირატესობა მიანიჭეთ ephemeral/ერთჯერად VM runner-ს. თუ runner მუდმივი რჩება, ყოველი job-ის შემდეგ შეამოწმეთ სამუშაო დირექტორია და VM პერიოდულად თავიდან ააწყეთ სუფთა image-იდან.
+7. Runner-ის outbound ქსელური წვდომა შეზღუდეთ მხოლოდ GitHub Actions-ისა და build-ისთვის აუცილებელი წყაროებით.
+
+Workflow განზრახ მხოლოდ `workflow_dispatch` trigger-ს იყენებს — Pull Request ან Push ავტომატურად ვერ გაუშვებს კოდს ამ Windows runner-ზე. ეს შეზღუდვა არ აუქმებს ზემოთ ჩამოთვლილ იზოლაციის მოთხოვნებს.
+
 ## 3. Workflow-ის გაშვება
 
 GitHub-ში:
