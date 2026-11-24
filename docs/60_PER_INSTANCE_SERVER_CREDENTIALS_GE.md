@@ -25,6 +25,7 @@ Required in production:
     RIDGE_STORAGE=postgres
     DATABASE_URL=<private-postgres-connection>
     RIDGE_SERVER_PROVISIONING_TOKEN=<secret-store-control-plane-token>
+    RIDGE_SERVER_PROVISIONING_ACTOR_ID=ridge-orchestrator-prod-01
     RIDGE_GATEWAY_TOKEN=<internal-session-gateway-token>
     RIDGE_SERVER_EVENT_TOKEN=
     RIDGE_TRUST_PROXY=true
@@ -118,13 +119,13 @@ The per-instance credential is not an account login token. Player identity is se
 
 ## 7. Current implementation boundary
 
-Migration: database/migrations/006_dedicated_server_credentials.sql.
+Migrations: database/migrations/006_dedicated_server_credentials.sql and database/migrations/008_credential_audit_actor.sql.
 
-The registry stores only SHA-256 token hashes, issues 90-day credentials by default, rotates by replacing the active hash and supports explicit revocation. Production startup requires RIDGE_SERVER_PROVISIONING_TOKEN and PostgreSQL migration 006. The old shared RIDGE_SERVER_EVENT_TOKEN fallback is accepted only in development/test mode.
+The registry stores only SHA-256 token hashes, issues 90-day credentials by default, rotates by replacing the active hash and supports explicit revocation. Production startup requires RIDGE_SERVER_PROVISIONING_TOKEN, RIDGE_SERVER_PROVISIONING_ACTOR_ID and PostgreSQL migration 008 (in addition to migrations 004–007). The old shared RIDGE_SERVER_EVENT_TOKEN fallback is accepted only in development/test mode.
 
 Still required before production:
 - attach the issuance response to a production secret manager/orchestrator and prove secret redaction;
-- connect the audit events to an individually authenticated orchestrator/operator identity; the current API records the provisioner action class but not a human actor ID;
+- connect the configured service principal to individually authenticated orchestrator/operator identities; current events identify the trusted provisioning service, not a human operator;
 - provision and restart a real Windows/Linux UE Dedicated Server process using the per-instance secret;
 - verify no client package, crash log, analytics event or process argument leaks the token;
 - compile UE 5.8 UBT/UHT and run real registration, heartbeat, join, logout and rotation tests;
@@ -156,7 +157,7 @@ Migration database/migrations/007_server_credential_audit.sql adds ridge.dedicat
 - rotated when an unexpired active credential is atomically replaced, including the previous credential UUID;
 - revoked when the current credential is revoked.
 
-The event table contains credential UUIDs and timestamps only. It never stores bearer tokens or SHA-256 token digests. An identity-sequence column gives stable newest-first ordering. A PostgreSQL trigger rejects UPDATE and DELETE statements against the audit events.
+The event table contains credential UUIDs, actor type/ID and timestamps. It never stores bearer tokens or SHA-256 token digests. An identity-sequence column gives stable newest-first ordering. A PostgreSQL trigger rejects UPDATE and DELETE statements against the audit events.
 
 ### Protected audit endpoint
 
@@ -181,11 +182,30 @@ The endpoint is available only to the provisioner token and through the private 
 
 The API response intentionally omits plaintext tokens and token hashes. Issue, rotation and revocation each write the corresponding audit event inside the same PostgreSQL transaction as the credential change. A failed audit insert rolls back the credential change. A per-server transaction-scoped advisory lock serializes concurrent issue/revoke operations.
 
-The current provisioner credential is shared by the orchestrator, so the audit event does not identify a human operator. Individual operator attribution remains an external identity/orchestrator integration gate. The SQL trigger protects normal application DML; database owners/superusers can still alter database objects and must be governed separately.
+Migration 008 adds actor_type and actor_id. After successful provisioning-token authentication, the API obtains this identity only from RIDGE_SERVER_PROVISIONING_ACTOR_ID on the server; request headers or JSON fields supplied by a caller are ignored. Existing migration-007 rows are backfilled as actor_type=service and actor_id=legacy-provisioner. Production startup requires a stable service-principal ID. This is service-level attribution only: because the current provisioner credential is shared, it does not identify a human operator. Individual operator attribution still requires an authenticated orchestrator/operator identity integration. The SQL trigger protects normal application DML; database owners/superusers can still alter database objects and must be governed separately.
 
 ### Validation
 
 - Memory registry lifecycle tests cover issued → rotated → revoked and cross-shard isolation.
 - HTTP tests verify that audit reads require the provisioning token and reject invalid limits.
 - PostgreSQL integration verifies event order/linkage and confirms UPDATE/DELETE are rejected by the trigger.
-- PostgreSQL readiness now requires migration 007's audit table.
+- PostgreSQL readiness now requires the audit table and migration 008's actor_id column.
+
+
+## 10. Trusted provisioning service actor — Stage 5 increment (2026-11-24)
+
+Migration `008_credential_audit_actor.sql` adds `actor_type` and `actor_id` to the append-only audit table. New issue/rotation/revoke events must include the actor fields in the same PostgreSQL transaction as the credential mutation.
+
+Production configuration:
+
+    RIDGE_SERVER_PROVISIONING_ACTOR_ID=ridge-orchestrator-prod-01
+
+Rules:
+- The value is a stable non-secret service-principal identifier (1–80 characters, letters/numbers followed by letters/numbers/dot/underscore/colon/hyphen).
+- The API reads it from its protected process environment after validating the provisioner bearer token.
+- The API does not accept an actor ID from request headers, query parameters or JSON.
+- Production startup fails closed when this ID is missing or malformed.
+- The development fallback is explicitly marked `ridge-development-orchestrator` or `ridge-development-compatibility`.
+- Actor type is currently `service`; user-level attribution is not implemented.
+
+This improves service-level traceability, but does not prove which human initiated an orchestrator action when multiple operators share the same provisioner secret. That requires a future authenticated operator identity and authorization integration.
