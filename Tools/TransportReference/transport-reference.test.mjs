@@ -199,3 +199,22 @@ test('malformed fields and accidental cleartext ticket are rejected', () => {
   assert.throws(() => open({ ...base, envelope: { ...e, nonce: 'AA' } }), codeIs('INVALID_NONCE'));
   assert.throws(() => open({ ...base, envelope: { ...e, ciphertext: '' } }), codeIs('INVALID_CIPHERTEXT'));
 });
+
+
+test('AES-256-GCM known-answer vector fixes ciphertext and authentication-tag bytes', () => {
+  const c = vector;
+  const aad = aadFor({
+    keyId: c.keyId, serverId: c.serverId, sessionId: c.sessionId,
+    claimAttemptId: c.claimAttemptId, expiresAt: c.expiresAt,
+    clientPublicKey: c.clientPublicKey, serverPublicKey: c.serverPublicKey,
+  });
+  const nonce = Buffer.from('000102030405060708090a0b', 'hex');
+  const plaintext = Buffer.from(JSON.stringify([
+    MARKER, ticket, c.serverId, c.sessionId, c.claimAttemptId, c.expiresAt,
+  ]));
+  const cipher = createCipheriv('aes-256-gcm', Buffer.from(c.joinEnvelopeKeyHex, 'hex'), nonce, { authTagLength: TAG_BYTES });
+  cipher.setAAD(aad);
+  const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final()]);
+  assert.equal(ciphertext.toString('hex'), '4780c675c582fc5b147dacd1642c530d8005d64c7bde9b5651f808885dbf928b3451215cc2de02cd18eee6b3d92031777448636c71939af53ca0f24a7ab0717b3161884a8fc08b20c61a70463eebea1bcd15967a812082d596c758fbc1cd49f6ef89b7f6e55fe2f42af089d68bc4e1d8e63312e3a9c407ae8de7caa8a6b5b8469a8a192e57bf72682cf9be81dddd6b6530d385c40777ec2575f2e093ddcf4442b4e935e50cfacdf2d4dd877dab61771cf8a625c80fa3b9249d');
+  assert.equal(cipher.getAuthTag().toString('hex'), '4f5becd381159957858f7aa3148436d7');
+});

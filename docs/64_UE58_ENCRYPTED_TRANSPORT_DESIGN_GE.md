@@ -278,3 +278,8 @@ The reference contract fixes:
 The deterministic X25519/HKDF known-answer fixture uses **synthetic test-only private scalars**. CI verifies that both sides derive the exact same 256-bit key, as well as envelope round-trip, fresh key/nonce use and tamper/fail-closed cases.
 
 This reference suite validates only the proposed join-envelope format. It does **not** select the UE 5.8 crypto provider, register/publish/rotate server ephemeral public keys, wire the Gateway or Dedicated Server to this format, install PacketHandler traffic keys, encrypt gameplay packets, or prove an Unreal runtime handshake. The UE 5.8 bundled provider inspection remains pending on the restricted Windows runner. Production gameplay admission remains blocked.
+
+
+### AES-256-GCM deterministic interoperability vector
+
+The reference suite now also fixes one complete AES-256-GCM result using the derived 32-byte known-answer key, the canonical AAD, nonce `000102030405060708090a0b`, and the synthetic join-ticket plaintext. CI asserts the exact ciphertext bytes and 16-byte authentication tag, rather than relying only on an encrypt/decrypt round trip. This provides a byte-for-byte target for a future UE C++/OpenSSL provider implementation. It remains a reference-format test only and does not prove UE PacketHandler/runtime encryption.
