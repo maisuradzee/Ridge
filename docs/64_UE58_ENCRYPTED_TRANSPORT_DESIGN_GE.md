@@ -288,3 +288,8 @@ The reference suite now also fixes one complete AES-256-GCM result using the der
 ### Canonical ticket validation hardening
 
 The server-side reference decoder now validates the decrypted ticket as a canonical, unpadded base64url encoding of exactly 32 bytes, not merely a 43-character string. A regression vector constructs authenticated ciphertext containing a 43-character value with non-zero unused pad bits; the envelope must be rejected after successful AEAD authentication. This prevents multiple textual encodings of the same ticket bytes from being accepted at the envelope boundary.
+
+
+### Server-key validity bound
+
+The envelope opener now requires the server registry's trusted `expectedKeyExpiresAt` for the selected `keyId`. It rejects expired server keys and rejects any join envelope whose ticket expiry is later than the key's validity. The key expiry is obtained from the trusted server-side key record, not from a client-controlled envelope field. This prevents a ticket from being accepted under a server key beyond that key's configured lifetime.

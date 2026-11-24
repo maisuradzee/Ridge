@@ -85,7 +85,7 @@ const seal = ({ serverPublicKey, keyId, serverId, sessionId, claimAttemptId, exp
   } finally { plaintext.fill(0); key.fill(0); }
   return { ...c, nonce: nonce.toString('base64url'), ciphertext: ciphertext.toString('base64url'), tag: tag.toString('base64url') };
 };
-const open = ({ envelope: e, serverPrivateKey, expectedKeyId, expectedServerId, nowSeconds = Math.floor(Date.now() / 1000) }) => {
+const open = ({ envelope: e, serverPrivateKey, expectedKeyId, expectedServerId, expectedKeyExpiresAt, nowSeconds = Math.floor(Date.now() / 1000) }) => {
   if (!serverPrivateKey || serverPrivateKey.type !== 'private' || serverPrivateKey.asymmetricKeyType !== 'x25519') fail('INVALID_PRIVATE_KEY');
   const fields = ['protocolVersion', 'suite', 'keyId', 'serverId', 'sessionId', 'claimAttemptId', 'expiresAt', 'clientPublicKey', 'serverPublicKey', 'nonce', 'ciphertext', 'tag'].sort();
   if (!e || typeof e !== 'object' || Array.isArray(e) || Object.keys(e).sort().join('|') !== fields.join('|')) fail('INVALID_ENVELOPE_FIELDS');
@@ -93,8 +93,11 @@ const open = ({ envelope: e, serverPrivateKey, expectedKeyId, expectedServerId, 
   if (e.keyId !== expectedKeyId) fail('KEY_ID_MISMATCH');
   if (e.serverId !== expectedServerId) fail('SERVER_ID_MISMATCH');
   if (!Number.isSafeInteger(nowSeconds) || nowSeconds <= 0) fail('INVALID_CLOCK');
+  if (!Number.isSafeInteger(expectedKeyExpiresAt) || expectedKeyExpiresAt <= 0) fail('INVALID_SERVER_KEY_EXPIRY');
+  if (expectedKeyExpiresAt <= nowSeconds) fail('SERVER_KEY_EXPIRED');
   const c = normalize(e);
   if (c.expiresAt <= nowSeconds) fail('ENVELOPE_EXPIRED');
+  if (c.expiresAt > expectedKeyExpiresAt) fail('ENVELOPE_EXCEEDS_SERVER_KEY_EXPIRY');
   if (rawPublic(serverPrivateKey) !== c.serverPublicKey) fail('SERVER_KEY_MISMATCH');
   const nonce = decode(e.nonce, 'INVALID_NONCE', NONCE_BYTES);
   const ciphertext = decode(e.ciphertext, 'INVALID_CIPHERTEXT');
@@ -164,7 +167,7 @@ test('join ticket is encrypted, omitted from cleartext fields and opens only for
   assert.equal(Buffer.from(e.nonce, 'base64url').length, NONCE_BYTES);
   assert.equal(Buffer.from(e.tag, 'base64url').length, TAG_BYTES);
   assert.equal(Object.hasOwn(e, 'ticket'), false); assert.equal(JSON.stringify(e).includes(ticket), false);
-  assert.deepEqual(open({ envelope: e, serverPrivateKey: s.privateKey, expectedKeyId: 'key-01', expectedServerId: 'shard-a', nowSeconds: 1999999000 }), {
+  assert.deepEqual(open({ envelope: e, serverPrivateKey: s.privateKey, expectedKeyId: 'key-01', expectedServerId: 'shard-a', expectedKeyExpiresAt: 2000000100, nowSeconds: 1999999000 }), {
     ticket, serverId: 'shard-a', sessionId: 'session-1', claimAttemptId: 'attempt-1', expiresAt: 2000000000, keyId: 'key-01',
   });
 });
@@ -173,19 +176,19 @@ test('each envelope gets a fresh ephemeral client key and nonce', () => {
   const s = pair(), p = { serverPublicKey: s.publicKey, keyId: 'key-fresh', serverId: 'shard-fresh', sessionId: 'session-fresh', claimAttemptId: 'attempt-fresh', expiresAt: 2000000000, ticket };
   const a = seal(p), b = seal(p);
   assert.notEqual(a.clientPublicKey, b.clientPublicKey); assert.notEqual(a.nonce, b.nonce);
-  assert.equal(open({ envelope: b, serverPrivateKey: s.privateKey, expectedKeyId: p.keyId, expectedServerId: p.serverId, nowSeconds: 1999999000 }).ticket, ticket);
+  assert.equal(open({ envelope: b, serverPrivateKey: s.privateKey, expectedKeyId: p.keyId, expectedServerId: p.serverId, expectedKeyExpiresAt: 2000000100, nowSeconds: 1999999000 }).ticket, ticket);
 });
 
 test('tampered ciphertext and authenticated context fail closed', () => {
   const s = pair(), e = seal({ serverPublicKey: s.publicKey, keyId: 'key-tamper', serverId: 'shard-tamper', sessionId: 'session-tamper', claimAttemptId: 'attempt-tamper', expiresAt: 2000000000, ticket });
   const bytes = Buffer.from(e.ciphertext, 'base64url'); bytes[0] ^= 1;
-  assert.throws(() => open({ envelope: { ...e, ciphertext: bytes.toString('base64url') }, serverPrivateKey: s.privateKey, expectedKeyId: e.keyId, expectedServerId: e.serverId, nowSeconds: 1999999000 }), codeIs('ENVELOPE_AUTH_FAILED'));
-  assert.throws(() => open({ envelope: { ...e, sessionId: 'changed-session' }, serverPrivateKey: s.privateKey, expectedKeyId: e.keyId, expectedServerId: e.serverId, nowSeconds: 1999999000 }), codeIs('ENVELOPE_AUTH_FAILED'));
+  assert.throws(() => open({ envelope: { ...e, ciphertext: bytes.toString('base64url') }, serverPrivateKey: s.privateKey, expectedKeyId: e.keyId, expectedServerId: e.serverId, expectedKeyExpiresAt: 2000000100, nowSeconds: 1999999000 }), codeIs('ENVELOPE_AUTH_FAILED'));
+  assert.throws(() => open({ envelope: { ...e, sessionId: 'changed-session' }, serverPrivateKey: s.privateKey, expectedKeyId: e.keyId, expectedServerId: e.serverId, expectedKeyExpiresAt: 2000000100, nowSeconds: 1999999000 }), codeIs('ENVELOPE_AUTH_FAILED'));
 });
 
 test('wrong key ID, server, private key and expired envelope are rejected', () => {
   const s = pair(), other = pair(), e = seal({ serverPublicKey: s.publicKey, keyId: 'key-guard', serverId: 'shard-guard', sessionId: 'session-guard', claimAttemptId: 'attempt-guard', expiresAt: 2000000000, ticket });
-  const base = { envelope: e, serverPrivateKey: s.privateKey, expectedKeyId: e.keyId, expectedServerId: e.serverId, nowSeconds: 1999999000 };
+  const base = { envelope: e, serverPrivateKey: s.privateKey, expectedKeyId: e.keyId, expectedServerId: e.serverId, expectedKeyExpiresAt: 2000000100, nowSeconds: 1999999000 };
   assert.throws(() => open({ ...base, expectedKeyId: 'wrong' }), codeIs('KEY_ID_MISMATCH'));
   assert.throws(() => open({ ...base, expectedServerId: 'wrong' }), codeIs('SERVER_ID_MISMATCH'));
   assert.throws(() => open({ ...base, serverPrivateKey: other.privateKey }), codeIs('SERVER_KEY_MISMATCH'));
@@ -252,6 +255,26 @@ test('server rejects an authenticated plaintext ticket with non-canonical base64
   assert.throws(() => open({
     envelope, serverPrivateKey: server.privateKey,
     expectedKeyId: context.keyId, expectedServerId: context.serverId,
+    expectedKeyExpiresAt: 2000000100,
     nowSeconds: 1999999000,
   }), codeIs('INVALID_JOIN_TICKET'));
+});
+
+
+test('envelope expiry cannot outlive the selected server key validity', () => {
+  const server = pair();
+  const context = {
+    serverPublicKey: server.publicKey, keyId: 'key-expiry-bound',
+    serverId: 'shard-expiry-bound', sessionId: 'session-expiry-bound',
+    claimAttemptId: 'attempt-expiry-bound', expiresAt: 2000000200, ticket,
+  };
+  const envelope = seal(context);
+  const base = {
+    envelope, serverPrivateKey: server.privateKey,
+    expectedKeyId: context.keyId, expectedServerId: context.serverId,
+    expectedKeyExpiresAt: 2000000100, nowSeconds: 1999999000,
+  };
+  assert.throws(() => open(base), codeIs('ENVELOPE_EXCEEDS_SERVER_KEY_EXPIRY'));
+  assert.throws(() => open({ ...base, expectedKeyExpiresAt: 1999998999 }), codeIs('SERVER_KEY_EXPIRED'));
+  assert.throws(() => open({ ...base, expectedKeyExpiresAt: undefined }), codeIs('INVALID_SERVER_KEY_EXPIRY'));
 });
