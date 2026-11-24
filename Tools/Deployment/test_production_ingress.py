@@ -57,8 +57,14 @@ class ProductionIngressContractTests(unittest.TestCase):
             self.assertNotIn(forbidden, line)
 
     def test_backend_upstream_is_loopback_only(self):
-        self.assertRegex(self.config, r"server\s+127\.0\.0\.1:8787;")
-        self.assertNotRegex(self.config, r"server\s+(?:0\.0\.0\.0|[0-9]{1,3}(?:\.[0-9]{1,3}){3}):8787;")
+        upstream = re.search(
+            r"upstream\s+ridge_api_backend\s*\{([^}]*)\}",
+            self.config,
+            re.DOTALL,
+        )
+        self.assertIsNotNone(upstream)
+        servers = re.findall(r"^\s*server\s+([^;]+);", upstream.group(1), re.MULTILINE)
+        self.assertEqual(servers, ["127.0.0.1:8787"])
 
     def _location_block(self, declaration):
         start = self.config.find(declaration)
