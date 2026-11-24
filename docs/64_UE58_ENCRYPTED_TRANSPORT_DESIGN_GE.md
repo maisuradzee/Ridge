@@ -293,3 +293,32 @@ The server-side reference decoder now validates the decrypted ticket as a canoni
 ### Server-key validity bound
 
 The envelope opener now requires the server registry's trusted `expectedKeyExpiresAt` for the selected `keyId`. It rejects expired server keys and rejects any join envelope whose ticket expiry is later than the key's validity. The key expiry is obtained from the trusted server-side key record, not from a client-controlled envelope field. This prevents a ticket from being accepted under a server key beyond that key's configured lifetime.
+
+
+## 14. Gateway secure-handoff contract — implemented / CI verified
+
+The public Gateway now accepts an optional `clientTransportPublicKey` in `POST /v1/gateway/session`. When present:
+
+- The value must be canonical, unpadded base64url for a raw 32-byte X25519 public key. Malformed, non-canonical, invalid and low-order points are rejected before session allocation.
+- After selecting a shard, the Gateway reads that exact shard's latest non-revoked, non-expired X25519 public key from the registry.
+- The server key must remain valid at least through the join-ticket expiry. A missing key or too-short lifetime returns HTTP 503 and releases the newly allocated reservation; no ticket is issued.
+- The response includes a versioned `transport` block with suite, key ID, server ID, server public key and key expiry, in addition to the short-lived ticket in the HTTPS response body.
+- The secure-handoff response deliberately omits `connectionOptions` and `connectUrl`. The UE client must encrypt the ticket into the versioned envelope locally before ClientTravel; it must never place the bearer ticket in a plaintext URL.
+
+The legacy URL response exists only when no client ephemeral key is provided in Development/test. The Production Gateway remains fail-closed before identity verification and ticket issuance until the complete UE runtime transport has been compiled and accepted; this Backend contract does not enable Production gameplay.
+
+Integration coverage is in `backend/test/gateway-transport-handoff.test.mjs`:
+- valid client public key is bound to the active key of the allocated shard;
+- invalid/low-order client key is rejected before allocation;
+- missing server key and server-key expiry earlier than ticket expiry both fail closed and release reservations (verified by safe retry).
+
+Latest CI on commit `7a66c2ff35db0fd7b8da51f5fde1cd163e20390e` passed:
+- Gateway transport handoff tests: **2/2 PASS**;
+- Stage 5 backend suite: **70 PASS / 0 FAIL / 4 SKIP**;
+- PostgreSQL 16 integration: **74 PASS / 0 FAIL / 0 SKIP**.
+
+Remaining:
+- UE client ephemeral key generation and envelope sealing: **NOT_IMPLEMENTED**;
+- Dedicated Server ephemeral private-key lifecycle, envelope opening and ticket claim integration: **NOT_IMPLEMENTED**;
+- UE PacketHandler AES-GCM traffic-key install: **NOT_IMPLEMENTED**;
+- Game/Editor/Server UBT/UHT and encrypted two-client runtime: **NOT_RUN**.

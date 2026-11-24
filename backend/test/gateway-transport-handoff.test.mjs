@@ -184,4 +184,33 @@ test('Gateway releases reservation and issues no ticket when an allocated shard 
     assert.equal(response.status, 503);
     assert.equal((await response.json()).error.code, 'TRANSPORT_KEY_NOT_AVAILABLE');
   }
+
+  const shortLivedServerId = 'gateway-short-key-' + Date.now();
+  await registerShard(baseUrl, shortLivedServerId, 'ge-kutaisi');
+  const shortPair = generateKeyPairSync('x25519');
+  const shortKeyResponse = await fetch(baseUrl + '/v1/internal/shards/' + shortLivedServerId + '/transport-key', {
+    method: 'PUT',
+    headers: {
+      'content-type': 'application/json',
+      'x-ridge-server-id': shortLivedServerId,
+      'x-ridge-server-token': serverToken,
+    },
+    body: JSON.stringify({
+      keyId: 'gateway-short-expiry-' + Date.now(),
+      algorithm: 'X25519',
+      publicKey: rawX25519Public(shortPair.publicKey),
+      // Above the registry's 15-second minimum, but shorter than a 30-second join ticket.
+      expiresAt: new Date(Date.now() + 20_000).toISOString(),
+    }),
+  });
+  assert.equal(shortKeyResponse.status, 201);
+
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    const response = await requestSession(baseUrl, privateKey, kid, 'short-key-subject', {
+      region: 'ge-kutaisi',
+      clientTransportPublicKey: clientPublicKey,
+    });
+    assert.equal(response.status, 503);
+    assert.equal((await response.json()).error.code, 'TRANSPORT_KEY_EXPIRES_BEFORE_JOIN_TICKET');
+  }
 });

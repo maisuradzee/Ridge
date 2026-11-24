@@ -52,3 +52,23 @@ The transport-key registry now supports immediate, auditable key revocation.
 - PostgreSQL UPDATE/DELETE of the audit table is blocked by an append-only trigger.
 
 A revoked key is immediately excluded from Gateway key retrieval, even if its expiry timestamp is still in the future. A new key must use a new key ID.
+
+
+## 8. Gateway consumption of per-shard public keys
+
+The authenticated public OIDC Gateway now consumes the registry key in the same request that allocates a player session, rather than trusting a client-supplied server key:
+
+1. The authenticated client may supply its own ephemeral X25519 public key as `clientTransportPublicKey`.
+2. The Backend validates the client key's canonical 32-byte encoding and rejects invalid/low-order public points before allocating a session.
+3. After shard selection, the Gateway fetches the currently active public key for the exact allocated `serverId`.
+4. The selected key must be non-revoked, unexpired and valid through the issued ticket's full expiry. Otherwise the request fails with HTTP 503 and the allocation is released.
+5. The success response returns `transport.protocolVersion`, `suite`, `algorithm`, `keyId`, `serverId`, `serverPublicKey` and key `expiresAt`. The response does not contain plaintext `connectionOptions` or `connectUrl`; the ticket is returned only in the authenticated HTTPS JSON body so the UE client can seal it locally.
+
+This integration does not persist the client's public key and does not imply that the Gateway can decrypt the join envelope. The corresponding client/server X25519 private keys remain local to their processes. The C++ handoff and envelope decryption are still pending the actual UE 5.8 crypto-provider compile/runtime verification.
+
+Development without `clientTransportPublicKey` retains the existing test handoff. Production remains blocked by the source-controlled game-transport readiness guard until Unreal encrypted transport passes its release acceptance tests.
+
+Acceptance:
+- Gateway client-key validation and selected-shard key binding: **IMPLEMENTED / CI_VERIFIED**.
+- Missing/expired server-key failure and reservation rollback: **IMPLEMENTED / CI_VERIFIED**.
+- UE client envelope sealing and Dedicated Server envelope opening: **NOT_IMPLEMENTED**.
