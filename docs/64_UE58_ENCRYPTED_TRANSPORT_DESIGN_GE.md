@@ -167,3 +167,26 @@ Acceptance state:
 - Production session gate: **IMPLEMENTED / CI-VERIFIED**.
 - Actual encrypted UE transport: **NOT_IMPLEMENTED**.
 - UBT/UHT and encrypted PIE/two-client test: **NOT_RUN**.
+
+
+## 10. Production readiness reporting — 2026-11-24
+
+The API's `GET /ready` response now reports two separate operational facts:
+
+- `ok: true` and `sessionRegistry: true` mean the API/storage/session control plane passed its readiness checks.
+- `gameplayAdmission` reports whether player-facing game sessions may be admitted. In Production, while encryption runtime verification remains false, it returns:
+  - `status: "blocked"`
+  - `gameSessionsEnabled: false`
+  - `encryptionRuntimeVerified: false`
+  - `reasonCode: "GAME_TRANSPORT_ENCRYPTION_NOT_READY"`
+
+This separation is intentional. Operators can diagnose a healthy control plane without mistaking it for permission to accept unsafe player sessions. Monitoring must alert on `gameplayAdmission.gameSessionsEnabled === false` when gameplay is expected. The readiness endpoint does not expose credentials, keys, join tickets or player identity.
+
+The public Gateway continues to enforce the same HTTP 503 fail-closed gate before OIDC verification, session allocation and ticket issuance. The status report is observability only; it cannot enable or bypass game transport policy.
+
+Acceptance state:
+- Readiness status helper: **IMPLEMENTED**.
+- Production control-plane/gameplay-admission distinction: **IMPLEMENTED / CI-CONTRACT_TESTED**.
+- Production Gateway block: **RETAINED**.
+- Encrypted UE game transport: **NOT_IMPLEMENTED**.
+- UE 5.8 UBT/UHT and encrypted runtime acceptance: **NOT_RUN**.

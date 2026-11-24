@@ -5,7 +5,7 @@ import { createGameService, RidgeError } from './game-service.mjs';
 import { createPostgresGameService } from './postgres-game-service.mjs';
 import { createSessionRegistry } from './session-registry.mjs';
 import { createOidcVerifier, deriveCanonicalPlayerId } from './oidc-verifier.mjs';
-import { assertGameTransportReady } from './game-transport-policy.mjs';
+import { assertGameTransportReady, getGameTransportReadiness } from './game-transport-policy.mjs';
 
 const PORT = Number(process.env.PORT ?? 8787);
 const HOST = process.env.RIDGE_HOST ?? '127.0.0.1';
@@ -250,7 +250,14 @@ async function main() {
         if (service.healthCheck) await service.healthCheck();
         const sessionRegistryReady = sessionRegistry?.healthCheck ? await sessionRegistry.healthCheck() : false;
         if (!sessionRegistryReady) throw new RidgeError(503, 'SESSION_REGISTRY_NOT_READY', 'Session registry მზად არ არის.');
-        return send(response, 200, { ok: true, storage: service.storageMode ?? 'memory-ephemeral', sessionRegistry: true });
+        return send(response, 200, {
+          ok: true,
+          storage: service.storageMode ?? 'memory-ephemeral',
+          sessionRegistry: true,
+          // This reports player-session admission separately from API/control-plane health.
+          // Production may be operational while new gameplay sessions remain fail-closed.
+          gameplayAdmission: getGameTransportReadiness({ environment: ENV }),
+        });
       }
       // Public player session entry. Identity is derived only from a verified OIDC JWT.
       if (request.method === 'POST' && url.pathname === '/v1/gateway/session') {
