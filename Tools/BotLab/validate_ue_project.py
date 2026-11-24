@@ -42,6 +42,18 @@ def validate_project(root: Path) -> dict[str, Any]:
     add("engine_association_58", project.get("EngineAssociation") == "5.8", f"EngineAssociation={project.get('EngineAssociation')!r}")
     modules = project.get("Modules", [])
     add("runtime_module_registered", any(m.get("Name") == "RIDGE" and m.get("Type") == "Runtime" for m in modules if isinstance(m, dict)), "RIDGE Runtime module registration")
+    plugins = project.get("Plugins", [])
+    enabled_plugins = {p.get("Name"): p.get("Enabled") for p in plugins if isinstance(p, dict)}
+    add(
+        "transport_platform_crypto_plugin_enabled",
+        enabled_plugins.get("PlatformCrypto") is True,
+        "PlatformCrypto plugin is explicitly enabled",
+    )
+    add(
+        "transport_aes_gcm_handler_plugin_enabled",
+        enabled_plugins.get("AESGCMHandlerComponent") is True,
+        "AESGCMHandlerComponent plugin is explicitly enabled",
+    )
 
     add("module_build_cs_exists", module_path.is_file(), "Source/RIDGE/RIDGE.Build.cs")
     build_cs = module_path.read_text(encoding="utf-8") if module_path.is_file() else ""
