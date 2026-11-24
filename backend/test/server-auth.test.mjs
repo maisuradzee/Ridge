@@ -414,6 +414,8 @@ test('per-instance server credential is isolated, rotated and revoked by the pro
   const provisionHeaders = {
     'content-type': 'application/json',
     'x-ridge-provisioning-token': provisioningToken,
+    // Must never override the server-configured service principal.
+    'x-ridge-provisioning-actor-id': 'forged-client-actor',
   };
   const firstResponse = await fetch(credentialUrl, { method: 'POST', headers: provisionHeaders });
   assert.equal(firstResponse.status, 201);
