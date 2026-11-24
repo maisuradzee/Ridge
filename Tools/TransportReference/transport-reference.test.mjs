@@ -197,7 +197,7 @@ test('wrong key ID, server, private key and expired envelope are rejected', () =
 
 test('malformed fields and accidental cleartext ticket are rejected', () => {
   const s = pair(), e = seal({ serverPublicKey: s.publicKey, keyId: 'key-format', serverId: 'shard-format', sessionId: 'session-format', claimAttemptId: 'attempt-format', expiresAt: 2000000000, ticket });
-  const base = { serverPrivateKey: s.privateKey, expectedKeyId: e.keyId, expectedServerId: e.serverId, nowSeconds: 1999999000 };
+  const base = { serverPrivateKey: s.privateKey, expectedKeyId: e.keyId, expectedServerId: e.serverId, expectedKeyExpiresAt: 2000000100, nowSeconds: 1999999000 };
   assert.throws(() => open({ ...base, envelope: { ...e, ticket } }), codeIs('INVALID_ENVELOPE_FIELDS'));
   assert.throws(() => open({ ...base, envelope: { ...e, clientPublicKey: 'short' } }), codeIs('INVALID_CLIENT_PUBLIC_KEY'));
   assert.throws(() => open({ ...base, envelope: { ...e, nonce: 'AA' } }), codeIs('INVALID_NONCE'));
