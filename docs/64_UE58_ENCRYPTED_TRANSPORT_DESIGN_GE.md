@@ -190,3 +190,27 @@ Acceptance state:
 - Production Gateway block: **RETAINED**.
 - Encrypted UE game transport: **NOT_IMPLEMENTED**.
 - UE 5.8 UBT/UHT and encrypted runtime acceptance: **NOT_RUN**.
+
+
+## 11. Live Production-mode Gateway smoke test — 2026-11-24
+
+The PostgreSQL integration workflow now includes a process-level Production smoke test against its isolated PostgreSQL 16 database.
+
+The test starts the actual `backend/src/server.mjs` process with:
+- `RIDGE_ENV=production` and `RIDGE_STORAGE=postgres`;
+- the CI-only provisioner token and stable service-principal ID;
+- trusted-proxy mode and structurally valid HTTPS OIDC issuer/JWKS configuration.
+
+It then verifies:
+1. The running Production API reaches `/health` and `/ready`.
+2. `/ready` reports the control plane as healthy while `gameplayAdmission.gameSessionsEnabled` remains false.
+3. A real HTTP `POST /v1/gateway/session` without an Authorization header returns **503 / GAME_TRANSPORT_ENCRYPTION_NOT_READY**, rather than the OIDC missing-token response. This proves the live route checks the transport gate before attempting OIDC validation.
+4. PostgreSQL session and join-ticket row counts are unchanged by the blocked request.
+
+The test runs only in the PostgreSQL integration workflow where `RIDGE_RUN_POSTGRES_INTEGRATION=YES`; it is skipped by the isolated in-memory Stage 5 preflight. It uses only ephemeral CI credentials and a disposable CI database.
+
+Acceptance state:
+- Helper and source-order contracts: **CI_VERIFIED**.
+- Live Production-mode HTTP 503 gate: **CI_INTEGRATION_TESTED** when the PostgreSQL workflow passes.
+- Database side-effect check for blocked login: **CI_INTEGRATION_TESTED** when the PostgreSQL workflow passes.
+- Encrypted UE transport: **NOT_IMPLEMENTED**; Production player sessions remain blocked.
