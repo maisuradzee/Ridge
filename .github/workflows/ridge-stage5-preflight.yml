@@ -32,10 +32,26 @@ jobs:
           node-version: "22"
 
       - name: Python syntax validation
-        run: python -m compileall -q Tools/BotLab Tools/Health
+        run: python -m compileall -q Tools/BotLab Tools/Health Tools/Deployment
 
       - name: BotLab, Unreal source and Stage 5 replication contracts
         run: python -m unittest discover -s Tools/BotLab/tests -p "test_*.py" -v
+
+      - name: Production ingress security contracts
+        run: python -m unittest discover -s Tools/Deployment -p "test_*.py" -v
+
+      - name: Install Nginx for configuration validation
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y nginx
+          sudo mkdir -p /etc/letsencrypt/live/ridge-api.example.com
+          sudo openssl req -x509 -nodes -newkey rsa:2048 \
+            -keyout /etc/letsencrypt/live/ridge-api.example.com/privkey.pem \
+            -out /etc/letsencrypt/live/ridge-api.example.com/fullchain.pem \
+            -days 1 -subj "/CN=ridge-api.example.com"
+          sudo rm -f /etc/nginx/sites-enabled/default
+          sudo cp deploy/production/nginx-ridge.conf /etc/nginx/conf.d/ridge-api.conf
+          sudo nginx -t
 
       - name: Unreal Engine 5.8 project static validation
         run: python Tools/BotLab/validate_ue_project.py --project-root .
