@@ -152,6 +152,29 @@ test('trusted dedicated-server HTTP flow accepts a delivery, records checkpoints
   assert.equal((await wallet.json()).balance, '15.00');
 });
 
+test('production requires a trusted server-provisioning service-principal ID', async () => {
+  const port = await getFreePort();
+  const child = spawn(process.execPath, ['src/server.mjs'], {
+    cwd: backendDir,
+    env: {
+      ...process.env,
+      PORT: String(port),
+      RIDGE_ENV: 'production',
+      RIDGE_STORAGE: 'postgres',
+      RIDGE_HOST: '127.0.0.1',
+      RIDGE_SERVER_PROVISIONING_TOKEN: 'production-test-provisioner-secret',
+      RIDGE_SERVER_PROVISIONING_ACTOR_ID: '',
+    },
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  let output = '';
+  child.stdout.on('data', (chunk) => { output += chunk.toString(); });
+  child.stderr.on('data', (chunk) => { output += chunk.toString(); });
+  const [code] = await once(child, 'exit');
+  assert.equal(code, 1);
+  assert.match(output, /requires RIDGE_SERVER_PROVISIONING_ACTOR_ID/);
+});
+
 test('production mode refuses to start with ephemeral in-memory storage', async () => {
   const port = await getFreePort();
   const child = spawn(process.execPath, ['src/server.mjs'], {
