@@ -193,11 +193,12 @@
       "detail": "non-secret development Gateway URL is configured"
     }
   ],
-  "validation_revision": "7e1156c4ff462387165a2548afc55dabffecf402",
-  "workflow_run": "https://github.com/maisuradzee/Ridge/actions/runs/45363645444",
+  "validation_revision": "97d67d25064713c1654a60f8f2e7a82d7235cb0d",
+  "workflow_run": "https://github.com/maisuradzee/Ridge/actions/runs/45364048038",
   "workflow_artifact": {
     "name": "ridge-ue-project-static-validation",
     "uploaded": true,
-    "retention_days": 14
+    "retention_days": 14,
+    "expires_at": "2026-12-08T09:19:27Z"
   }
 }

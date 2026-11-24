@@ -107,3 +107,16 @@ Branch snapshot 7e1156c4ff462387165a2548afc55dabffecf402 passed:
 - 500 virtual HTTP users: 6,996 requests / 0 failures / 437.31 req/s.
 
 The static validator JSON is uploaded as artifact ridge-ue-project-static-validation for 14 days. Real UBT/UHT is not yet run. The manual Windows workflow is committed and documented in docs/62_UE58_WINDOWS_BUILD_GATE_GE.md; it requires the ridge-ue58 self-hosted runner.
+
+
+## 8. Latest final PR-head verification — 2026-11-24
+
+Branch/PR head 97d67d25064713c1654a60f8f2e7a82d7235cb0d:
+- 79/79 source/regression tests PASS;
+- 37/37 UE project static checks PASS;
+- load unit 6/6 PASS;
+- backend 55 PASS / 0 FAIL / 2 SKIP;
+- PostgreSQL migrations 001–006/live suite 57 PASS / 0 FAIL / 0 SKIP;
+- API preflight 6,995 requests / 0 failures / 437.31 req/s.
+
+Evidence: Stage 5 run 45364048038; PostgreSQL run 45364047739. The static JSON is uploaded as ridge-ue-project-static-validation. Actual UE 5.8 UBT/UHT remains NOT_RUN; use the manual workflow and ridge-ue58 runner guide.

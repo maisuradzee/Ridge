@@ -308,3 +308,10 @@ See docs/62_UE58_WINDOWS_BUILD_GATE_GE.md and Tools/BotLab/UE58_INTEGRATION_CHEC
 Manual workflow: .github/workflows/ridge-ue58-windows-build.yml. It requires a Windows self-hosted runner labelled ridge-ue58, Unreal Engine 5.8, Visual Studio C++ x64 tools and RIDGE_UE_ROOT. It builds Game + Editor and optionally Dedicated Server, then uploads a JSON result and per-target logs. It is manual-only and not triggered by Pull Requests.
 
 Latest branch CI (2026-11-24): **79/79 source tests**, UE static **37/37**, load unit **6/6**, backend **55 PASS / 0 FAIL / 2 SKIP**, PostgreSQL **57 PASS / 0 FAIL / 0 SKIP**, 500 virtual-user API **6,996 requests / 0 errors / 437.31 req/s**. These results do not prove UBT/UHT. See docs/62_UE58_WINDOWS_BUILD_GATE_GE.md.
+
+
+### Final PR-head CI — 2026-11-24
+
+On branch head 97d67d25064713c1654a60f8f2e7a82d7235cb0d: source regression **79/79 PASS**, UE static **37/37**, load unit **6/6**, backend **55 PASS / 0 FAIL / 2 SKIP**, PostgreSQL **57 PASS / 0 FAIL / 0 SKIP**, virtual API preflight **6,995 requests / 0 errors / 437.31 req/s**.
+
+Evidence: [Stage 5](https://github.com/maisuradzee/Ridge/actions/runs/45364048038) · [PostgreSQL](https://github.com/maisuradzee/Ridge/actions/runs/45364047739). These are not Unreal UBT/UHT or runtime results. The manual Windows build workflow still awaits a registered ridge-ue58 runner.

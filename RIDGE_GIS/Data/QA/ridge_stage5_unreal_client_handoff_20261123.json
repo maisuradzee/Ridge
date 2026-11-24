@@ -1,13 +1,13 @@
 {
-  "schema": "ridge.stage5.ue58-windows-build-gate.v8",
+  "schema": "ridge.stage5.ue58-windows-build-gate.v9",
   "date": "2026-11-24",
-  "testedBranchHead": "7e1156c4ff462387165a2548afc55dabffecf402",
+  "testedBranchHead": "97d67d25064713c1654a60f8f2e7a82d7235cb0d",
   "sourceImplementationCommit": "88b5b2da02c1b5109e5fcc04ffd905bcbba29e25",
   "workflow": {
     "stage5": {
-      "id": 45363645444,
+      "id": 45364048038,
       "result": "success",
-      "url": "https://github.com/maisuradzee/Ridge/actions/runs/45363645444",
+      "url": "https://github.com/maisuradzee/Ridge/actions/runs/45364048038",
       "pythonBotlabUnrealSource": "79/79 PASS",
       "unrealProjectStatic": "37/37 STATIC_PASS",
       "ueUbtUht": "NOT_RUN",
@@ -15,9 +15,9 @@
       "backendNode": "55 PASS / 0 FAIL / 2 SKIP"
     },
     "postgres": {
-      "id": 45363645446,
+      "id": 45364047739,
       "result": "success",
-      "url": "https://github.com/maisuradzee/Ridge/actions/runs/45363645446",
+      "url": "https://github.com/maisuradzee/Ridge/actions/runs/45364047739",
       "migrations": [
         "001_initial_schema.sql",
         "002_job_checkpoints.sql",
@@ -35,16 +35,16 @@
     "virtualUsers": 500,
     "durationSeconds": 15,
     "rampSeconds": 3,
-    "totalRequests": 6996,
+    "totalRequests": 6995,
     "failedRequests": 0,
     "requestsPerSecond": 437.31,
     "latencyMs": {
-      "p50": 0.33,
-      "p95": 0.59,
-      "p99": 1.59,
-      "max": 8.11
+      "p50": 0.55,
+      "p95": 0.91,
+      "p99": 2.48,
+      "max": 4.96
     },
-    "maxObservedInFlightRequests": 7,
+    "maxObservedInFlightRequests": 8,
     "notAnUnrealNetworkLoadTest": true
   },
   "concurrentLoginGuard": {
@@ -179,11 +179,18 @@
     "staticValidatorReportArtifact": {
       "name": "ridge-ue-project-static-validation",
       "uploaded": true,
-      "retentionDays": 14
+      "retentionDays": 14,
+      "expiresAt": "2026-12-08T09:19:27Z"
     },
     "actualBuildExecuted": false,
     "status": "READY_NOT_EXECUTED",
     "runnerPresence": "NOT_VERIFIED",
-    "reason": "The manual Windows workflow is committed; it needs a dedicated runner with the ridge-ue58 label and RIDGE_UE_ROOT. No UBT/UHT result has been produced yet."
+    "reason": "The manual Windows workflow is committed; it needs a dedicated runner with the ridge-ue58 label and RIDGE_UE_ROOT. No UBT/UHT result has been produced yet.",
+    "latestLinuxVerification": {
+      "stage5Run": 45364048038,
+      "postgresRun": 45364047739,
+      "stage5Result": "SUCCESS",
+      "postgresResult": "SUCCESS"
+    }
   }
 }

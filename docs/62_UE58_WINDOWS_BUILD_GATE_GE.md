@@ -83,3 +83,13 @@ The Windows workflow source and static contracts are covered by the latest Linux
 - The UE project static report is uploaded as ridge-ue-project-static-validation (14-day retention).
 
 Actual Windows UBT/UHT remains NOT_RUN until the manual workflow is dispatched on a registered ridge-ue58 runner.
+
+
+## 7. Final PR-head CI result — 2026-11-24
+
+On head 97d67d25064713c1654a60f8f2e7a82d7235cb0d:
+- [Stage 5 source/static/API preflight](https://github.com/maisuradzee/Ridge/actions/runs/45364048038): **SUCCESS**, source 79/79, UE static 37/37, load unit 6/6, backend Node 55 PASS / 0 FAIL / 2 SKIP.
+- [PostgreSQL 16 live integration](https://github.com/maisuradzee/Ridge/actions/runs/45364047739): **SUCCESS**, migrations 001–006, live suite 57 PASS / 0 FAIL / 0 SKIP.
+- Static validator JSON is uploaded as ridge-ue-project-static-validation, with 14-day retention.
+
+The manual Windows UE build workflow has not been dispatched; UBT/UHT remains NOT_RUN pending the ridge-ue58 runner.

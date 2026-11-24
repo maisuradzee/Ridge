@@ -328,3 +328,18 @@ The Linux Stage 5 CI for branch snapshot 7e1156c4ff462387165a2548afc55dabffecf40
 Evidence: [Stage 5](https://github.com/maisuradzee/Ridge/actions/runs/45363645444) · [PostgreSQL 16](https://github.com/maisuradzee/Ridge/actions/runs/45363645446). The UE static report is also uploaded as the artifact ridge-ue-project-static-validation (14-day retention).
 
 **UBT/UHT remains NOT_RUN.** The Windows workflow has not been manually dispatched and its runner availability has not been verified. Follow docs/62_UE58_WINDOWS_BUILD_GATE_GE.md to register the machine and run the real compile.
+
+
+### Final PR-head CI verification — 2026-11-24
+
+On branch/PR head 97d67d25064713c1654a60f8f2e7a82d7235cb0d:
+- Source/regression **79/79 PASS**
+- UE project validator **37/37 STATIC_PASS** (not UBT/UHT)
+- Load runner **6/6 PASS**
+- Backend Node **55 PASS / 0 FAIL / 2 SKIP**
+- PostgreSQL 16 migrations 001–006/live suite **57 PASS / 0 FAIL / 0 SKIP**
+- 500 virtual-user in-memory API preflight **6,995 requests / 0 errors / 437.31 req/s**, p50 **0.55 ms**, p95 **0.91 ms**, p99 **2.48 ms**, max **4.96 ms**, max in-flight **8**.
+
+Evidence: [Stage 5](https://github.com/maisuradzee/Ridge/actions/runs/45364048038) · [PostgreSQL](https://github.com/maisuradzee/Ridge/actions/runs/45364047739). Static report artifact: ridge-ue-project-static-validation (14-day retention).
+
+The manual Windows UE 5.8 workflow is committed but has not been dispatched; UBT/UHT remains NOT_RUN until a ridge-ue58 runner executes it.
