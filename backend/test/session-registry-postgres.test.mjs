@@ -22,6 +22,7 @@ test('PostgreSQL session registry serializes shard capacity, reuses leases, clai
   const registry = await createSessionRegistry({ pool });
   const suffix = randomUUID();
   const serverId = 'it-shard-' + suffix;
+  const actorId = 'postgres-integration-provisioner';
   const playerIds = Array.from({ length: 12 }, (_, index) => 'it-session-' + index + '-' + suffix);
   try {
     assert.equal(await registry.healthCheck(), true, 'readiness must include the credential registry table');
@@ -35,7 +36,7 @@ test('PostgreSQL session registry serializes shard capacity, reuses leases, clai
       protocolVersion: 'ridge-0.6',
     });
     assert.equal(server.status, 'ready');
-    const firstCredential = await registry.issueServerCredential({ serverId });
+    const firstCredential = await registry.issueServerCredential({ serverId, actorId });
     assert.match(firstCredential.token, /^[A-Za-z0-9_-]{43}$/);
     assert.equal(await registry.authenticateServerCredential({ serverId, token: firstCredential.token }), true);
     const storedCredential = await pool.query(
@@ -45,12 +46,12 @@ test('PostgreSQL session registry serializes shard capacity, reuses leases, clai
     assert.notEqual(storedCredential.rows[0].token_hash, firstCredential.token);
     assert.match(storedCredential.rows[0].token_hash, /^[a-f0-9]{64}$/);
 
-    const rotatedCredential = await registry.issueServerCredential({ serverId });
+    const rotatedCredential = await registry.issueServerCredential({ serverId, actorId });
     assert.equal(await registry.authenticateServerCredential({ serverId, token: firstCredential.token }), false);
     assert.equal(await registry.authenticateServerCredential({ serverId, token: rotatedCredential.token }), true);
-    assert.equal((await registry.revokeServerCredential({ serverId })).revoked, true);
+    assert.equal((await registry.revokeServerCredential({ serverId, actorId })).revoked, true);
     assert.equal(await registry.authenticateServerCredential({ serverId, token: rotatedCredential.token }), false);
-    const activeCredential = await registry.issueServerCredential({ serverId });
+    const activeCredential = await registry.issueServerCredential({ serverId, actorId });
     assert.equal(await registry.authenticateServerCredential({ serverId, token: activeCredential.token }), true);
 
     const credentialEvents = await registry.listServerCredentialEvents({ serverId, limit: 10 });
@@ -63,6 +64,8 @@ test('PostgreSQL session registry serializes shard capacity, reuses leases, clai
     assert.equal(credentialEvents[2].credentialId, rotatedCredential.credentialId);
     assert.equal(credentialEvents[2].previousCredentialId, firstCredential.credentialId);
     assert.ok(credentialEvents.every((event) =>
+      event.actorType === 'service' &&
+      event.actorId === actorId &&
       !Object.hasOwn(event, 'token') && !Object.hasOwn(event, 'tokenHash')
     ));
 
