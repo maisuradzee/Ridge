@@ -7,6 +7,49 @@ const enabled = process.env.RIDGE_RUN_POSTGRES_INTEGRATION === 'YES';
 const developmentOnly = process.env.RIDGE_DB_ENV === 'development';
 const hasDatabaseUrl = Boolean(process.env.DATABASE_URL);
 
+
+
+test('PostgreSQL transport-key registry persists public-only X25519 metadata and rotates without overwriting old key', { skip: !runAgainstPostgres }, async () => {
+  assert.ok(process.env.DATABASE_URL);
+  const { Pool } = await import('pg');
+  const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 2, connectionTimeoutMillis: 3000 });
+  const registry = await createSessionRegistry({ pool });
+  const suffix = randomUUID();
+  const serverId = 'it-key-shard-' + suffix;
+  const rawPublic = (n) => Buffer.alloc(32, n).toString('base64url');
+  try {
+    await registry.registerServer({
+      serverId, region: 'ge-tbilisi', host: '127.0.0.1',
+      port: 27000 + Math.floor(Math.random() * 1000), maxPlayers: 4, protocolVersion: 'ridge-0.6',
+    });
+    const firstExpiry = new Date(Date.now() + 120_000).toISOString();
+    const first = await registry.publishServerTransportKey({
+      serverId, keyId: 'it-key-old', publicKey: rawPublic(0x71), expiresAt: firstExpiry,
+    });
+    assert.equal(first.replayed, false);
+    const stored = await pool.query(
+      'SELECT public_key FROM ridge.dedicated_server_transport_keys WHERE server_id = $1 AND key_id = $2',
+      [serverId, 'it-key-old'],
+    );
+    assert.equal(stored.rows[0].public_key, rawPublic(0x71));
+    assert.equal(Object.hasOwn(stored.rows[0], 'private_key'), false);
+
+    const second = await registry.publishServerTransportKey({
+      serverId, keyId: 'it-key-new', publicKey: rawPublic(0x72),
+      expiresAt: new Date(Date.now() + 240_000).toISOString(),
+    });
+    assert.equal(second.replayed, false);
+    assert.equal((await registry.getServerTransportKey({ serverId })).keyId, 'it-key-new');
+    assert.equal((await registry.getServerTransportKey({ serverId, keyId: 'it-key-old' })).keyId, 'it-key-old');
+  } finally {
+    await pool.query('DELETE FROM ridge.dedicated_server_transport_keys WHERE server_id = $1', [serverId]).catch(() => {});
+    await pool.query('DELETE FROM ridge.dedicated_server_credentials WHERE server_id = $1', [serverId]).catch(() => {});
+    await pool.query('DELETE FROM ridge.player_sessions WHERE server_id = $1', [serverId]).catch(() => {});
+    await pool.query('DELETE FROM ridge.dedicated_servers WHERE server_id = $1', [serverId]).catch(() => {});
+    await pool.end();
+  }
+});
+
 test('PostgreSQL session registry serializes shard capacity, reuses leases, claims and releases safely', {
   skip: !enabled
     ? 'Set RIDGE_RUN_POSTGRES_INTEGRATION=YES to run against a dedicated development database.'

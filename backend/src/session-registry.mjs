@@ -88,6 +88,52 @@ function timestamp(value) {
   return Number.isFinite(parsed) ? parsed : 0;
 }
 
+
+const MAX_SERVER_TRANSPORT_KEY_LIFETIME_MS = 10 * 60 * 1000;
+const MIN_SERVER_TRANSPORT_KEY_REMAINING_MS = 15 * 1000;
+
+function validateServerTransportKey(input = {}, now = Date.now()) {
+  const serverId = validIdentifier(input.serverId, 'server_id');
+  const keyId = validIdentifier(input.keyId, 'transport_key_id');
+  if (input.algorithm !== undefined && input.algorithm !== 'X25519') {
+    fail(400, 'UNSUPPORTED_TRANSPORT_KEY_ALGORITHM', 'Transport key algorithm must be X25519.');
+  }
+  const publicKey = input.publicKey;
+  if (typeof publicKey !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(publicKey)) {
+    fail(400, 'INVALID_TRANSPORT_PUBLIC_KEY', 'Transport public key must be canonical 32-byte base64url.');
+  }
+  const publicKeyBytes = Buffer.from(publicKey, 'base64url');
+  if (publicKeyBytes.length !== 32 || publicKeyBytes.toString('base64url') !== publicKey) {
+    fail(400, 'INVALID_TRANSPORT_PUBLIC_KEY', 'Transport public key must be canonical 32-byte base64url.');
+  }
+  if (typeof input.expiresAt !== 'string') {
+    fail(400, 'INVALID_TRANSPORT_KEY_EXPIRY', 'Transport key expiry must be an ISO timestamp.');
+  }
+  const expiresAtMs = timestamp(input.expiresAt);
+  if (!Number.isSafeInteger(expiresAtMs) || expiresAtMs <= now) {
+    fail(400, 'INVALID_TRANSPORT_KEY_EXPIRY', 'Transport key expiry must be in the future.');
+  }
+  const remainingMs = expiresAtMs - now;
+  if (remainingMs < MIN_SERVER_TRANSPORT_KEY_REMAINING_MS) {
+    fail(400, 'TRANSPORT_KEY_EXPIRY_TOO_SOON', 'Transport key must remain valid for at least 15 seconds.');
+  }
+  if (remainingMs > MAX_SERVER_TRANSPORT_KEY_LIFETIME_MS) {
+    fail(400, 'TRANSPORT_KEY_LIFETIME_TOO_LONG', 'Transport key lifetime cannot exceed 10 minutes.');
+  }
+  return { serverId, keyId, algorithm: 'X25519', publicKey, expiresAtMs };
+}
+
+function publicServerTransportKey(record) {
+  return {
+    serverId: record.serverId ?? record.server_id,
+    keyId: record.keyId ?? record.key_id,
+    algorithm: record.algorithm ?? 'X25519',
+    publicKey: record.publicKey ?? record.public_key,
+    expiresAt: new Date(timestamp(record.expiresAt ?? record.expires_at)).toISOString(),
+    createdAt: new Date(timestamp(record.createdAt ?? record.created_at)).toISOString(),
+  };
+}
+
 function serverIsLive(server, now, heartbeatTtlMs) {
   const lastHeartbeat = timestamp(server?.lastHeartbeatAt ?? server?.last_heartbeat_at);
   return Boolean(server) &&
@@ -127,6 +173,7 @@ function createMemoryRegistry({ clock, leaseMs, heartbeatTtlMs, joinTicketMs, se
   const sessions = new Map();
   const serverCredentials = new Map();
   const serverCredentialEvents = [];
+  const serverTransportKeys = new Map();
   let nextCredentialAuditSequence = 1;
 
   function findServer(serverId) {
@@ -256,6 +303,43 @@ function createMemoryRegistry({ clock, leaseMs, heartbeatTtlMs, joinTicketMs, se
     },
 
 
+
+    async publishServerTransportKey(input) {
+      const key = validateServerTransportKey(input, clock());
+      const server = findServer(key.serverId);
+      if (!serverIsLive(server, clock(), heartbeatTtlMs)) {
+        fail(409, 'SHARD_NOT_LIVE', 'Transport key can be published only by a live Dedicated Server.');
+      }
+      let keys = serverTransportKeys.get(key.serverId);
+      if (!keys) {
+        keys = new Map();
+        serverTransportKeys.set(key.serverId, keys);
+      }
+      const existing = keys.get(key.keyId);
+      if (existing) {
+        if (!existing.revokedAt && existing.publicKey === key.publicKey && existing.expiresAt === key.expiresAtMs) {
+          return { ...publicServerTransportKey(existing), replayed: true };
+        }
+        fail(409, 'TRANSPORT_KEY_ID_CONFLICT', 'Transport key ID is already bound to a different or revoked key.');
+      }
+      const record = { ...key, expiresAt: key.expiresAtMs, createdAt: clock(), revokedAt: null };
+      keys.set(key.keyId, record);
+      return { ...publicServerTransportKey(record), replayed: false };
+    },
+
+    async getServerTransportKey({ serverId, keyId } = {}) {
+      validIdentifier(serverId, 'server_id');
+      if (keyId !== undefined) validIdentifier(keyId, 'transport_key_id');
+      const server = findServer(serverId);
+      const now = clock();
+      if (!serverIsLive(server, now, heartbeatTtlMs)) return null;
+      const keys = serverTransportKeys.get(serverId);
+      if (!keys) return null;
+      const candidates = [...keys.values()]
+        .filter((item) => !item.revokedAt && item.expiresAt > now && (keyId === undefined || item.keyId === keyId))
+        .sort((a, b) => b.createdAt - a.createdAt || b.keyId.localeCompare(a.keyId));
+      return candidates[0] ? publicServerTransportKey(candidates[0]) : null;
+    },
 
     async registerServer(input) {
       const registration = validateRegistration(input);
@@ -644,6 +728,66 @@ function createPostgresRegistry({ pool, clock, leaseMs, heartbeatTtlMs, joinTick
 
 
 
+    async publishServerTransportKey(input) {
+      const key = validateServerTransportKey(input, clock());
+      return inTransaction(pool, async (client) => {
+        const serverResult = await client.query(
+          'SELECT server_id, status, last_heartbeat_at FROM ridge.dedicated_servers WHERE server_id = $1 FOR UPDATE',
+          [key.serverId],
+        );
+        const serverRow = serverResult.rows[0];
+        if (!serverRow) fail(404, 'SHARD_NOT_FOUND', 'მითითებული shard ვერ მოიძებნა.');
+        const server = { serverId: serverRow.server_id, status: serverRow.status, lastHeartbeatAt: serverRow.last_heartbeat_at };
+        if (!serverIsLive(server, clock(), heartbeatTtlMs)) {
+          fail(409, 'SHARD_NOT_LIVE', 'Transport key can be published only by a live Dedicated Server.');
+        }
+        const existingResult = await client.query(
+          'SELECT server_id, key_id, algorithm, public_key, expires_at, created_at, revoked_at ' +
+          'FROM ridge.dedicated_server_transport_keys WHERE server_id = $1 AND key_id = $2 FOR UPDATE',
+          [key.serverId, key.keyId],
+        );
+        const existing = existingResult.rows[0];
+        if (existing) {
+          const same = !existing.revoked_at &&
+            existing.public_key === key.publicKey &&
+            timestamp(existing.expires_at) === key.expiresAtMs;
+          if (same) return { ...publicServerTransportKey(existing), replayed: true };
+          fail(409, 'TRANSPORT_KEY_ID_CONFLICT', 'Transport key ID is already bound to a different or revoked key.');
+        }
+        const inserted = await client.query(
+          'INSERT INTO ridge.dedicated_server_transport_keys ' +
+          '(server_id, key_id, algorithm, public_key, expires_at) ' +
+          'VALUES ($1, $2, $3, $4, to_timestamp($5::double precision / 1000.0)) ' +
+          'RETURNING server_id, key_id, algorithm, public_key, expires_at, created_at',
+          [key.serverId, key.keyId, key.algorithm, key.publicKey, key.expiresAtMs],
+        );
+        return { ...publicServerTransportKey(inserted.rows[0]), replayed: false };
+      });
+    },
+
+    async getServerTransportKey({ serverId, keyId } = {}) {
+      validIdentifier(serverId, 'server_id');
+      if (keyId !== undefined) validIdentifier(keyId, 'transport_key_id');
+      const params = [serverId];
+      let keyFilter = '';
+      if (keyId !== undefined) {
+        params.push(keyId);
+        keyFilter = ' AND k.key_id = $2';
+      }
+      const result = await pool.query(
+        'SELECT k.server_id, k.key_id, k.algorithm, k.public_key, k.expires_at, k.created_at, ' +
+        's.status, s.last_heartbeat_at ' +
+        'FROM ridge.dedicated_server_transport_keys k ' +
+        'JOIN ridge.dedicated_servers s ON s.server_id = k.server_id ' +
+        'WHERE k.server_id = $1 AND k.revoked_at IS NULL AND k.expires_at > clock_timestamp()' +
+        keyFilter + ' ORDER BY k.created_at DESC, k.key_id DESC LIMIT 1',
+        params,
+      );
+      const row = result.rows[0];
+      if (!row || !serverIsLive({ status: row.status, lastHeartbeatAt: row.last_heartbeat_at }, clock(), heartbeatTtlMs)) return null;
+      return publicServerTransportKey(row);
+    },
+
     async registerServer(input) {
       const r = validateRegistration(input);
       const sql = 'INSERT INTO ridge.dedicated_servers ' +
@@ -916,6 +1060,7 @@ function createPostgresRegistry({ pool, clock, leaseMs, heartbeatTtlMs, joinTick
         "to_regclass('ridge.player_sessions') AS sessions, " +
         "to_regclass('ridge.dedicated_server_credentials') AS credentials, " +
         "to_regclass('ridge.dedicated_server_credential_events') AS credential_events, " +
+        "to_regclass('ridge.dedicated_server_transport_keys') AS transport_keys, " +
         "EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'ridge' AND table_name = 'dedicated_server_credential_events' AND column_name = 'actor_id') AS credential_audit_actor_schema",
       );
       return Boolean(
@@ -923,6 +1068,7 @@ function createPostgresRegistry({ pool, clock, leaseMs, heartbeatTtlMs, joinTick
         result.rows[0]?.sessions &&
         result.rows[0]?.credentials &&
         result.rows[0]?.credential_events &&
+        result.rows[0]?.transport_keys &&
         result.rows[0]?.credential_audit_actor_schema
       );
     },
@@ -959,6 +1105,7 @@ export async function createSessionRegistry({
     "AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'ridge' AND table_name = 'player_sessions' AND column_name = 'join_ticket_expires_at') " +
     "AND EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'ridge' AND table_name = 'player_sessions' AND column_name = 'join_attempt_id') AS join_ticket_schema, " +
     "to_regclass('ridge.dedicated_server_credentials') AS server_credentials, " +
+    "to_regclass('ridge.dedicated_server_transport_keys') AS transport_keys, " +
     "EXISTS (SELECT 1 FROM information_schema.columns WHERE table_schema = 'ridge' AND table_name = 'dedicated_server_credential_events' AND column_name = 'actor_id') AS credential_audit_actor_schema",
   );
   if (!schema.rows[0]?.servers || !schema.rows[0]?.sessions) {
@@ -972,6 +1119,9 @@ export async function createSessionRegistry({
   }
   if (!schema.rows[0]?.credential_audit_actor_schema) {
     throw new Error('RIDGE credential audit actor migration 008 is required before PostgreSQL startup.');
+  }
+  if (!schema.rows[0]?.transport_keys) {
+    throw new Error('RIDGE server transport key migration 009 is required before PostgreSQL startup.');
   }
   return createPostgresRegistry({ pool, clock, leaseMs, heartbeatTtlMs, joinTicketMs, serverCredentialMs });
 }

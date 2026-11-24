@@ -388,6 +388,22 @@ async function main() {
         return send(response, 201, await sessionRegistry.registerServer(body));
       }
 
+      const shardTransportKeyMatch = url.pathname.match(/^\/v1\/internal\/shards\/([A-Za-z0-9._:-]{1,80})\/transport-key$/);
+      if (request.method === 'PUT' && shardTransportKeyMatch) {
+        const serverId = shardTransportKeyMatch[1];
+        await requireGameServer(request, serverId, sessionRegistry);
+        const body = await readJson(request, 4 * 1024);
+        const published = await sessionRegistry.publishServerTransportKey({ ...body, serverId });
+        return send(response, published.replayed ? 200 : 201, published);
+      }
+
+      if (request.method === 'GET' && shardTransportKeyMatch) {
+        requireGateway(request);
+        const key = await sessionRegistry.getServerTransportKey({ serverId: shardTransportKeyMatch[1] });
+        if (!key) throw new RidgeError(404, 'TRANSPORT_KEY_NOT_AVAILABLE', 'Shard-ის მოქმედი transport public key ვერ მოიძებნა.');
+        return send(response, 200, key);
+      }
+
       const shardHeartbeatMatch = url.pathname.match(/^\/v1\/internal\/shards\/([A-Za-z0-9._:-]{1,80})\/heartbeat$/);
       if (request.method === 'POST' && shardHeartbeatMatch) {
         await requireGameServer(request, shardHeartbeatMatch[1], sessionRegistry);

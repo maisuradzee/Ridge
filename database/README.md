@@ -15,3 +15,7 @@ It is intentionally not executed by the local prototype. Before applying it to a
 Game clients must not connect directly to PostgreSQL. They communicate with trusted backend services, which validate identity and gameplay authorization.
 
 The initial schema provides the player identity anchor, ledger accounts, double-entry transaction records, append-only ledger entries, job definitions, player jobs, world state, and audit log. Migration 002 adds ordered job checkpoint definitions, immutable server checkpoint events, server-event idempotency, and audit logging. Additional domain migrations (vehicles, businesses, properties, social, government, and world events) will be added after the first vertical slice stabilizes.
+
+## Migration 009 — Dedicated Server X25519 public keys
+
+Migration `009_dedicated_server_transport_keys.sql` creates the per-instance transport public-key registry. It stores only canonical 32-byte X25519 public keys, key IDs, algorithm and expiry/revocation metadata. Private key material is never sent to or stored in PostgreSQL. A key can remain active until its own expiry so already-issued short-lived envelopes can finish during rotation.
