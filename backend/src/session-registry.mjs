@@ -126,6 +126,8 @@ function createMemoryRegistry({ clock, leaseMs, heartbeatTtlMs, joinTicketMs, se
   const servers = new Map();
   const sessions = new Map();
   const serverCredentials = new Map();
+  const serverCredentialEvents = [];
+  let nextCredentialAuditSequence = 1;
 
   function findServer(serverId) {
     const server = servers.get(serverId);
@@ -178,11 +180,22 @@ function createMemoryRegistry({ clock, leaseMs, heartbeatTtlMs, joinTicketMs, se
       const credentialId = randomUUID();
       const now = clock();
       const expiresAt = now + serverCredentialMs;
+      const previous = serverCredentials.get(serverId);
+      const isActivePrevious = Boolean(previous && !previous.revokedAt && previous.expiresAt > now);
       serverCredentials.set(serverId, {
         credentialId,
         tokenHash: hashServerCredential(token),
         expiresAt,
         revokedAt: null,
+      });
+      serverCredentialEvents.unshift({
+        auditSequence: nextCredentialAuditSequence++,
+        eventId: randomUUID(),
+        serverId,
+        credentialId,
+        previousCredentialId: isActivePrevious ? previous.credentialId : null,
+        action: isActivePrevious ? 'rotated' : 'issued',
+        occurredAt: new Date(now).toISOString(),
       });
       return { serverId, credentialId, token, expiresAt: new Date(expiresAt).toISOString() };
     },
@@ -200,8 +213,29 @@ function createMemoryRegistry({ clock, leaseMs, heartbeatTtlMs, joinTicketMs, se
       validIdentifier(serverId, 'server_id');
       const credential = serverCredentials.get(serverId);
       if (!credential || credential.revokedAt) return { revoked: false };
-      credential.revokedAt = clock();
+      const now = clock();
+      credential.revokedAt = now;
+      serverCredentialEvents.unshift({
+        auditSequence: nextCredentialAuditSequence++,
+        eventId: randomUUID(),
+        serverId,
+        credentialId: credential.credentialId,
+        previousCredentialId: null,
+        action: 'revoked',
+        occurredAt: new Date(now).toISOString(),
+      });
       return { revoked: true, credentialId: credential.credentialId };
+    },
+
+    async listServerCredentialEvents({ serverId, limit = 50 } = {}) {
+      validIdentifier(serverId, 'server_id');
+      if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+        fail(400, 'INVALID_CREDENTIAL_AUDIT_LIMIT', 'Audit limit უნდა იყოს 1-დან 100-მდე.');
+      }
+      return serverCredentialEvents
+        .filter((event) => event.serverId === serverId)
+        .slice(0, limit)
+        .map((event) => ({ ...event }));
     },
 
 
@@ -491,21 +525,41 @@ function createPostgresRegistry({ pool, clock, leaseMs, heartbeatTtlMs, joinTick
       const token = randomBytes(32).toString('base64url');
       const tokenHash = hashServerCredential(token);
       const credentialId = randomUUID();
-      const result = await pool.query(
-        'INSERT INTO ridge.dedicated_server_credentials ' +
-        '(server_id, credential_id, token_hash, expires_at, revoked_at, created_at, updated_at) ' +
-        "VALUES ($1, $2, $3, clock_timestamp() + ($4::bigint * interval '1 millisecond'), NULL, clock_timestamp(), clock_timestamp()) " +
-        'ON CONFLICT (server_id) DO UPDATE SET credential_id = EXCLUDED.credential_id, ' +
-        'token_hash = EXCLUDED.token_hash, expires_at = EXCLUDED.expires_at, revoked_at = NULL, updated_at = clock_timestamp() ' +
-        'RETURNING credential_id, expires_at',
-        [serverId, credentialId, tokenHash, serverCredentialMs],
-      );
-      return {
-        serverId,
-        credentialId: result.rows[0].credential_id,
-        token,
-        expiresAt: new Date(result.rows[0].expires_at).toISOString(),
-      };
+      return inTransaction(pool, async (client) => {
+        await client.query(
+          'SELECT pg_advisory_xact_lock(hashtextextended($1, 0))',
+          ['ridge-server-credential:' + serverId],
+        );
+        const previousResult = await client.query(
+          'SELECT credential_id, revoked_at, (expires_at > clock_timestamp()) AS is_active ' +
+          'FROM ridge.dedicated_server_credentials WHERE server_id = $1 FOR UPDATE',
+          [serverId],
+        );
+        const previous = previousResult.rows[0] ?? null;
+        const isActivePrevious = Boolean(previous && !previous.revoked_at && previous.is_active);
+        const action = isActivePrevious ? 'rotated' : 'issued';
+        const previousCredentialId = isActivePrevious ? previous.credential_id : null;
+        const result = await client.query(
+          'INSERT INTO ridge.dedicated_server_credentials ' +
+          '(server_id, credential_id, token_hash, expires_at, revoked_at, created_at, updated_at) ' +
+          "VALUES ($1, $2, $3, clock_timestamp() + ($4::bigint * interval '1 millisecond'), NULL, clock_timestamp(), clock_timestamp()) " +
+          'ON CONFLICT (server_id) DO UPDATE SET credential_id = EXCLUDED.credential_id, ' +
+          'token_hash = EXCLUDED.token_hash, expires_at = EXCLUDED.expires_at, revoked_at = NULL, updated_at = clock_timestamp() ' +
+          'RETURNING credential_id, expires_at',
+          [serverId, credentialId, tokenHash, serverCredentialMs],
+        );
+        await client.query(
+          'INSERT INTO ridge.dedicated_server_credential_events ' +
+          '(server_id, credential_id, previous_credential_id, action) VALUES ($1, $2, $3, $4)',
+          [serverId, result.rows[0].credential_id, previousCredentialId, action],
+        );
+        return {
+          serverId,
+          credentialId: result.rows[0].credential_id,
+          token,
+          expiresAt: new Date(result.rows[0].expires_at).toISOString(),
+        };
+      });
     },
 
     async authenticateServerCredential({ serverId, token }) {
@@ -522,14 +576,45 @@ function createPostgresRegistry({ pool, clock, leaseMs, heartbeatTtlMs, joinTick
 
     async revokeServerCredential({ serverId }) {
       validIdentifier(serverId, 'server_id');
+      return inTransaction(pool, async (client) => {
+        await client.query(
+          'SELECT pg_advisory_xact_lock(hashtextextended($1, 0))',
+          ['ridge-server-credential:' + serverId],
+        );
+        const result = await client.query(
+          'UPDATE ridge.dedicated_server_credentials SET revoked_at = clock_timestamp(), updated_at = clock_timestamp() ' +
+          'WHERE server_id = $1 AND revoked_at IS NULL RETURNING credential_id',
+          [serverId],
+        );
+        if (!result.rows[0]) return { revoked: false };
+        await client.query(
+          'INSERT INTO ridge.dedicated_server_credential_events ' +
+          '(server_id, credential_id, previous_credential_id, action) VALUES ($1, $2, NULL, $3)',
+          [serverId, result.rows[0].credential_id, 'revoked'],
+        );
+        return { revoked: true, credentialId: result.rows[0].credential_id };
+      });
+    },
+
+    async listServerCredentialEvents({ serverId, limit = 50 } = {}) {
+      validIdentifier(serverId, 'server_id');
+      if (!Number.isInteger(limit) || limit < 1 || limit > 100) {
+        fail(400, 'INVALID_CREDENTIAL_AUDIT_LIMIT', 'Audit limit უნდა იყოს 1-დან 100-მდე.');
+      }
       const result = await pool.query(
-        'UPDATE ridge.dedicated_server_credentials SET revoked_at = clock_timestamp(), updated_at = clock_timestamp() ' +
-        'WHERE server_id = $1 AND revoked_at IS NULL RETURNING credential_id',
-        [serverId],
+        'SELECT event_id, server_id, credential_id, previous_credential_id, action, occurred_at ' +
+        'FROM ridge.dedicated_server_credential_events WHERE server_id = $1 ' +
+        'ORDER BY audit_sequence DESC LIMIT $2',
+        [serverId, limit],
       );
-      return result.rows[0]
-        ? { revoked: true, credentialId: result.rows[0].credential_id }
-        : { revoked: false };
+      return result.rows.map((row) => ({
+        eventId: row.event_id,
+        serverId: row.server_id,
+        credentialId: row.credential_id,
+        previousCredentialId: row.previous_credential_id,
+        action: row.action,
+        occurredAt: new Date(row.occurred_at).toISOString(),
+      }));
     },
 
 
@@ -804,12 +889,14 @@ function createPostgresRegistry({ pool, clock, leaseMs, heartbeatTtlMs, joinTick
       const result = await pool.query(
         "SELECT to_regclass('ridge.dedicated_servers') AS servers, " +
         "to_regclass('ridge.player_sessions') AS sessions, " +
-        "to_regclass('ridge.dedicated_server_credentials') AS credentials",
+        "to_regclass('ridge.dedicated_server_credentials') AS credentials, " +
+        "to_regclass('ridge.dedicated_server_credential_events') AS credential_events",
       );
       return Boolean(
         result.rows[0]?.servers &&
         result.rows[0]?.sessions &&
-        result.rows[0]?.credentials
+        result.rows[0]?.credentials &&
+        result.rows[0]?.credential_events
       );
     },
   });
