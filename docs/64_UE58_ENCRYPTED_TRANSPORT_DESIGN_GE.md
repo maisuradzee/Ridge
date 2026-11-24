@@ -261,3 +261,20 @@ Acceptance state:
 - Actual UE 5.8 header/library report: **NOT_RUN** until the restricted runner is registered and the manual workflow runs.
 - X25519/HKDF C++ compile and runtime: **NOT_IMPLEMENTED / NOT_RUN**.
 - AES-GCM transport and Production game admission: **NOT_IMPLEMENTED / BLOCKED**.
+
+
+## 13. Join-envelope reference profile and interoperability tests — 2026-11-24
+
+A standalone reference implementation now pins the candidate **X25519 + HKDF-SHA256 + AES-256-GCM** profile in `Tools/TransportReference/transport-reference.test.mjs`. It is deliberately isolated from the Backend API, OIDC Gateway, session registry and Unreal runtime.
+
+The reference contract fixes:
+- ephemeral X25519 key generation for each client envelope; only the 32-byte raw public key is serialized in canonical base64url;
+- compact UTF-8 JSON-array AAD in a fixed field order, binding protocol version/suite, key ID, server ID, session ID, claim attempt ID, expiry and both public keys;
+- HKDF-SHA256 with domain-separated salt `SHA256("RIDGE/TRANSPORT/V1/JOIN/SALT\\0" || AAD)`, fixed protocol info string and 32-byte output;
+- AES-256-GCM with a fresh 12-byte nonce and 16-byte authentication tag;
+- encrypted ticket plaintext bound to server/session/claim/expiry; the ticket is never a cleartext envelope field or Unreal URL option;
+- strict field/encoding/size checks and rejection of wrong server/key, expiry, AAD/ciphertext tampering and unsupported profile versions.
+
+The deterministic X25519/HKDF known-answer fixture uses **synthetic test-only private scalars**. CI verifies that both sides derive the exact same 256-bit key, as well as envelope round-trip, fresh key/nonce use and tamper/fail-closed cases.
+
+This reference suite validates only the proposed join-envelope format. It does **not** select the UE 5.8 crypto provider, register/publish/rotate server ephemeral public keys, wire the Gateway or Dedicated Server to this format, install PacketHandler traffic keys, encrypt gameplay packets, or prove an Unreal runtime handshake. The UE 5.8 bundled provider inspection remains pending on the restricted Windows runner. Production gameplay admission remains blocked.
