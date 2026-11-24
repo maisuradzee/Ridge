@@ -1,4 +1,4 @@
-import { createHash, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
+import { createHash, createPublicKey, diffieHellman, generateKeyPairSync, randomBytes, randomUUID, timingSafeEqual } from 'node:crypto';
 import { RidgeError } from './game-service.mjs';
 
 const DEFAULT_LEASE_MS = 45_000;
@@ -92,13 +92,17 @@ function timestamp(value) {
 const MAX_SERVER_TRANSPORT_KEY_LIFETIME_MS = 10 * 60 * 1000;
 const MIN_SERVER_TRANSPORT_KEY_REMAINING_MS = 15 * 1000;
 
-function validateServerTransportKey(input = {}, now = Date.now()) {
-  const serverId = validIdentifier(input.serverId, 'server_id');
-  const keyId = validIdentifier(input.keyId, 'transport_key_id');
-  if (input.algorithm !== undefined && input.algorithm !== 'X25519') {
-    fail(400, 'UNSUPPORTED_TRANSPORT_KEY_ALGORITHM', 'Transport key algorithm must be X25519.');
+const X25519_SPKI_PREFIX = Buffer.from('302a300506032b656e032100', 'hex');
+let x25519ValidationPrivateKey;
+
+function getX25519ValidationPrivateKey() {
+  if (!x25519ValidationPrivateKey) {
+    x25519ValidationPrivateKey = generateKeyPairSync('x25519').privateKey;
   }
-  const publicKey = input.publicKey;
+  return x25519ValidationPrivateKey;
+}
+
+function validateX25519PublicKey(publicKey) {
   if (typeof publicKey !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(publicKey)) {
     fail(400, 'INVALID_TRANSPORT_PUBLIC_KEY', 'Transport public key must be canonical 32-byte base64url.');
   }
@@ -106,6 +110,40 @@ function validateServerTransportKey(input = {}, now = Date.now()) {
   if (publicKeyBytes.length !== 32 || publicKeyBytes.toString('base64url') !== publicKey) {
     fail(400, 'INVALID_TRANSPORT_PUBLIC_KEY', 'Transport public key must be canonical 32-byte base64url.');
   }
+  let publicKeyObject;
+  try {
+    publicKeyObject = createPublicKey({
+      key: Buffer.concat([X25519_SPKI_PREFIX, publicKeyBytes]),
+      format: 'der',
+      type: 'spki',
+    });
+  } catch {
+    fail(400, 'INVALID_TRANSPORT_PUBLIC_KEY', 'Transport public key is not a valid X25519 public key.');
+  }
+  let sharedSecret;
+  try {
+    sharedSecret = diffieHellman({
+      privateKey: getX25519ValidationPrivateKey(),
+      publicKey: publicKeyObject,
+    });
+  } catch {
+    fail(400, 'INVALID_TRANSPORT_PUBLIC_KEY', 'Transport public key is a low-order or invalid X25519 point.');
+  }
+  const usable = sharedSecret.some((byte) => byte !== 0);
+  sharedSecret.fill(0);
+  if (!usable) {
+    fail(400, 'INVALID_TRANSPORT_PUBLIC_KEY', 'Transport public key is a low-order or invalid X25519 point.');
+  }
+  return publicKey;
+}
+
+function validateServerTransportKey(input = {}, now = Date.now()) {
+  const serverId = validIdentifier(input.serverId, 'server_id');
+  const keyId = validIdentifier(input.keyId, 'transport_key_id');
+  if (input.algorithm !== undefined && input.algorithm !== 'X25519') {
+    fail(400, 'UNSUPPORTED_TRANSPORT_KEY_ALGORITHM', 'Transport key algorithm must be X25519.');
+  }
+  const publicKey = validateX25519PublicKey(input.publicKey);
   if (typeof input.expiresAt !== 'string') {
     fail(400, 'INVALID_TRANSPORT_KEY_EXPIRY', 'Transport key expiry must be an ISO timestamp.');
   }

@@ -71,6 +71,13 @@ test('transport key publication rejects invalid, expired and overlong key metada
     (error) => error.code === 'INVALID_TRANSPORT_PUBLIC_KEY',
   );
   await assert.rejects(
+    registry.publishServerTransportKey({
+      ...base, publicKey: Buffer.alloc(32).toString('base64url'),
+      expiresAt: new Date(now() + 120_000).toISOString(),
+    }),
+    (error) => error.code === 'INVALID_TRANSPORT_PUBLIC_KEY',
+  );
+  await assert.rejects(
     registry.publishServerTransportKey({ ...base, expiresAt: new Date(now() + 5_000).toISOString() }),
     (error) => error.code === 'TRANSPORT_KEY_EXPIRY_TOO_SOON',
   );
