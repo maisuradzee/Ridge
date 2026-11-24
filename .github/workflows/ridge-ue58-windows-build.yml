@@ -43,6 +43,16 @@ jobs:
           if ([int]$version.MajorVersion -ne 5 -or [int]$version.MinorVersion -ne 8) {
             throw "Expected Unreal Engine 5.8, found $($version.MajorVersion).$($version.MinorVersion)."
           }
+          $platformCryptoPlugin = Join-Path $engineRoot 'Engine\\Plugins\\Experimental\\PlatformCrypto\\PlatformCrypto.uplugin'
+          $aesGcmPlugin = Join-Path $engineRoot 'Engine\\Plugins\\Runtime\\PacketHandlers\\AESGCMHandlerComponent\\AESGCMHandlerComponent.uplugin'
+          if (!(Test-Path -LiteralPath $platformCryptoPlugin -PathType Leaf)) {
+            throw "UE 5.8 PlatformCrypto plugin is missing: $platformCryptoPlugin"
+          }
+          if (!(Test-Path -LiteralPath $aesGcmPlugin -PathType Leaf)) {
+            throw "UE 5.8 AESGCMHandlerComponent plugin is missing: $aesGcmPlugin"
+          }
+          Write-Host "PlatformCrypto plugin: $platformCryptoPlugin"
+          Write-Host "AES-GCM packet-handler plugin: $aesGcmPlugin"
           $programFilesX86 = [Environment]::GetEnvironmentVariable('ProgramFiles(x86)')
           $vswhere = Join-Path $programFilesX86 'Microsoft Visual Studio\Installer\vswhere.exe'
           if (!(Test-Path -LiteralPath $vswhere -PathType Leaf)) { throw 'Visual Studio Installer vswhere.exe was not found.' }
