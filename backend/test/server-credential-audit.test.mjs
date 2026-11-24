@@ -38,7 +38,8 @@ test('Dedicated Server credential issuance, rotation and revocation produce immu
     typeof event.eventId === 'string' &&
     typeof event.occurredAt === 'string' &&
     !Object.hasOwn(event, 'token') &&
-    !Object.hasOwn(event, 'tokenHash')
+    !Object.hasOwn(event, 'tokenHash') &&
+    !Object.hasOwn(event, 'auditSequence')
   ));
 
   await assert.rejects(
