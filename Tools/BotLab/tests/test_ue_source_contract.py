@@ -8,6 +8,7 @@ HEADER = ROOT / "Source/RIDGE/Public/RidgeBotTestController.h"
 SOURCE = ROOT / "Source/RIDGE/Private/RidgeBotTestController.cpp"
 BUILD = ROOT / "Source/RIDGE/RIDGE.Build.cs"
 PROJECT = ROOT / "RIDGE.uproject"
+SESSION_LOGIN = ROOT / "Source/RIDGE/Private/RidgeSessionLoginSubsystem.cpp"
 
 
 class UnrealSourceContractTests(unittest.TestCase):
@@ -17,6 +18,7 @@ class UnrealSourceContractTests(unittest.TestCase):
         cls.source = SOURCE.read_text(encoding="utf-8")
         cls.build = BUILD.read_text(encoding="utf-8")
         cls.project = json.loads(PROJECT.read_text(encoding="utf-8"))
+        cls.session_login = SESSION_LOGIN.read_text(encoding="utf-8")
 
     def test_project_targets_unreal_58(self):
         self.assertEqual("5.8", self.project["EngineAssociation"])
@@ -59,6 +61,16 @@ class UnrealSourceContractTests(unittest.TestCase):
     def test_telemetry_avoids_player_entered_actor_names(self):
         self.assertIn("OtherActor->GetClass()->GetName()", self.source)
         self.assertNotIn("OtherActor->GetName()", self.source)
+
+    def test_secure_gateway_response_cannot_fall_back_to_plaintext_ticket_url(self):
+        secure_guard = self.session_login.index('if (Json->HasField(TEXT("transport")))') 
+        ticket_parse = self.session_login.index('TEXT("ticket")')
+        plaintext_option = self.session_login.index('TEXT("?ridgeJoinTicket=")')
+        client_travel = self.session_login.index("PlayerController->ClientTravel")
+        self.assertLess(secure_guard, ticket_parse)
+        self.assertLess(secure_guard, plaintext_option)
+        self.assertLess(secure_guard, client_travel)
+        self.assertIn("Plaintext ticket URL fallback გამორთულია", self.session_login)
 
 
 if __name__ == "__main__":

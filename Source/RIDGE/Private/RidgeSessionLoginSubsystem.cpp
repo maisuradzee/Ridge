@@ -288,6 +288,16 @@ void URidgeSessionLoginSubsystem::RequestAndConnect(
                 return;
             }
 
+            // A secure Gateway response must never fall through to the legacy URL
+            // handoff. This client build does not yet seal or open the join envelope.
+            if (Json->HasField(TEXT("transport")))
+            {
+                FinishRequest(
+                    false,
+                    TEXT("RIDGE encrypted transport handshake ამ კლიენტში ჯერ მზად არ არის. Plaintext ticket URL fallback გამორთულია."));
+                return;
+            }
+
             const TSharedPtr<FJsonObject>* ServerObject = nullptr;
             const TSharedPtr<FJsonObject>* JoinObject = nullptr;
             FString Host;
