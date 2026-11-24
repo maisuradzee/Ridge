@@ -15,7 +15,7 @@ async function setup(options = {}) {
 }
 
 test('Dedicated Server publishes only a live X25519 public key and Gateway reads the newest active key', async () => {
-  const { registry, now, advance } = await setup();
+  const { registry, now, advance } = await setup({ heartbeatTtlMs: 300_000 });
   await registry.registerServer(server('transport-shard-a'));
   const first = await registry.publishServerTransportKey({
     serverId: 'transport-shard-a', keyId: 'key-001', publicKey: publicKey(0x11),
