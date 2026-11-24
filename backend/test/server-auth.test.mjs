@@ -463,4 +463,21 @@ test('per-instance server credential is isolated, rotated and revoked by the pro
     body: JSON.stringify({ currentPlayers: 0, status: 'ready' }),
   });
   assert.equal(afterRevoke.status, 403);
+
+  const auditUrl = credentialUrl + '/audit';
+  const unauthenticatedAudit = await fetch(auditUrl);
+  assert.equal(unauthenticatedAudit.status, 403);
+
+  const auditResponse = await fetch(auditUrl, { headers: provisionHeaders });
+  assert.equal(auditResponse.status, 200);
+  const audit = await auditResponse.json();
+  assert.equal(audit.serverId, serverId);
+  assert.deepEqual(audit.events.map((event) => event.action), ['revoked', 'rotated', 'issued']);
+  assert.ok(audit.events.every((event) =>
+    !Object.hasOwn(event, 'token') && !Object.hasOwn(event, 'tokenHash')
+  ));
+
+  const invalidLimit = await fetch(auditUrl + '?limit=1000', { headers: provisionHeaders });
+  assert.equal(invalidLimit.status, 400);
+  assert.equal((await invalidLimit.json()).error.code, 'INVALID_CREDENTIAL_AUDIT_LIMIT');
 });
