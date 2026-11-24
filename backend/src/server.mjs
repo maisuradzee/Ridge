@@ -5,6 +5,7 @@ import { createGameService, RidgeError } from './game-service.mjs';
 import { createPostgresGameService } from './postgres-game-service.mjs';
 import { createSessionRegistry } from './session-registry.mjs';
 import { createOidcVerifier, deriveCanonicalPlayerId } from './oidc-verifier.mjs';
+import { assertGameTransportReady } from './game-transport-policy.mjs';
 
 const PORT = Number(process.env.PORT ?? 8787);
 const HOST = process.env.RIDGE_HOST ?? '127.0.0.1';
@@ -253,6 +254,9 @@ async function main() {
       }
       // Public player session entry. Identity is derived only from a verified OIDC JWT.
       if (request.method === 'POST' && url.pathname === '/v1/gateway/session') {
+        // HTTPS protects the REST hop only. Until the separate Unreal game
+        // transport is runtime-verified, Production must not issue join tickets.
+        assertGameTransportReady({ environment: ENV });
         if (!oidcVerifier) {
           throw new RidgeError(503, 'OIDC_NOT_CONFIGURED', 'RIDGE account identity provider ჯერ არ არის კონფიგურირებული.');
         }
