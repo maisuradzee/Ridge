@@ -78,8 +78,8 @@ class UE58BuildGateContractTests(unittest.TestCase):
 
     def test_workflow_preflights_crypto_plugins_in_engine_installation(self):
         for required in (
-            "Engine\\Plugins\\\\Experimental\\\\PlatformCrypto\\\\PlatformCrypto.uplugin",
-            "Engine\\Plugins\\\\Runtime\\\\PacketHandlers\\\\AESGCMHandlerComponent\\\\AESGCMHandlerComponent.uplugin",
+            r"Engine\Plugins\Experimental\PlatformCrypto\PlatformCrypto.uplugin",
+            r"Engine\Plugins\Runtime\PacketHandlers\AESGCMHandlerComponent\AESGCMHandlerComponent.uplugin",
         ):
             self.assertIn(required, self.workflow)
 
