@@ -105,6 +105,16 @@ BAD_HOST_CODE="$(curl --insecure --silent --resolve untrusted.example:443:127.0.
   -o /dev/null -w '%{http_code}' https://untrusted.example/health 2>/dev/null || true)"
 [[ "$BAD_HOST_CODE" != "200" ]]
 
+CONTROL_ALLOWED_CODE="$(curl --insecure --silent --interface 127.0.0.1 \
+  --resolve ridge-api.example.com:443:127.0.0.1 \
+  -o /dev/null -w '%{http_code}' https://ridge-api.example.com/v1/control/probe)"
+[[ "$CONTROL_ALLOWED_CODE" == "200" ]]
+
+CONTROL_BLOCKED_CODE="$(curl --insecure --silent --interface 127.0.0.2 \
+  --resolve ridge-api.example.com:443:127.0.0.1 \
+  -o /dev/null -w '%{http_code}' https://ridge-api.example.com/v1/control/probe 2>/dev/null || true)"
+[[ "$CONTROL_BLOCKED_CODE" == "403" ]]
+
 python3 <<'PY'
 import concurrent.futures
 import ssl
@@ -144,5 +154,5 @@ assert not unexpected, f"unexpected status codes: {unexpected[:20]}"
 print(f"RIDGE gateway rate limit: PASS ({limited}/{total} requests returned HTTP 429)")
 PY
 
-printf 'RIDGE ingress runtime checks: PASS (HTTPS=%s, ready=%s, HTTP=%s, bad-host=%s)\n' \
-  "$HTTPS_CODE" "$READY_CODE" "$HTTP_CODE" "$BAD_HOST_CODE"
+printf 'RIDGE ingress runtime checks: PASS (HTTPS=%s, ready=%s, HTTP=%s, bad-host=%s, control-allowed=%s, control-blocked=%s)\n' \
+  "$HTTPS_CODE" "$READY_CODE" "$HTTP_CODE" "$BAD_HOST_CODE" "$CONTROL_ALLOWED_CODE" "$CONTROL_BLOCKED_CODE"
