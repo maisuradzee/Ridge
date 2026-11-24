@@ -92,7 +92,7 @@ The new token replaces the previous hash atomically. The old token becomes inval
 
 The selected instance credential becomes invalid. Other shard credentials are not affected. Revoke should be paired with shard draining/offline and instance termination.
 
-The current registry retains only the latest active credential per serverId. It does not yet maintain a full operator/audit event history; that is a separate operational hardening task.
+The active credential table retains only the current credential per serverId. A separate append-only event table records issuance, rotation and revocation without storing the bearer token or its digest.
 
 ## 5. Authorized request coverage
 
@@ -124,7 +124,7 @@ The registry stores only SHA-256 token hashes, issues 90-day credentials by defa
 
 Still required before production:
 - attach the issuance response to a production secret manager/orchestrator and prove secret redaction;
-- implement immutable credential issuance/rotation/revocation audit events with actor identity;
+- connect the audit events to an individually authenticated orchestrator/operator identity; the current API records the provisioner action class but not a human actor ID;
 - provision and restart a real Windows/Linux UE Dedicated Server process using the per-instance secret;
 - verify no client package, crash log, analytics event or process argument leaks the token;
 - compile UE 5.8 UBT/UHT and run real registration, heartbeat, join, logout and rotation tests;
@@ -147,3 +147,45 @@ On commit `e2df4c454c332e9362d7e44ca4044a3f16c8058c`:
 - Production listener guard has explicit tests for wildcard/public rejection and loopback/private-IP acceptance.
 
 The CI does not provision credentials into a real external secret manager, verify redaction from a production orchestrator, compile UE 5.8, or execute a real Dedicated Server credential rotation during live players. Those remain operational/runtime gates.
+
+
+## 9. Credential audit history — Stage 5 increment (2026-11-24)
+
+Migration database/migrations/007_server_credential_audit.sql adds ridge.dedicated_server_credential_events. It records:
+- issued when a credential is first created or re-issued after expiry/revocation;
+- rotated when an unexpired active credential is atomically replaced, including the previous credential UUID;
+- revoked when the current credential is revoked.
+
+The event table contains credential UUIDs and timestamps only. It never stores bearer tokens or SHA-256 token digests. An identity-sequence column gives stable newest-first ordering. A PostgreSQL trigger rejects UPDATE and DELETE statements against the audit events.
+
+### Protected audit endpoint
+
+    GET /v1/control/shards/{serverId}/credentials/audit?limit=50
+    x-ridge-provisioning-token: <provisioning-secret>
+
+The endpoint is available only to the provisioner token and through the private control-plane ingress allowlist. limit must be an integer from 1 to 100. Example response:
+
+    {
+      "serverId": "ge-tbilisi-zone-a-process-00017",
+      "events": [
+        {
+          "eventId": "...",
+          "serverId": "ge-tbilisi-zone-a-process-00017",
+          "credentialId": "...",
+          "previousCredentialId": null,
+          "action": "issued",
+          "occurredAt": "..."
+        }
+      ]
+    }
+
+The API response intentionally omits plaintext tokens and token hashes. Issue, rotation and revocation each write the corresponding audit event inside the same PostgreSQL transaction as the credential change. A failed audit insert rolls back the credential change. A per-server transaction-scoped advisory lock serializes concurrent issue/revoke operations.
+
+The current provisioner credential is shared by the orchestrator, so the audit event does not identify a human operator. Individual operator attribution remains an external identity/orchestrator integration gate. The SQL trigger protects normal application DML; database owners/superusers can still alter database objects and must be governed separately.
+
+### Validation
+
+- Memory registry lifecycle tests cover issued → rotated → revoked and cross-shard isolation.
+- HTTP tests verify that audit reads require the provisioning token and reject invalid limits.
+- PostgreSQL integration verifies event order/linkage and confirms UPDATE/DELETE are rejected by the trigger.
+- PostgreSQL readiness now requires migration 007's audit table.
