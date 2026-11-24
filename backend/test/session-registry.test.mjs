@@ -332,7 +332,8 @@ test('ticket issuance requires the correct allocated session and a valid claim a
 
 test('per-instance server credentials are one-time returned, rotated, server-bound and revocable', async () => {
   const { registry, advance } = await createRegistry({ serverCredentialMs: 60_000 });
-  const first = await registry.issueServerCredential({ serverId: 'credential-shard-a' });
+  const actorId = 'ridge-unit-test-provisioner';
+  const first = await registry.issueServerCredential({ serverId: 'credential-shard-a', actorId });
   assert.equal(first.serverId, 'credential-shard-a');
   assert.match(first.credentialId, /^[0-9a-f-]{36}$/i);
   assert.match(first.token, /^[A-Za-z0-9_-]{43}$/);
@@ -340,18 +341,18 @@ test('per-instance server credentials are one-time returned, rotated, server-bou
   assert.equal(await registry.authenticateServerCredential({ serverId: 'credential-shard-b', token: first.token }), false);
   assert.equal(await registry.authenticateServerCredential({ serverId: 'credential-shard-a', token: 'wrong-token' }), false);
 
-  const rotated = await registry.issueServerCredential({ serverId: 'credential-shard-a' });
+  const rotated = await registry.issueServerCredential({ serverId: 'credential-shard-a', actorId });
   assert.notEqual(rotated.credentialId, first.credentialId);
   assert.notEqual(rotated.token, first.token);
   assert.equal(await registry.authenticateServerCredential({ serverId: 'credential-shard-a', token: first.token }), false);
   assert.equal(await registry.authenticateServerCredential({ serverId: 'credential-shard-a', token: rotated.token }), true);
 
-  const revoked = await registry.revokeServerCredential({ serverId: 'credential-shard-a' });
+  const revoked = await registry.revokeServerCredential({ serverId: 'credential-shard-a', actorId });
   assert.deepEqual(revoked, { revoked: true, credentialId: rotated.credentialId });
   assert.equal(await registry.authenticateServerCredential({ serverId: 'credential-shard-a', token: rotated.token }), false);
-  assert.deepEqual(await registry.revokeServerCredential({ serverId: 'credential-shard-a' }), { revoked: false });
+  assert.deepEqual(await registry.revokeServerCredential({ serverId: 'credential-shard-a', actorId }), { revoked: false });
 
-  const expiring = await registry.issueServerCredential({ serverId: 'credential-shard-expiry' });
+  const expiring = await registry.issueServerCredential({ serverId: 'credential-shard-expiry', actorId });
   advance(60_001);
   assert.equal(await registry.authenticateServerCredential({ serverId: 'credential-shard-expiry', token: expiring.token }), false);
 });
