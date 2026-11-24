@@ -146,7 +146,7 @@ class UE58BuildGateContractTests(unittest.TestCase):
     def test_crypto_probe_is_diagnostic_and_does_not_select_or_enable_transport(self):
         for required in (
             "does not compile or link a crypto probe",
-            "no ECDH/HKDF provider is selected automatically",
+            "No ECDH/HKDF provider is selected automatically",
             "no production transport gate is changed",
         ):
             self.assertIn(required, self.crypto_probe)
