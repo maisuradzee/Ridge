@@ -283,3 +283,8 @@ This reference suite validates only the proposed join-envelope format. It does *
 ### AES-256-GCM deterministic interoperability vector
 
 The reference suite now also fixes one complete AES-256-GCM result using the derived 32-byte known-answer key, the canonical AAD, nonce `000102030405060708090a0b`, and the synthetic join-ticket plaintext. CI asserts the exact ciphertext bytes and 16-byte authentication tag, rather than relying only on an encrypt/decrypt round trip. This provides a byte-for-byte target for a future UE C++/OpenSSL provider implementation. It remains a reference-format test only and does not prove UE PacketHandler/runtime encryption.
+
+
+### Canonical ticket validation hardening
+
+The server-side reference decoder now validates the decrypted ticket as a canonical, unpadded base64url encoding of exactly 32 bytes, not merely a 43-character string. A regression vector constructs authenticated ciphertext containing a 43-character value with non-zero unused pad bits; the envelope must be rejected after successful AEAD authentication. This prevents multiple textual encodings of the same ticket bytes from being accepted at the envelope boundary.

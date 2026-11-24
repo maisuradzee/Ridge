@@ -115,6 +115,7 @@ const open = ({ envelope: e, serverPrivateKey, expectedKeyId, expectedServerId, 
   if (!Array.isArray(data) || data.length !== 6 || data[0] !== MARKER) fail('INVALID_ENVELOPE_PLAINTEXT');
   const [marker, ticket, serverId, sessionId, claimAttemptId, expiresAt] = data;
   if (typeof ticket !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(ticket) ||
+      decode(ticket, 'INVALID_JOIN_TICKET', 32).length !== 32 ||
       serverId !== c.serverId || sessionId !== c.sessionId ||
       claimAttemptId !== c.claimAttemptId || expiresAt !== c.expiresAt || marker !== MARKER) fail('ENVELOPE_CONTEXT_MISMATCH');
   return { ticket, serverId, sessionId, claimAttemptId, expiresAt, keyId: c.keyId };
@@ -217,4 +218,40 @@ test('AES-256-GCM known-answer vector fixes ciphertext and authentication-tag by
   const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final()]);
   assert.equal(ciphertext.toString('hex'), '4780c675c582fc5b147dacd1642c530d8005d64c7bde9b5651f808885dbf928b3451215cc2de02cd18eee6b3d92031777448636c71939af53ca0f24a7ab0717b3161884a8fc08b20c61a70463eebea1bcd15967a812082d596c758fbc1cd49f6ef89b7f6e55fe2f42af089d68bc4e1d8e63312e3a9c407ae8de7caa8a6b5b8469a8a192e57bf72682cf9be81dddd6b6530d385c40777ec2575f2e093ddcf4442b4e935e50cfacdf2d4dd877dab61771cf8a625c80fa3b9249d');
   assert.equal(cipher.getAuthTag().toString('hex'), '4f5becd381159957858f7aa3148436d7');
+});
+
+
+test('server rejects an authenticated plaintext ticket with non-canonical base64url pad bits', () => {
+  const server = pair();
+  const client = pair();
+  const context = normalize({
+    keyId: 'key-ticket-canonical', serverId: 'shard-ticket-canonical',
+    sessionId: 'session-ticket-canonical', claimAttemptId: 'attempt-ticket-canonical',
+    expiresAt: 2000000000, clientPublicKey: client.publicKey, serverPublicKey: server.publicKey,
+  });
+  const aad = aadFor(context);
+  const nonCanonicalTicket = ticket.slice(0, -1) + 'h';
+  assert.equal(nonCanonicalTicket.length, 43);
+  assert.equal(Buffer.from(nonCanonicalTicket, 'base64url').length, 32);
+  assert.notEqual(Buffer.from(nonCanonicalTicket, 'base64url').toString('base64url'), nonCanonicalTicket);
+  const key = derive({ privateKey: client.privateKey, peerPublicKey: server.publicKey, context });
+  const nonce = randomBytes(NONCE_BYTES);
+  const plaintext = Buffer.from(JSON.stringify([
+    MARKER, nonCanonicalTicket, context.serverId, context.sessionId,
+    context.claimAttemptId, context.expiresAt,
+  ]));
+  const cipher = createCipheriv('aes-256-gcm', key, nonce, { authTagLength: TAG_BYTES });
+  cipher.setAAD(aad);
+  const ciphertext = Buffer.concat([cipher.update(plaintext), cipher.final()]);
+  const envelope = {
+    ...context, nonce: nonce.toString('base64url'),
+    ciphertext: ciphertext.toString('base64url'),
+    tag: cipher.getAuthTag().toString('base64url'),
+  };
+  key.fill(0); plaintext.fill(0);
+  assert.throws(() => open({
+    envelope, serverPrivateKey: server.privateKey,
+    expectedKeyId: context.keyId, expectedServerId: context.serverId,
+    nowSeconds: 1999999000,
+  }), codeIs('INVALID_JOIN_TICKET'));
 });
