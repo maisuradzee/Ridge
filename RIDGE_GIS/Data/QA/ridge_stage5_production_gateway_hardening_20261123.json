@@ -1,0 +1,76 @@
+{
+  "schema": "ridge.stage5.production-gateway-hardening.v1",
+  "date": "2026-11-23",
+  "commit": "e2df4c454c332e9362d7e44ca4044a3f16c8058c",
+  "workflows": {
+    "stage5": {
+      "id": 45137196624,
+      "result": "success",
+      "url": "https://github.com/maisuradzee/Ridge/actions/runs/45137196624",
+      "pythonSourceRegression": "72/72 PASS",
+      "ueProjectStatic": "STATIC_PASS",
+      "ueUbtUht": "NOT_RUN",
+      "loadRunnerUnit": "6/6 PASS",
+      "backendNode": "55 PASS / 0 FAIL / 2 SKIP"
+    },
+    "postgres": {
+      "id": 45137196583,
+      "result": "success",
+      "url": "https://github.com/maisuradzee/Ridge/actions/runs/45137196583",
+      "migrations": [
+        "001_initial_schema.sql",
+        "002_job_checkpoints.sql",
+        "003_postgres_runtime.sql",
+        "004_session_registry.sql",
+        "005_session_join_tickets.sql",
+        "006_dedicated_server_credentials.sql"
+      ],
+      "liveBackendPostgres": "57 PASS / 0 FAIL / 0 SKIP"
+    }
+  },
+  "apiPreflight": {
+    "environment": "development",
+    "storage": "memory-ephemeral",
+    "virtualUsers": 500,
+    "durationSeconds": 15,
+    "rampSeconds": 3,
+    "totalRequests": 6995,
+    "failedRequests": 0,
+    "errorRate": 0,
+    "requestsPerSecond": 437.26,
+    "latencyMs": {
+      "p50": 0.48,
+      "p95": 0.82,
+      "p99": 1.96,
+      "max": 5.43
+    },
+    "maxObservedInFlightRequests": 6,
+    "notAnUnrealNetworkLoadTest": true
+  },
+  "hardening": {
+    "productionBindAllowed": [
+      "loopback",
+      "RFC1918 IPv4",
+      "IPv6 ULA"
+    ],
+    "productionBindRejected": [
+      "wildcard",
+      "public IPv4",
+      "global IPv6",
+      "unspecified IPv6"
+    ],
+    "postgresReadinessRequires": [
+      "ridge.dedicated_servers",
+      "ridge.player_sessions",
+      "ridge.dedicated_server_credentials"
+    ]
+  },
+  "outstanding": [
+    "Real identity-provider tenant and authorization-code/redirect/MFA integration",
+    "Trusted TLS reverse proxy deployment and ingress rate limits",
+    "Production orchestrator + secret manager provisioning, redaction and credential audit",
+    "Encrypted Unreal game connection transport for join bearer ticket",
+    "UE 5.8 UBT/UHT, Dedicated Server runtime and two-client PIE",
+    "Real 500-client Unreal Engine soak with replication/network profiling"
+  ]
+}

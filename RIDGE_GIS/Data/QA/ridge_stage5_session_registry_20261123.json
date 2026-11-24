@@ -1,0 +1,69 @@
+{
+  "schema": "ridge.stage5.session-registry-report.v1",
+  "date": "2026-11-23",
+  "commit": "a4e4402706646c93c42dbfc098793af19c943266",
+  "workflows": {
+    "stage5": {
+      "id": 45127547554,
+      "result": "success",
+      "url": "https://github.com/maisuradzee/Ridge/actions/runs/45127547554",
+      "pythonRegression": "52/52 PASS",
+      "ueProjectStatic": "24/24 PASS",
+      "loadRunnerUnit": "6/6 PASS",
+      "backendNodeNoDatabase": "33/33 PASS"
+    },
+    "postgres": {
+      "id": 45127547471,
+      "result": "success",
+      "url": "https://github.com/maisuradzee/Ridge/actions/runs/45127547471",
+      "migrations": [
+        "001_initial_schema.sql",
+        "002_job_checkpoints.sql",
+        "003_postgres_runtime.sql",
+        "004_session_registry.sql"
+      ],
+      "backendLivePostgres": "35 PASS / 0 FAIL / 0 SKIP",
+      "sessionRegistryIntegration": "PASS"
+    }
+  },
+  "apiLoadPreflight": {
+    "environment": "development",
+    "storage": "memory-ephemeral",
+    "virtualUsers": 500,
+    "durationSeconds": 15,
+    "rampSeconds": 3,
+    "totalRequests": 6994,
+    "failedRequests": 0,
+    "errorRate": 0,
+    "requestsPerSecond": 437.23,
+    "maxObservedInFlightRequests": 5,
+    "latencyMs": {
+      "p50": 0.45,
+      "p95": 0.78,
+      "p99": 1.83,
+      "max": 6.47
+    },
+    "notARealUnrealPlayerLoadTest": true
+  },
+  "sessionRegistry": {
+    "migration": 4,
+    "defaultLeaseSeconds": 45,
+    "heartbeatFreshnessSeconds": 45,
+    "maxAdvertisedPlayersPerInstance": 250,
+    "constraints": [
+      "one active session per player",
+      "per-player advisory lock",
+      "per-region advisory lock for capacity allocation",
+      "server instance ID cannot be reused while active sessions remain",
+      "cross-region allocation is rejected until a transfer workflow exists"
+    ]
+  },
+  "knownLimitations": [
+    "Only trusted internal routes are implemented; player-facing login/authentication and matchmaking gateway are not implemented.",
+    "RIDGE_SERVER_EVENT_TOKEN is a shared internal service token; production requires per-server credentials/rotation and deployment secret management.",
+    "A server_id identifies one running server process and must be unique per process boot.",
+    "Cross-region session transfer is rejected with SESSION_REGION_TRANSFER_REQUIRED; a transfer workflow is not implemented yet.",
+    "A session allocation does not create a signed client access ticket.",
+    "Unreal Engine 5.8 C++/UHT/PIE/Dedicated Server runtime has not been run in this environment."
+  ]
+}

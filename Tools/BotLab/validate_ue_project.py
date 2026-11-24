@@ -10,7 +10,7 @@ import json
 from pathlib import Path
 from typing import Any
 
-REQUIRED_MODULES = {"Core", "CoreUObject", "Engine", "AIModule", "NavigationSystem", "Json", "JsonUtilities"}
+REQUIRED_MODULES = {"Core", "CoreUObject", "Engine", "AIModule", "NavigationSystem", "Http", "Json", "JsonUtilities"}
 
 
 def validate_project(root: Path) -> dict[str, Any]:
@@ -25,6 +25,9 @@ def validate_project(root: Path) -> dict[str, Any]:
     target_paths = [root / "Source" / name for name in ("RIDGE.Target.cs", "RIDGEEditor.Target.cs", "RIDGEServer.Target.cs")]
     header_path = root / "Source" / "RIDGE" / "Public" / "RidgeBotTestController.h"
     cpp_path = root / "Source" / "RIDGE" / "Private" / "RidgeBotTestController.cpp"
+    login_header_path = root / "Source" / "RIDGE" / "Public" / "RidgeSessionLoginSubsystem.h"
+    login_cpp_path = root / "Source" / "RIDGE" / "Private" / "RidgeSessionLoginSubsystem.cpp"
+    game_ini_path = root / "Config" / "DefaultGame.ini"
 
     add("uproject_exists", project_path.is_file(), str(project_path.relative_to(root)))
     project: dict[str, Any] = {}
@@ -39,6 +42,18 @@ def validate_project(root: Path) -> dict[str, Any]:
     add("engine_association_58", project.get("EngineAssociation") == "5.8", f"EngineAssociation={project.get('EngineAssociation')!r}")
     modules = project.get("Modules", [])
     add("runtime_module_registered", any(m.get("Name") == "RIDGE" and m.get("Type") == "Runtime" for m in modules if isinstance(m, dict)), "RIDGE Runtime module registration")
+    plugins = project.get("Plugins", [])
+    enabled_plugins = {p.get("Name"): p.get("Enabled") for p in plugins if isinstance(p, dict)}
+    add(
+        "transport_platform_crypto_plugin_enabled",
+        enabled_plugins.get("PlatformCrypto") is True,
+        "PlatformCrypto plugin is explicitly enabled",
+    )
+    add(
+        "transport_aes_gcm_handler_plugin_enabled",
+        enabled_plugins.get("AESGCMHandlerComponent") is True,
+        "AESGCMHandlerComponent plugin is explicitly enabled",
+    )
 
     add("module_build_cs_exists", module_path.is_file(), "Source/RIDGE/RIDGE.Build.cs")
     build_cs = module_path.read_text(encoding="utf-8") if module_path.is_file() else ""
@@ -70,6 +85,32 @@ def validate_project(root: Path) -> dict[str, Any]:
     }
     for name, passed in source_requirements.items():
         add("cpp_" + name, passed, "source contract present" if passed else "source contract missing")
+
+
+    add("session_login_header_exists", login_header_path.is_file(), "RidgeSessionLoginSubsystem.h")
+    login_header = login_header_path.read_text(encoding="utf-8") if login_header_path.is_file() else ""
+    login_includes = [line.strip() for line in login_header.splitlines() if line.strip().startswith("#include")]
+    login_generated = '#include "RidgeSessionLoginSubsystem.generated.h"'
+    add("session_login_uht_generated_include_last", bool(login_includes) and login_includes[-1] == login_generated, "session login generated.h is the final include")
+    add("session_login_blueprint_entrypoint", "UFUNCTION(BlueprintCallable" in login_header and "RequestAndConnectFromBlueprint" in login_header, "Blueprint-callable login entry point")
+    add("session_login_blueprint_result", "UPROPERTY(BlueprintAssignable" in login_header and "OnLoginAttemptCompleted" in login_header, "Blueprint login result event")
+
+    add("session_login_cpp_exists", login_cpp_path.is_file(), "RidgeSessionLoginSubsystem.cpp")
+    login_cpp = login_cpp_path.read_text(encoding="utf-8") if login_cpp_path.is_file() else ""
+    login_requirements = {
+        "oidc_gateway_request": "POST" in login_cpp and "/v1/gateway/session" in login_cpp,
+        "bearer_authorization": 'TEXT("Authorization")' in login_cpp and "OidcAccessToken" in login_cpp,
+        "client_travel": "ClientTravel(ConnectUrl" in login_cpp,
+        "ticket_and_attempt_validation": "IsValidJoinTicket" in login_cpp and "FGuid::Parse(ClaimAttemptId" in login_cpp,
+        "expiry_validation": "FDateTime::ParseIso8601" in login_cpp and "ExpiryUtc <= FDateTime::UtcNow()" in login_cpp,
+        "loopback_http_allowlist": "Authority == Host" in login_cpp and 'Authority.StartsWith(Host + TEXT(":"))' in login_cpp,
+        "no_internal_service_secrets": all(secret not in login_cpp for secret in ("RIDGE_GATEWAY_TOKEN", "RIDGE_SERVER_EVENT_TOKEN", "RIDGE_SERVER_PROVISIONING_TOKEN", "x-ridge-server-token", "x-ridge-gateway-token")),
+    }
+    for name, passed in login_requirements.items():
+        add("session_login_" + name, passed, "client login source contract present" if passed else "client login source contract missing")
+
+    game_ini = game_ini_path.read_text(encoding="utf-8") if game_ini_path.is_file() else ""
+    add("session_login_gateway_config", "[RidgeSessionLogin]" in game_ini and "GatewayBaseUrl=http://127.0.0.1:8787" in game_ini, "non-secret loopback development Gateway URL is configured")
 
     failed = sum(item["status"] == "FAIL" for item in checks)
     return {

@@ -1,0 +1,84 @@
+{
+  "schema": "ridge.stage5.oidc-gateway-report.v1",
+  "date": "2026-11-23",
+  "commit": "d0490b75aa471e64da986e72627a74790ee2abd1",
+  "workflows": {
+    "stage5": {
+      "id": 45134162859,
+      "result": "success",
+      "url": "https://github.com/maisuradzee/Ridge/actions/runs/45134162859",
+      "pythonBotlabUnrealSource": "69/69 PASS",
+      "unrealProjectStatic": "PASS",
+      "loadRunnerUnit": "6/6 PASS",
+      "backendNode": "51 PASS / 0 FAIL / 2 SKIP",
+      "ueUbtUhtBuild": "NOT_RUN_STATIC_ONLY"
+    },
+    "postgres": {
+      "id": 45134168625,
+      "result": "success",
+      "url": "https://github.com/maisuradzee/Ridge/actions/runs/45134168625",
+      "migrations": "001–005 PASS",
+      "backendAndLivePostgres": "53 PASS / 0 FAIL / 0 SKIP"
+    }
+  },
+  "apiPreflight": {
+    "environment": "development",
+    "storage": "memory-ephemeral",
+    "virtualClients": 500,
+    "durationSeconds": 15,
+    "totalRequests": 6995,
+    "failedRequests": 0,
+    "requestsPerSecond": 437.4,
+    "maxObservedInFlightRequests": 6,
+    "latencyMs": {
+      "p50": 0.24,
+      "p95": 0.45,
+      "p99": 1.17,
+      "max": 4.09
+    },
+    "notAnUnrealPlayerNetworkTest": true
+  },
+  "oidc": {
+    "jwtAlgorithm": "RS256",
+    "rsaMinimumBits": 2048,
+    "claimsVerified": [
+      "iss",
+      "aud",
+      "azp when multi-audience",
+      "sub",
+      "iat",
+      "exp",
+      "nbf when present"
+    ],
+    "jwksHttpsRequiredInProduction": true,
+    "jwksCacheSeconds": 300,
+    "unknownKeyIdRefresh": true,
+    "canonicalPlayerId": "oidc_ + SHA256(issuer + NUL + subject)",
+    "playerIdOrPiiReturnedToClient": false,
+    "publicSessionEndpoint": "POST /v1/gateway/session",
+    "sessionFlowTest": "PASS",
+    "duplicateConnectedLoginRejected": true,
+    "productionRequiresOidcPostgresAndTrustedHttpsProxy": true
+  },
+  "joinTicket": {
+    "bytes": 32,
+    "format": "Base64URL bearer token",
+    "storage": "SHA-256 digest only",
+    "ttlSeconds": 30,
+    "attemptId": "stable server-issued random UUID",
+    "attemptIdStoredWithHashAndExpiry": true,
+    "sameAttemptRetryIdempotent": true,
+    "assignedShardBinding": true,
+    "duplicatePendingOrActivePlayerRejectedPerShard": true
+  },
+  "remainingGates": [
+    "Configure the actual external OIDC provider tenant and client authorization-code/redirect flow",
+    "Configure trusted production TLS reverse proxy and ingress rate limits",
+    "Configure per-Dedicated-Server credentials, rotation and revocation",
+    "Verify encrypted/protected Unreal game-connection transport for initial bearer ticket",
+    "Compile UE 5.8 with UBT/UHT on Windows",
+    "Run Dedicated Server and two-client PIE runtime tests",
+    "Verify reconnect, logout, crash recovery and two-client replication",
+    "Run a true 500 connected Unreal player capacity/soak test"
+  ]
+}

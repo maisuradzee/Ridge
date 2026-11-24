@@ -1,0 +1,142 @@
+name: RIDGE Stage 5 Multiplayer Preflight
+
+on:
+  push:
+    branches:
+      - codex/ridge-stage-5-multiplayer
+  pull_request:
+    branches:
+      - release/botlab-v14
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  static-gates:
+    name: Static and regression gates
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Python syntax validation
+        run: python -m compileall -q Tools/BotLab Tools/Health Tools/Deployment
+
+      - name: BotLab, Unreal source and Stage 5 replication contracts
+        run: python -m unittest discover -s Tools/BotLab/tests -p "test_*.py" -v
+
+      - name: Production ingress security contracts
+        run: python -m unittest discover -s Tools/Deployment -p "test_*.py" -v
+
+      - name: Install Nginx for configuration validation
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y nginx
+          sudo mkdir -p /etc/letsencrypt/live/ridge-api.example.com
+          sudo openssl req -x509 -nodes -newkey rsa:2048 \
+            -keyout /etc/letsencrypt/live/ridge-api.example.com/privkey.pem \
+            -out /etc/letsencrypt/live/ridge-api.example.com/fullchain.pem \
+            -days 1 -subj "/CN=ridge-api.example.com"
+          sudo rm -f /etc/nginx/sites-enabled/default
+          sudo cp deploy/production/nginx-ridge.conf /etc/nginx/conf.d/ridge-api.conf
+          sudo nginx -t
+
+      - name: Nginx TLS, proxy-header, host and rate-limit runtime tests
+        run: bash Tools/Deployment/test_nginx_ingress_runtime.sh
+
+      - name: Unreal Engine 5.8 project static validation
+        run: python Tools/BotLab/validate_ue_project.py --project-root .
+
+      - name: Upload Unreal project static validation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ridge-ue-project-static-validation
+          path: RIDGE_GIS/Data/QA/ridge_ue_project_static_validation.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: UE transport envelope reference vectors and tamper tests
+        run: node --test Tools/TransportReference/transport-reference.test.mjs
+
+      - name: Stage 5 load-test harness unit tests
+        run: node --test Tools/LoadTest/test_load_test.mjs
+
+      - name: Backend regression tests
+        working-directory: backend
+        run: node --test
+
+  development-api-load:
+    name: 500 virtual-client development API preflight
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Start isolated in-memory development API
+        env:
+          PORT: "8787"
+          RIDGE_HOST: "127.0.0.1"
+          RIDGE_ENV: "development"
+          RIDGE_STORAGE: "memory"
+          RIDGE_SERVER_EVENT_TOKEN: "ci-only-test-token"
+        run: |
+          mkdir -p artifacts
+          node backend/src/server.mjs > /tmp/ridge-stage5-api.log 2>&1 &
+          echo $! > /tmp/ridge-stage5-api.pid
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent http://127.0.0.1:8787/health > /tmp/ridge-stage5-health.json; then
+              cat /tmp/ridge-stage5-health.json
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/ridge-stage5-api.log
+          exit 1
+
+      - name: Run 500 virtual-client HTTP load test
+        run: |
+          node Tools/LoadTest/ridge_api_load_test.mjs \
+            --base-url http://127.0.0.1:8787 \
+            --concurrency 500 \
+            --duration-seconds 15 \
+            --ramp-seconds 3 \
+            --think-time-ms 1000 \
+            --timeout-ms 5000 \
+            --max-p95-ms 1500 \
+            --max-error-rate 0.01 \
+            --report-path artifacts/ridge-stage5-api-load-report.json
+
+      - name: Upload API load report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ridge-stage5-api-load-report
+          path: artifacts/ridge-stage5-api-load-report.json
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Stop isolated API
+        if: always()
+        run: |
+          if [ -f /tmp/ridge-stage5-api.pid ]; then
+            kill "$(cat /tmp/ridge-stage5-api.pid)" || true
+          fi

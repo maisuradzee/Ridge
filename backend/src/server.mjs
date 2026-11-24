@@ -1,13 +1,66 @@
 import http from 'node:http';
+import { isIP } from 'node:net';
 import { timingSafeEqual } from 'node:crypto';
 import { createGameService, RidgeError } from './game-service.mjs';
 import { createPostgresGameService } from './postgres-game-service.mjs';
+import { createSessionRegistry, validateClientTransportPublicKey } from './session-registry.mjs';
+import { createOidcVerifier, deriveCanonicalPlayerId } from './oidc-verifier.mjs';
+import { assertGameTransportReady, getGameTransportReadiness } from './game-transport-policy.mjs';
 
 const PORT = Number(process.env.PORT ?? 8787);
 const HOST = process.env.RIDGE_HOST ?? '127.0.0.1';
 const ENV = process.env.RIDGE_ENV ?? 'development';
 const STORAGE = process.env.RIDGE_STORAGE ?? (process.env.DATABASE_URL ? 'postgres' : 'memory');
 const GAME_SERVER_TOKEN = process.env.RIDGE_SERVER_EVENT_TOKEN ?? '';
+const GATEWAY_TOKEN = process.env.RIDGE_GATEWAY_TOKEN ?? '';
+const SERVER_PROVISIONING_TOKEN = process.env.RIDGE_SERVER_PROVISIONING_TOKEN ?? '';
+const SERVER_PROVISIONING_ACTOR_ID = process.env.RIDGE_SERVER_PROVISIONING_ACTOR_ID ?? '';
+const TRUST_PROXY = process.env.RIDGE_TRUST_PROXY === 'true';
+
+
+
+function isPrivateBindHost(host) {
+  if (typeof host !== 'string') return false;
+  const value = host.trim().toLowerCase();
+  if (value === 'localhost') return true;
+
+  const family = isIP(value);
+  if (family === 4) {
+    const octets = value.split('.').map(Number);
+    const [a, b] = octets;
+    return a === 127 || a === 10 ||
+      (a === 172 && b >= 16 && b <= 31) ||
+      (a === 192 && b === 168);
+  }
+  if (family === 6) {
+    if (value === '::1') return true;
+    const firstHextet = Number.parseInt(value.split(':')[0] || '0', 16);
+    // IPv6 Unique Local Addresses (fc00::/7). Global and unspecified
+    // addresses, including ::, are deliberately rejected for the API listener.
+    return Number.isFinite(firstHextet) && (firstHextet & 0xfe00) === 0xfc00;
+  }
+  return false;
+}
+
+function createConfiguredOidcVerifier() {
+  const issuer = process.env.RIDGE_OIDC_ISSUER ?? '';
+  const audience = process.env.RIDGE_OIDC_AUDIENCE ?? '';
+  const jwksUrl = process.env.RIDGE_OIDC_JWKS_URL ?? '';
+  const configuredCount = [issuer, audience, jwksUrl].filter(Boolean).length;
+  if (configuredCount === 0) {
+    if (ENV === 'production') throw new Error('Production RIDGE API requires OIDC issuer, audience and JWKS configuration.');
+    return null;
+  }
+  if (configuredCount !== 3) {
+    throw new Error('RIDGE_OIDC_ISSUER, RIDGE_OIDC_AUDIENCE and RIDGE_OIDC_JWKS_URL must be configured together.');
+  }
+  return createOidcVerifier({
+    issuer,
+    audience,
+    jwksUrl,
+    allowHttpForDevelopment: ENV !== 'production',
+  });
+}
 
 function safeTokenEquals(provided, expected) {
   const a = Buffer.from(String(provided ?? ''), 'utf8');
@@ -15,12 +68,63 @@ function safeTokenEquals(provided, expected) {
   return a.length > 0 && a.length === b.length && timingSafeEqual(a, b);
 }
 
-function requireGameServer(request) {
-  if (!GAME_SERVER_TOKEN) {
-    throw new RidgeError(503, 'GAME_SERVER_AUTH_NOT_CONFIGURED', 'სათამაშო სერვერის შიდა ავტორიზაცია კონფიგურირებული არ არის.');
+async function requireGameServer(request, routeServerId, sessionRegistry) {
+  const headerServerId = request.headers['x-ridge-server-id'];
+  const serverId = routeServerId ?? headerServerId;
+  if (routeServerId && headerServerId && routeServerId !== headerServerId) {
+    throw new RidgeError(403, 'GAME_SERVER_ID_MISMATCH', 'Server identity header does not match the route.');
   }
-  if (!safeTokenEquals(request.headers['x-ridge-server-token'], GAME_SERVER_TOKEN)) {
-    throw new RidgeError(403, 'GAME_SERVER_FORBIDDEN', 'შიდა სათამაშო სერვერის ავტორიზაცია ვერ დადასტურდა.');
+
+  // The shared role token is a development-only compatibility path.
+  if (ENV !== 'production' && GAME_SERVER_TOKEN &&
+      safeTokenEquals(request.headers['x-ridge-server-token'], GAME_SERVER_TOKEN)) {
+    return;
+  }
+  if (!serverId || typeof serverId !== 'string') {
+    throw new RidgeError(403, 'GAME_SERVER_FORBIDDEN', 'Dedicated Server instance identity is required.');
+  }
+  const authenticated = await sessionRegistry.authenticateServerCredential({
+    serverId,
+    token: request.headers['x-ridge-server-token'],
+  });
+  if (!authenticated) {
+    throw new RidgeError(403, 'GAME_SERVER_FORBIDDEN', 'Per-instance Dedicated Server credential is invalid, expired or revoked.');
+  }
+}
+
+function getProvisioningActor() {
+  const actorId = SERVER_PROVISIONING_ACTOR_ID ||
+    (ENV !== 'production' ? 'ridge-development-orchestrator' : '');
+  if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,79}$/.test(actorId)) {
+    throw new RidgeError(
+      503,
+      'SERVER_PROVISIONING_ACTOR_NOT_CONFIGURED',
+      'Server provisioning service principal is not configured.',
+    );
+  }
+  return { actorType: 'service', actorId };
+}
+
+function requireServerProvisioner(request) {
+  if (!SERVER_PROVISIONING_TOKEN) {
+    if (ENV !== 'production' && GAME_SERVER_TOKEN &&
+        safeTokenEquals(request.headers['x-ridge-server-token'], GAME_SERVER_TOKEN)) {
+      return { actorType: 'service', actorId: 'ridge-development-compatibility' };
+    }
+    throw new RidgeError(403, 'SERVER_PROVISIONING_FORBIDDEN', 'Server provisioning authorization failed.');
+  }
+  if (!safeTokenEquals(request.headers['x-ridge-provisioning-token'], SERVER_PROVISIONING_TOKEN)) {
+    throw new RidgeError(403, 'SERVER_PROVISIONING_FORBIDDEN', 'Server provisioning authorization failed.');
+  }
+  return getProvisioningActor();
+}
+
+function requireGateway(request) {
+  if (!GATEWAY_TOKEN) {
+    throw new RidgeError(503, 'GATEWAY_AUTH_NOT_CONFIGURED', 'Session gateway-ის შიდა ავტორიზაცია კონფიგურირებული არ არის.');
+  }
+  if (!safeTokenEquals(request.headers['x-ridge-gateway-token'], GATEWAY_TOKEN)) {
+    throw new RidgeError(403, 'GATEWAY_FORBIDDEN', 'Session gateway-ის ავტორიზაცია ვერ დადასტურდა.');
   }
 }
 
@@ -79,7 +183,8 @@ async function createStorage() {
   if (STORAGE === 'memory') {
     if (ENV === 'production') throw new Error('Production mode cannot use ephemeral in-memory game storage.');
     const service = createGameService();
-    return { service, close: async () => {} };
+    const sessionRegistry = await createSessionRegistry();
+    return { service, sessionRegistry, close: async () => {} };
   }
   if (STORAGE !== 'postgres') throw new Error(`Unsupported RIDGE_STORAGE value: ${STORAGE}`);
   if (!process.env.DATABASE_URL) throw new Error('RIDGE_STORAGE=postgres requires DATABASE_URL.');
@@ -101,7 +206,8 @@ async function createStorage() {
       pool,
       dedicatedServerId: process.env.RIDGE_DEDICATED_SERVER_ID ?? 'ridge-development-server',
     });
-    return { service, close: async () => service.close() };
+    const sessionRegistry = await createSessionRegistry({ pool });
+    return { service, sessionRegistry, close: async () => service.close() };
   } catch (error) {
     await pool.end().catch(() => {});
     throw error;
@@ -109,8 +215,25 @@ async function createStorage() {
 }
 
 async function main() {
+  if (ENV === 'production' && !isPrivateBindHost(HOST)) {
+    throw new Error('Production RIDGE API must bind to loopback or a private network IP; public and wildcard listeners are forbidden.');
+  }
+  if (ENV === 'production' && STORAGE === 'memory') {
+    throw new Error('Production mode cannot use ephemeral in-memory game storage.');
+  }
+  if (ENV === 'production' && !SERVER_PROVISIONING_TOKEN) {
+    throw new Error('Production RIDGE API requires RIDGE_SERVER_PROVISIONING_TOKEN for per-instance credential rotation.');
+  }
+  if (ENV === 'production' && !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,79}$/.test(SERVER_PROVISIONING_ACTOR_ID)) {
+    throw new Error('Production RIDGE API requires RIDGE_SERVER_PROVISIONING_ACTOR_ID (stable service-principal ID).');
+  }
+  if (ENV === 'production' && !TRUST_PROXY) {
+    throw new Error('Production RIDGE public gateway requires a trusted HTTPS reverse proxy (RIDGE_TRUST_PROXY=true).');
+  }
+  const oidcVerifier = createConfiguredOidcVerifier();
   const storage = await createStorage();
   const service = storage.service;
+  const sessionRegistry = storage.sessionRegistry;
   const server = http.createServer(async (request, response) => {
     try {
       const url = new URL(request.url ?? '/', `http://${request.headers.host ?? 'localhost'}`);
@@ -125,30 +248,300 @@ async function main() {
       }
       if (request.method === 'GET' && url.pathname === '/ready') {
         if (service.healthCheck) await service.healthCheck();
-        return send(response, 200, { ok: true, storage: service.storageMode ?? 'memory-ephemeral' });
+        const sessionRegistryReady = sessionRegistry?.healthCheck ? await sessionRegistry.healthCheck() : false;
+        if (!sessionRegistryReady) throw new RidgeError(503, 'SESSION_REGISTRY_NOT_READY', 'Session registry მზად არ არის.');
+        return send(response, 200, {
+          ok: true,
+          storage: service.storageMode ?? 'memory-ephemeral',
+          sessionRegistry: true,
+          // This reports player-session admission separately from API/control-plane health.
+          // Production may be operational while new gameplay sessions remain fail-closed.
+          gameplayAdmission: getGameTransportReadiness({ environment: ENV }),
+        });
       }
+      // Public player session entry. Identity is derived only from a verified OIDC JWT.
+      if (request.method === 'POST' && url.pathname === '/v1/gateway/session') {
+        // HTTPS protects the REST hop only. Until the separate Unreal game
+        // transport is runtime-verified, Production must not issue join tickets.
+        assertGameTransportReady({ environment: ENV });
+        if (!oidcVerifier) {
+          throw new RidgeError(503, 'OIDC_NOT_CONFIGURED', 'RIDGE account identity provider ჯერ არ არის კონფიგურირებული.');
+        }
+        const forwardedProto = String(request.headers['x-forwarded-proto'] ?? '').split(',')[0].trim().toLowerCase();
+        const secureTransport = Boolean(request.socket.encrypted) || (TRUST_PROXY && forwardedProto === 'https');
+        if (ENV === 'production' && !secureTransport) {
+          throw new RidgeError(400, 'HTTPS_REQUIRED', 'Gateway-ის public session endpoint მხოლოდ HTTPS-ით არის ხელმისაწვდომი.');
+        }
+
+        let identity;
+        try {
+          identity = await oidcVerifier.verifyAuthorizationHeader(request.headers.authorization);
+        } catch (error) {
+          const unavailable = ['OIDC_JWKS_UNAVAILABLE', 'OIDC_JWKS_INVALID'].includes(error?.code);
+          throw new RidgeError(
+            unavailable ? 503 : 401,
+            unavailable ? 'OIDC_IDENTITY_SERVICE_UNAVAILABLE' : 'OIDC_TOKEN_INVALID',
+            unavailable ? 'Identity provider-ის signing keys დროებით მიუწვდომელია.' : 'ანგარიშის ავტორიზაცია ვერ დადასტურდა.',
+          );
+        }
+
+        const body = await readJson(request, 4 * 1024);
+        const clientTransportPublicKey = body.clientTransportPublicKey === undefined
+          ? null
+          : validateClientTransportPublicKey(body.clientTransportPublicKey);
+        const playerId = deriveCanonicalPlayerId(identity.issuer, identity.subject);
+        const allocation = await sessionRegistry.allocatePlayer(playerId, body.region ?? 'ge-tbilisi');
+        if (allocation.status !== 'allocated') {
+          throw new RidgeError(409, 'PLAYER_SESSION_ALREADY_CONNECTED', 'ამ ანგარიშს უკვე აქვს აქტიური თამაშის კავშირი.');
+        }
+        if (allocation.reused) {
+          // Never replace a ticket belonging to an existing in-flight login attempt.
+          throw new RidgeError(409, 'PLAYER_SESSION_LOGIN_PENDING', 'ამ ანგარიშზე შესვლის მცდელობა უკვე მიმდინარეობს; დაელოდე მიმდინარე კავშირს ან მის ვადის ამოწურვას.');
+        }
+
+        let issued;
+        let serverTransportKey = null;
+        try {
+          if (clientTransportPublicKey) {
+            serverTransportKey = await sessionRegistry.getServerTransportKey({
+              serverId: allocation.server.serverId,
+            });
+            if (!serverTransportKey || serverTransportKey.serverId !== allocation.server.serverId ||
+                serverTransportKey.algorithm !== 'X25519') {
+              throw new RidgeError(
+                503,
+                'TRANSPORT_KEY_NOT_AVAILABLE',
+                'არჩეულ shard-ს მოქმედი X25519 transport public key არ აქვს.',
+              );
+            }
+          }
+
+          issued = await sessionRegistry.issueJoinTicket({
+            playerId,
+            sessionId: allocation.sessionId,
+            serverId: allocation.server.serverId,
+          });
+
+          if (serverTransportKey &&
+              Date.parse(serverTransportKey.expiresAt) < Date.parse(issued.expiresAt)) {
+            throw new RidgeError(
+              503,
+              'TRANSPORT_KEY_EXPIRES_BEFORE_JOIN_TICKET',
+              'Shard transport key-ის ვადა join ticket-ის ვადაზე ნაკლებია.',
+            );
+          }
+        } catch (error) {
+          if (!allocation.reused) {
+            await sessionRegistry.releaseSession({
+              playerId,
+              sessionId: allocation.sessionId,
+              serverId: allocation.server.serverId,
+            }).catch(() => {});
+          }
+          throw error;
+        }
+
+        const result = {
+          sessionId: issued.sessionId,
+          expiresAt: issued.expiresAt,
+          server: {
+            host: issued.server.host,
+            port: issued.server.port,
+            region: issued.server.region,
+            protocolVersion: issued.server.protocolVersion,
+          },
+          join: {
+            ticket: issued.ticket,
+            claimAttemptId: issued.claimAttemptId,
+          },
+        };
+
+        if (serverTransportKey) {
+          // The client must seal the bearer ticket into the versioned join
+          // envelope before ClientTravel. Never put it in URL options.
+          result.transport = {
+            protocolVersion: 1,
+            suite: 'X25519-HKDF-SHA256-AES-256-GCM',
+            algorithm: serverTransportKey.algorithm,
+            keyId: serverTransportKey.keyId,
+            serverId: serverTransportKey.serverId,
+            clientPublicKey: clientTransportPublicKey,
+            serverPublicKey: serverTransportKey.publicKey,
+            expiresAt: serverTransportKey.expiresAt,
+          };
+        } else {
+          // Development-only legacy handoff. Production is blocked above until
+          // encrypted Unreal transport has passed runtime acceptance.
+          const encodedTicket = encodeURIComponent(issued.ticket);
+          const encodedAttempt = encodeURIComponent(issued.claimAttemptId);
+          result.connectionOptions = 'ridgeJoinTicket=' + encodedTicket +
+            '?ridgeClaimAttemptId=' + encodedAttempt;
+          result.connectUrl = issued.server.host + ':' + issued.server.port + '?' + result.connectionOptions;
+        }
+
+        return send(response, 201, result);
+      }
+
       if (request.method === 'GET' && url.pathname === '/v1/world/state') {
         return send(response, 200, await service.getWorldState());
+      }
+
+      // Control-plane credential issuance is restricted to the deployment orchestrator.
+      const serverCredentialMatch = url.pathname.match(/^\/v1\/control\/shards\/([A-Za-z0-9._:-]{1,80})\/credentials$/);
+      if (request.method === 'POST' && serverCredentialMatch) {
+        const actor = requireServerProvisioner(request);
+        const credential = await sessionRegistry.issueServerCredential({
+          serverId: serverCredentialMatch[1],
+          actorType: actor.actorType,
+          actorId: actor.actorId,
+        });
+        return send(response, 201, credential);
+      }
+
+      const serverCredentialAuditMatch = url.pathname.match(/^\/v1\/control\/shards\/([A-Za-z0-9._:-]{1,80})\/credentials\/audit$/);
+      if (request.method === 'GET' && serverCredentialAuditMatch) {
+        requireServerProvisioner(request);
+        const limitParam = url.searchParams.get('limit');
+        const limit = limitParam === null ? 50 : Number(limitParam);
+        const events = await sessionRegistry.listServerCredentialEvents({
+          serverId: serverCredentialAuditMatch[1],
+          limit,
+        });
+        return send(response, 200, { serverId: serverCredentialAuditMatch[1], events });
+      }
+
+      const revokeServerCredentialMatch = url.pathname.match(/^\/v1\/control\/shards\/([A-Za-z0-9._:-]{1,80})\/credentials\/revoke$/);
+      if (request.method === 'POST' && revokeServerCredentialMatch) {
+        const actor = requireServerProvisioner(request);
+        return send(response, 200, await sessionRegistry.revokeServerCredential({
+          serverId: revokeServerCredentialMatch[1],
+          actorType: actor.actorType,
+          actorId: actor.actorId,
+        }));
+      }
+
+      // Session and shard control plane. Production requires per-instance credentials.
+      if (request.method === 'GET' && url.pathname === '/v1/internal/shards') {
+        requireServerProvisioner(request);
+        return send(response, 200, { servers: await sessionRegistry.listServers(url.searchParams.get('region')) });
+      }
+
+      if (request.method === 'POST' && url.pathname === '/v1/internal/shards/register') {
+        const body = await readJson(request);
+        await requireGameServer(request, body.serverId, sessionRegistry);
+        return send(response, 201, await sessionRegistry.registerServer(body));
+      }
+
+      const shardTransportKeyMatch = url.pathname.match(/^\/v1\/internal\/shards\/([A-Za-z0-9._:-]{1,80})\/transport-key$/);
+      if (request.method === 'PUT' && shardTransportKeyMatch) {
+        const serverId = shardTransportKeyMatch[1];
+        await requireGameServer(request, serverId, sessionRegistry);
+        const body = await readJson(request, 4 * 1024);
+        const published = await sessionRegistry.publishServerTransportKey({ ...body, serverId, actorType: 'dedicated_server', actorId: serverId });
+        return send(response, published.replayed ? 200 : 201, published);
+      }
+
+      if (request.method === 'GET' && shardTransportKeyMatch) {
+        requireGateway(request);
+        const key = await sessionRegistry.getServerTransportKey({ serverId: shardTransportKeyMatch[1] });
+        if (!key) throw new RidgeError(404, 'TRANSPORT_KEY_NOT_AVAILABLE', 'Shard-ის მოქმედი transport public key ვერ მოიძებნა.');
+        return send(response, 200, key);
+      }
+
+      const shardTransportKeyRevokeMatch = url.pathname.match(/^\/v1\/internal\/shards\/([A-Za-z0-9._:-]{1,80})\/transport-key\/([A-Za-z0-9._:-]{1,80})\/revoke$/);
+      if (request.method === 'POST' && shardTransportKeyRevokeMatch) {
+        const [, serverId, keyId] = shardTransportKeyRevokeMatch;
+        await requireGameServer(request, serverId, sessionRegistry);
+        const result = await sessionRegistry.revokeServerTransportKey({
+          serverId, keyId, actorType: 'dedicated_server', actorId: serverId,
+        });
+        return send(response, 200, result);
+      }
+
+      const controlTransportKeyRevokeMatch = url.pathname.match(/^\/v1\/control\/shards\/([A-Za-z0-9._:-]{1,80})\/transport-key\/([A-Za-z0-9._:-]{1,80})\/revoke$/);
+      if (request.method === 'POST' && controlTransportKeyRevokeMatch) {
+        const actor = requireServerProvisioner(request);
+        const [, serverId, keyId] = controlTransportKeyRevokeMatch;
+        const result = await sessionRegistry.revokeServerTransportKey({
+          serverId, keyId, actorType: actor.actorType, actorId: actor.actorId,
+        });
+        return send(response, 200, result);
+      }
+
+      const transportKeyAuditMatch = url.pathname.match(/^\/v1\/control\/shards\/([A-Za-z0-9._:-]{1,80})\/transport-key-audit$/);
+      if (request.method === 'GET' && transportKeyAuditMatch) {
+        requireServerProvisioner(request);
+        const limitParam = url.searchParams.get('limit');
+        const limit = limitParam === null ? 50 : Number(limitParam);
+        const events = await sessionRegistry.listServerTransportKeyEvents({
+          serverId: transportKeyAuditMatch[1], limit,
+        });
+        return send(response, 200, { serverId: transportKeyAuditMatch[1], events });
+      }
+
+      const shardHeartbeatMatch = url.pathname.match(/^\/v1\/internal\/shards\/([A-Za-z0-9._:-]{1,80})\/heartbeat$/);
+      if (request.method === 'POST' && shardHeartbeatMatch) {
+        await requireGameServer(request, shardHeartbeatMatch[1], sessionRegistry);
+        const body = await readJson(request);
+        return send(response, 200, await sessionRegistry.heartbeatServer(shardHeartbeatMatch[1], body));
+      }
+
+      const allocateSessionMatch = url.pathname.match(/^\/v1\/internal\/players\/([A-Za-z0-9._:-]{1,80})\/session\/allocate$/);
+      if (request.method === 'POST' && allocateSessionMatch) {
+        requireGateway(request);
+        const body = await readJson(request);
+        return send(response, 201, await sessionRegistry.allocatePlayer(allocateSessionMatch[1], body.region ?? 'ge-tbilisi'));
+      }
+
+      const issueJoinTicketMatch = url.pathname.match(/^\/v1\/internal\/players\/([A-Za-z0-9._:-]{1,80})\/session\/join-ticket$/);
+      if (request.method === 'POST' && issueJoinTicketMatch) {
+        requireGateway(request);
+        const body = await readJson(request);
+        return send(response, 201, await sessionRegistry.issueJoinTicket({
+          playerId: issueJoinTicketMatch[1],
+          sessionId: body.sessionId,
+          serverId: body.serverId,
+        }));
+      }
+
+      const claimJoinTicketMatch = url.pathname.match(/^\/v1\/internal\/shards\/([A-Za-z0-9._:-]{1,80})\/join\/claim$/);
+      if (request.method === 'POST' && claimJoinTicketMatch) {
+        await requireGameServer(request, claimJoinTicketMatch[1], sessionRegistry);
+        const body = await readJson(request);
+        return send(response, 200, await sessionRegistry.claimJoinTicket({
+          serverId: claimJoinTicketMatch[1],
+          ticket: body.ticket,
+          claimAttemptId: body.claimAttemptId,
+        }));
+      }
+
+      const releaseSessionMatch = url.pathname.match(/^\/v1\/internal\/shards\/([A-Za-z0-9._:-]{1,80})\/players\/([A-Za-z0-9._:-]{1,80})\/release$/);
+      if (request.method === 'POST' && releaseSessionMatch) {
+        await requireGameServer(request, releaseSessionMatch[1], sessionRegistry);
+        const body = await readJson(request);
+        return send(response, 200, await sessionRegistry.releaseSession({
+          serverId: releaseSessionMatch[1], playerId: releaseSessionMatch[2], sessionId: body.sessionId,
+        }));
       }
 
       // Internal endpoints are callable only by the trusted Dedicated Server.
       const internalAcceptMatch = url.pathname.match(/^\/v1\/internal\/players\/([A-Za-z0-9._:-]{1,80})\/jobs\/accept$/);
       if (request.method === 'POST' && internalAcceptMatch) {
-        requireGameServer(request);
+        await requireGameServer(request, request.headers['x-ridge-server-id'], sessionRegistry);
         const body = await readJson(request);
         return send(response, 201, await service.acceptJob(internalAcceptMatch[1], body.definitionId ?? 'delivery_intro'));
       }
 
       const internalCompleteMatch = url.pathname.match(/^\/v1\/internal\/jobs\/([0-9a-f-]{36})\/complete$/i);
       if (request.method === 'POST' && internalCompleteMatch) {
-        requireGameServer(request);
+        await requireGameServer(request, request.headers['x-ridge-server-id'], sessionRegistry);
         const body = await readJson(request);
         return send(response, 200, await service.completeJob(body.playerId, internalCompleteMatch[1], body.completionProof));
       }
 
       const checkpointMatch = url.pathname.match(/^\/v1\/internal\/jobs\/([0-9a-f-]{36})\/checkpoints$/i);
       if (request.method === 'POST' && checkpointMatch) {
-        requireGameServer(request);
+        await requireGameServer(request, request.headers['x-ridge-server-id'], sessionRegistry);
         const body = await readJson(request);
         return send(response, 200, await service.recordJobCheckpoint(
           body.playerId,

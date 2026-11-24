@@ -1,0 +1,55 @@
+{
+  "schema": "ridge.stage5.unreal-shard-wiring-report.v1",
+  "date": "2026-11-23",
+  "commit": "db789df1f5c2d8cb02bd8ce3c036f5cf142a32dc",
+  "workflow": {
+    "id": 45128419607,
+    "result": "success",
+    "url": "https://github.com/maisuradzee/Ridge/actions/runs/45128419607",
+    "checks": {
+      "pythonBotlabUnrealSource": "57/57 PASS",
+      "unrealProjectStatic": "24/24 PASS",
+      "loadRunnerUnit": "6/6 PASS",
+      "backendNode": "33/33 PASS"
+    }
+  },
+  "apiPreflight": {
+    "environment": "development",
+    "storage": "memory-ephemeral",
+    "virtualUsers": 500,
+    "durationSeconds": 15,
+    "rampSeconds": 3,
+    "requests": 6995,
+    "failedRequests": 0,
+    "requestsPerSecond": 437.17,
+    "latencyMs": {
+      "p50": 0.58,
+      "p95": 1.17,
+      "p99": 3.23,
+      "max": 17.7
+    },
+    "maxObservedInFlightRequests": 10,
+    "notAnUnrealNetworkLoadTest": true
+  },
+  "unrealWiring": {
+    "dedicatedServerRegistration": true,
+    "processUniqueServerInstanceId": true,
+    "heartbeatIntervalSeconds": 15,
+    "heartbeatReportsActivePlayerCount": true,
+    "endPlayOfflineHeartbeat": true,
+    "registrationInFlightShutdownFallback": true,
+    "productionRequiresHttps": true,
+    "productionRequiresNonLoopbackHost": true,
+    "clientTokenNotReplicated": true
+  },
+  "notVerified": [
+    "UE 5.8 UBT/C++ compilation and UHT",
+    "PIE and Dedicated Server runtime",
+    "real UDP reachability and join flow",
+    "two-client replication and reconnect",
+    "player-facing authentication and signed join ticket",
+    "session allocation/claim/release wiring to PreLogin/PostLogin",
+    "per-server credentials and rotation",
+    "real 500 connected Unreal players and soak test"
+  ]
+}

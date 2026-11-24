@@ -1,0 +1,142 @@
+# RIDGE — Unreal Dedicated Server რეგისტრაცია და heartbeat
+
+**ეტაპი:** Stage 5 / UE control-plane wiring  
+**Engine target:** Unreal Engine 5.8  
+**მდგომარეობა:** Source wiring დამატებულია; რეალური UBT/UHT/PIE/Server execution კვლავ ცალკე acceptance gate-ია.
+
+## 1. რა ხდება ავტომატურად
+
+როდესაც ARidgeGameMode იწყებს მუშაობას server/standalone world-ში:
+
+1. იღებს URidgeBackendSubsystem-ს GameInstance-იდან.
+2. აგზავნის POST /v1/internal/shards/register მოთხოვნას.
+3. რეგისტრაციის წარმატების შემდეგ ყოველ 15 წამში აგზავნის heartbeat-ს.
+4. Heartbeat შეიცავს GetNumPlayers()-ს და ready სტატუსს.
+5. თუ API ან ქსელი დროებით მიუწვდომელია, შემდეგ heartbeat ციკლზე registration ხელახლა სცადება.
+6. EndPlay-ზე timer იწმინდება და სერვერი აგზავნის offline heartbeat-ს.
+
+Registry-ის heartbeat freshness window 45 წამია; 15-წამიანი cadence განზრახ ტოვებს ორ retry ინტერვალს transient failure-ისთვის.
+
+GetNumPlayers() ითვლის აქტიურ მოთამაშეებს და არ მოიცავს spectator-ებს. ეს მნიშვნელობა shard registry-ში მხოლოდ advertised live player count-ად გამოიყენება.
+
+## 2. Development გარემოს კონფიგურაცია
+
+PowerShell-ში, Dedicated Server-ის გაშვებამდე:
+
+    $env:RIDGE_ENV = "development"
+    $env:RIDGE_API_BASE_URL = "http://127.0.0.1:8787"
+    $env:RIDGE_SERVER_EVENT_TOKEN = "<development server token>"
+    $env:RIDGE_SERVER_ID = "saburtalo-dev-a"
+    $env:RIDGE_SERVER_REGION = "ge-tbilisi"
+    $env:RIDGE_SERVER_HOST = "127.0.0.1"
+    $env:RIDGE_SERVER_PORT = "7777"
+    $env:RIDGE_SERVER_MAX_PLAYERS = "100"
+    $env:RIDGE_PROTOCOL_VERSION = "ridge-0.6"
+
+RIDGE_SERVER_ID არის მხოლოდ human-readable process label. C++ subsystem მას ახალ GUID-ს ამატებს, რათა ყოველ process boot-ზე უნიკალური instance ID შეიქმნას. ერთსა და იმავე აქტიურ instance ID-ს registry ხელახლა არ იღებს.
+
+RIDGE_SERVER_HOST არის მისამართი, რომელსაც კლიენტი გამოიყენებს Dedicated Server-თან დასაკავშირებლად — ეს არ არის Backend API-ის მისამართი. 127.0.0.1 გამოდგება მხოლოდ იმ შემთხვევისთვის, როცა game client და server ერთ კომპიუტერზეა. LAN ტესტისთვის მიუთითეთ server კომპიუტერის LAN მისამართი.
+
+## 3. Production-ის აუცილებელი პირობები
+
+Dedicated Server-ის გარემოში თითოეული process იღებს მხოლოდ საკუთარ credential-ს:
+
+- `RIDGE_ENV=production`
+- `RIDGE_API_BASE_URL=https://backend-domain`
+- `RIDGE_SERVER_INSTANCE_ID=<pre-provisioned unique instance ID>`
+- `RIDGE_SERVER_EVENT_TOKEN=<one-time-issued per-instance token>`
+- `RIDGE_SERVER_HOST=<publicly reachable DNS name or IP>`
+- `RIDGE_SERVER_PORT=7777`
+- `RIDGE_SERVER_MAX_PLAYERS=100`
+
+RIDGE API/control-plane გარემოში ცალკე secret-ად ინახება:
+- `RIDGE_SERVER_PROVISIONING_TOKEN=<orchestrator-only secret>`
+- `RIDGE_GATEWAY_TOKEN=<gateway-only internal secret>`
+- OIDC issuer/audience/JWKS და PostgreSQL პარამეტრები (იხ. `docs/59_PUBLIC_OIDC_GATEWAY_GE.md`).
+
+Production რეჟიმში HTTPS სავალდებულოა; `RIDGE_SERVER_HOST` უნდა იყოს public-reachable და არ შეიძლება loopback. `RIDGE_SERVER_INSTANCE_ID` წინასწარ უნდა არსებობდეს credential-ის გაცემამდე; `RIDGE_SERVER_EVENT_TOKEN` არ უნდა მოთავსდეს game assets/config/log-ში. `RIDGE_SERVER_PROVISIONING_TOKEN` არასდროს გადაეცემა Dedicated Server-ს.
+
+Credential sequence:
+1. Orchestrator ქმნის უნიკალურ `serverId`-ს.
+2. Orchestrator იძახებს `POST /v1/control/shards/{serverId}/credentials` `x-ridge-provisioning-token` header-ით.
+3. API აბრუნებს 256-bit token-ს მხოლოდ ერთხელ; PostgreSQL-ში ინახება მხოლოდ SHA-256 hash.
+4. Orchestrator token-ს ინახავს secret manager-ში და უშვებს Dedicated Server-ს `RIDGE_SERVER_INSTANCE_ID` + `RIDGE_SERVER_EVENT_TOKEN` გარემოთი.
+5. Server-ის ყველა internal request აგზავნის `x-ridge-server-id` და `x-ridge-server-token` header-ებს.
+
+Rotation იგივე endpoint-ით გასცემს ახალ credential-ს და ძველს დაუყოვნებლივ აუქმებს. Revoke endpoint: `POST /v1/control/shards/{serverId}/credentials/revoke`. Production-ში shared server-token fallback გამორთულია.
+
+## 4. Compile და runtime პროცედურა
+
+Windows გარემოში Unreal Engine 5.8-ის ზუსტი install path მიუთითეთ:
+
+    $env:RIDGE_UE_ROOT = "D:\Epic Games\UE_5.8"
+    .\Tools\BotLab\Run-UE58BotLabBuild.ps1 -BuildDedicatedServer
+
+შემდეგ გახსენით RIDGE.uproject Unreal Engine 5.8 Editor-ში, გამოიყენეთ ცალკე QA map და გაუშვით Dedicated Server + მინიმუმ ორი client.
+
+შეამოწმეთ:
+- Server startup-ის შემდეგ ridge.dedicated_servers-ში ერთი ახალი server instance;
+- heartbeat-ის 15-წამიანი cadence და მოთამაშეების სწორი რაოდენობა;
+- 45 წამზე ძველი heartbeat-ის შემდეგ allocator-მა shard აღარ უნდა აირჩიოს;
+- EndPlay-ის შემდეგ server status უნდა გახდეს offline;
+- client build/PIE client-ში RIDGE_SERVER_EVENT_TOKEN არ უნდა ჩაიტვირთოს.
+
+Static CI ამოწმებს მხოლოდ source contract-ს. ის არ ადასტურებს C++ compilation/UHT/PIE, რეალურ UDP reachability-ს, reconnect-ს ან actor replication-ს.
+
+## 5. მიმდინარე login/session ინტეგრაცია და დარჩენილი სამუშაო
+
+Stage 5-ის შემდეგი increment-ები უკვე ამატებს player-facing session entry-ს:
+- `POST /v1/gateway/session` იღებს provider-agnostic OIDC RS256 JWT-ს, ამოწმებს signature/issuer/audience/expiry-ს და issuer + subject-იდან ქმნის canonical backend Player ID-ს;
+- gateway ირჩევს healthy shard-ს, გასცემს 256-bit ერთჯერად join ticket-ს და სტაბილურ `claimAttemptId`-ს;
+- Unreal GameMode-ის `PreLoginAsync -> InitNewPlayer -> PostLogin` source flow ამოწმებს ticket-ს, აბამს canonical Player ID-ს server-only PlayerState-ში და უარყოფს დაუდასტურებელ კავშირებს;
+- `Logout` session-ს ათავისუფლებს; 15-წამიანი shard heartbeat და 45-წამიანი freshness window stale/offline shard-ების გამოყოფას უზრუნველყოფს; offline heartbeat აქტიურ session-ებს expired მდგომარეობაში გადაიყვანს.
+
+დარჩენილი integration/production gates:
+- რეალური OIDC provider tenant-ის კონფიგურაცია, authorization-code/redirect/PKCE, MFA, account recovery და account linking;
+- UE 5.8 UBT/UHT compile და Dedicated Server + ორი client-ის PIE/runtime შემოწმება;
+- initial Unreal connection options-ში bearer ticket-ის დაცვა შესაბამისი UE network encryption/transport security-ით;
+- credential audit history და orchestrator-ის secret-manager rotation policy;
+- cross-region/cross-shard transfer;
+- reconnect/disconnect soak და 500 რეალურად დაკავშირებული Unreal player-ის capacity test.
+
+Public session gateway და client-იდან წამოსული ticket flow აღწერილია `docs/58_JOIN_TICKET_AND_PRELOGIN_FLOW_GE.md` და `docs/59_PUBLIC_OIDC_GATEWAY_GE.md` დოკუმენტებში. Per-instance credential provisioning/rotation აღწერილია `docs/60_PER_INSTANCE_SERVER_CREDENTIALS_GE.md`-ში. Internal shard/player endpoints კვლავ მხოლოდ შესაბამისი trusted gateway ან Dedicated Server credential-ით უნდა გამოიძახონ; client-ს პირდაპირი წვდომა არ ეძლევა.
+
+## 6. მიღების კრიტერიუმები
+
+- [ ] UE 5.8 Editor target + UHT compile PASS
+- [ ] RIDGEServer target compile PASS
+- [ ] Dedicated Server register API returns HTTP 201
+- [ ] Heartbeat arrives every 15 seconds
+- [ ] Stale shard is excluded from allocation after 45 seconds
+- [ ] EndPlay marks shard offline
+- [ ] Two clients can connect and see authoritative replicated movement
+- [ ] Client cannot access server token or internal shard endpoints
+
+**მდგომარეობა:** source wiring committed; static CI checks PASS; real UE build/runtime pending. Production readiness is not claimed.
+
+
+## 7. CI source-contract verification — 2026-11-23
+
+GitHub Actions run **SUCCESS**: https://github.com/maisuradzee/Ridge/actions/runs/45128419607
+
+| შემოწმება | შედეგი |
+|---|---:|
+| Python/BotLab/Unreal source regression | 57/57 PASS |
+| Unreal project static validator | 24/24 PASS |
+| Load runner unit tests | 6/6 PASS |
+| Backend Node regression | 33/33 PASS |
+| 500 virtual-user development API preflight | PASS |
+
+API preflight: 6,995 requests, 0 failed, 437.17 req/s; p50 0.58 ms, p95 1.17 ms, p99 3.23 ms, max 17.7 ms. მაქსიმუმ ერთდროული აქტიური HTTP მოთხოვნები იყო 10. ეს ტესტი memory-ephemeral development API-ზე ჩატარდა და არ წარმოადგენს 500 Unreal Engine player connection-ს.
+
+Static source checks ახლა ადასტურებს:
+- Dedicated Server registration route და unique process instance ID generation;
+- 15-second GameMode heartbeat timer;
+- heartbeat-ში GetNumPlayers()-ის გადაცემა;
+- EndPlay/offline და registration-in-flight shutdown fallback;
+- production HTTPS და non-loopback advertised host guard;
+- server authority guard და client-ისთვის token-ის არგადაცემა.
+
+**ეს არ არის C++ compilation/UHT/PIE შედეგი.** UE 5.8 Editor/Server build, რეალური client connection, UDP reachability, reconnect და actor replication ჯერ უნდა შესრულდეს Windows Unreal გარემოში.
+
+Machine-readable result: `RIDGE_GIS/Data/QA/ridge_stage5_unreal_shard_wiring_20261123.json`.

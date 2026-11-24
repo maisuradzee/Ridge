@@ -1,0 +1,196 @@
+{
+  "schema": "ridge.stage5.ue58-windows-build-gate.v9",
+  "date": "2026-11-24",
+  "testedBranchHead": "97d67d25064713c1654a60f8f2e7a82d7235cb0d",
+  "sourceImplementationCommit": "88b5b2da02c1b5109e5fcc04ffd905bcbba29e25",
+  "workflow": {
+    "stage5": {
+      "id": 45364048038,
+      "result": "success",
+      "url": "https://github.com/maisuradzee/Ridge/actions/runs/45364048038",
+      "pythonBotlabUnrealSource": "79/79 PASS",
+      "unrealProjectStatic": "37/37 STATIC_PASS",
+      "ueUbtUht": "NOT_RUN",
+      "loadRunnerUnit": "6/6 PASS",
+      "backendNode": "55 PASS / 0 FAIL / 2 SKIP"
+    },
+    "postgres": {
+      "id": 45364047739,
+      "result": "success",
+      "url": "https://github.com/maisuradzee/Ridge/actions/runs/45364047739",
+      "migrations": [
+        "001_initial_schema.sql",
+        "002_job_checkpoints.sql",
+        "003_postgres_runtime.sql",
+        "004_session_registry.sql",
+        "005_session_join_tickets.sql",
+        "006_dedicated_server_credentials.sql"
+      ],
+      "liveIntegration": "57 PASS / 0 FAIL / 0 SKIP"
+    }
+  },
+  "apiPreflight": {
+    "environment": "development",
+    "storage": "memory-ephemeral",
+    "virtualUsers": 500,
+    "durationSeconds": 15,
+    "rampSeconds": 3,
+    "totalRequests": 6995,
+    "failedRequests": 0,
+    "requestsPerSecond": 437.31,
+    "latencyMs": {
+      "p50": 0.55,
+      "p95": 0.91,
+      "p99": 2.48,
+      "max": 4.96
+    },
+    "maxObservedInFlightRequests": 8,
+    "notAnUnrealNetworkLoadTest": true
+  },
+  "concurrentLoginGuard": {
+    "overlappingOidcRequestsPerAccount": {
+      "expected": "one HTTP 201 and one HTTP 409",
+      "errorCode": "PLAYER_SESSION_LOGIN_PENDING",
+      "tested": true
+    },
+    "registryActiveTicketReplacement": {
+      "allowed": false,
+      "errorCode": "SESSION_JOIN_TICKET_ALREADY_ISSUED"
+    },
+    "memoryRegistry": "tested",
+    "postgresRegistry": "tested",
+    "postgresSessionRowLock": "FOR UPDATE",
+    "originalSuccessfulTicketRemainsClaimable": true
+  },
+  "ue58BuildRunner": {
+    "script": "Tools/BotLab/Run-UE58BotLabBuild.ps1",
+    "defaultTargets": [
+      "RIDGE",
+      "RIDGEEditor"
+    ],
+    "optionalTargets": [
+      "RIDGEServer"
+    ],
+    "flag": "-BuildDedicatedServer",
+    "outputs": [
+      "per-target build logs",
+      "RIDGE_GIS/Data/QA/ridge_ue58_build_report.json"
+    ],
+    "checksInstalledEngineIs": "5.8",
+    "actualBuildExecuted": false,
+    "reason": "CI environment has no Unreal Engine installation; run on the UE 5.8 workstation."
+  },
+  "clientHandoff": {
+    "subsystem": "URidgeSessionLoginSubsystem",
+    "gatewayRoute": "POST /v1/gateway/session",
+    "oidcAccessTokenProvidedBy": "external identity-provider client integration",
+    "bearerHeader": "Authorization",
+    "validates": [
+      "server host",
+      "server port",
+      "256-bit join ticket format",
+      "claimAttemptId UUID",
+      "ticket expiry"
+    ],
+    "travel": "APlayerController::ClientTravel",
+    "blueprintCallable": "RequestAndConnectFromBlueprint",
+    "blueprintAssignable": "OnLoginAttemptCompleted",
+    "clientContainsNoInternalServiceCredentials": true,
+    "productionRequiresHttps": true,
+    "developmentHttpAllowedOnlyForExactLoopbackAuthorities": [
+      "127.0.0.1",
+      "localhost",
+      "[::1]"
+    ],
+    "connectUrlOrTicketLogged": false,
+    "providerUiOrPkce": "NOT_IMPLEMENTED"
+  },
+  "backendDatabaseVerification": {
+    "verifiedBranchHead": "10b48cec244db236f0d81a9717535b53945042bd",
+    "workflowId": 45147046895,
+    "result": "success",
+    "migrations": [
+      "001_initial_schema.sql",
+      "002_job_checkpoints.sql",
+      "003_postgres_runtime.sql",
+      "004_session_registry.sql",
+      "005_session_join_tickets.sql",
+      "006_dedicated_server_credentials.sql"
+    ],
+    "liveIntegration": "57 PASS / 0 FAIL / 0 SKIP"
+  },
+  "outstanding": [
+    "Register or verify a restricted Windows self-hosted Actions runner labelled ridge-ue58 and set RIDGE_UE_ROOT",
+    "Run manual UE 5.8 Game + Editor + RIDGEServer UBT/UHT workflow and inspect per-target logs",
+    "Execute Editor PIE and Dedicated Server runtime validation",
+    "Actual identity-provider authorization-code/PKCE UI and token refresh",
+    "Two-client PIE and live ClientTravel -> PreLogin -> PostLogin join",
+    "Encrypted Unreal game transport for bearer join ticket",
+    "Reconnect/disconnect runtime and credential rotation while draining",
+    "True 500-CCU Unreal network soak and replication profiling"
+  ],
+  "priorHardening": {
+    "productionBindAllowed": [
+      "loopback",
+      "RFC1918 IPv4",
+      "IPv6 ULA"
+    ],
+    "productionBindRejected": [
+      "wildcard",
+      "public IPv4",
+      "global IPv6",
+      "unspecified IPv6"
+    ],
+    "postgresReadinessRequires": [
+      "ridge.dedicated_servers",
+      "ridge.player_sessions",
+      "ridge.dedicated_server_credentials"
+    ]
+  },
+  "ue58BuildGate": {
+    "manualWorkflow": ".github/workflows/ridge-ue58-windows-build.yml",
+    "workflowDispatch": true,
+    "automaticPullRequestTrigger": false,
+    "runnerLabels": [
+      "self-hosted",
+      "Windows",
+      "X64",
+      "ridge-ue58"
+    ],
+    "machineEnvironmentVariable": "RIDGE_UE_ROOT",
+    "requiredTools": [
+      "Unreal Engine 5.8",
+      "Visual Studio C++ x64 toolchain",
+      "compatible Windows SDK"
+    ],
+    "defaultTargets": [
+      "RIDGE",
+      "RIDGEEditor"
+    ],
+    "optionalTargets": [
+      "RIDGEServer"
+    ],
+    "optionalFlag": "-BuildDedicatedServer",
+    "outputs": [
+      "RIDGE_GIS/Data/QA/ridge_ue58_build_report.json",
+      "RIDGE_GIS/Data/QA/ue58_build_logs/*.log",
+      "ridge-ue58-windows-build artifact"
+    ],
+    "staticValidatorReportArtifact": {
+      "name": "ridge-ue-project-static-validation",
+      "uploaded": true,
+      "retentionDays": 14,
+      "expiresAt": "2026-12-08T09:19:27Z"
+    },
+    "actualBuildExecuted": false,
+    "status": "READY_NOT_EXECUTED",
+    "runnerPresence": "NOT_VERIFIED",
+    "reason": "The manual Windows workflow is committed; it needs a dedicated runner with the ridge-ue58 label and RIDGE_UE_ROOT. No UBT/UHT result has been produced yet.",
+    "latestLinuxVerification": {
+      "stage5Run": 45364048038,
+      "postgresRun": 45364047739,
+      "stage5Result": "SUCCESS",
+      "postgresResult": "SUCCESS"
+    }
+  }
+}

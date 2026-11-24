@@ -1,0 +1,46 @@
+{
+  "schema": "ridge.stage5.api-load-report-summary.v1",
+  "date": "2026-11-23",
+  "workflow": "RIDGE Stage 5 Multiplayer Preflight",
+  "workflow_run_id": 45125101490,
+  "workflow_run_url": "https://github.com/maisuradzee/Ridge/actions/runs/45125101490",
+  "commit": "cb25032369558d2e4b5cb060e9e4f72104923f8f",
+  "target": {
+    "service": "ridge-foundation-api",
+    "environment": "development",
+    "storage": "memory-ephemeral"
+  },
+  "workload": {
+    "virtualUsers": 500,
+    "durationSeconds": 15,
+    "rampSeconds": 3,
+    "thinkTimeMs": 1000
+  },
+  "requests": {
+    "total": 6996,
+    "successful": 6996,
+    "failed": 0,
+    "errorRate": 0,
+    "requestsPerSecond": 437.24,
+    "maxObservedInFlightHttpRequests": 9
+  },
+  "latencyMs": {
+    "p50": 0.32,
+    "p95": 0.56,
+    "p99": 1.62,
+    "max": 11.37
+  },
+  "thresholds": {
+    "maxP95Ms": 1500,
+    "maxErrorRate": 0.01
+  },
+  "result": "PASS",
+  "limitations": [
+    "HTTP API load test against in-memory development storage only.",
+    "The 500 virtual users did not represent 500 simultaneously connected Unreal Engine players.",
+    "Maximum simultaneous in-flight HTTP requests observed was 9.",
+    "Unreal C++/UHT/PIE, Dedicated Server runtime, actor replication, shard transfer and 500-player soak are not tested.",
+    "No PostgreSQL or production database was used."
+  ],
+  "artifact": "https://github.com/maisuradzee/Ridge/actions/runs/45125101490/artifacts/14794939132"
+}

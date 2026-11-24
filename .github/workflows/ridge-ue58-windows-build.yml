@@ -1,0 +1,128 @@
+name: RIDGE Unreal Engine 5.8 Windows Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_dedicated_server:
+        description: Build RIDGEServer in addition to Game and Editor
+        required: true
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ridge-ue58-${{ github.repository }}
+  cancel-in-progress: false
+
+jobs:
+  ue58-windows-build:
+    name: UBT and UHT — Game, Editor and optional Dedicated Server
+    runs-on: [self-hosted, Windows, X64, ridge-ue58]
+    timeout-minutes: 150
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          clean: true
+
+      - name: Validate Unreal Engine 5.8 and Visual Studio C++ toolchain
+        shell: pwsh
+        run: |
+          if ([string]::IsNullOrWhiteSpace($env:RIDGE_UE_ROOT)) {
+            throw 'RIDGE_UE_ROOT must be configured as a machine environment variable on the ridge-ue58 runner.'
+          }
+          $engineRoot = (Resolve-Path -LiteralPath $env:RIDGE_UE_ROOT).Path
+          $buildBat = Join-Path $engineRoot 'Engine\Build\BatchFiles\Build.bat'
+          $versionFile = Join-Path $engineRoot 'Engine\Build\Build.version'
+          if (!(Test-Path -LiteralPath $buildBat -PathType Leaf)) { throw "Build.bat not found: $buildBat" }
+          if (!(Test-Path -LiteralPath $versionFile -PathType Leaf)) { throw "Build.version not found: $versionFile" }
+          $version = Get-Content -LiteralPath $versionFile -Raw | ConvertFrom-Json
+          if ([int]$version.MajorVersion -ne 5 -or [int]$version.MinorVersion -ne 8) {
+            throw "Expected Unreal Engine 5.8, found $($version.MajorVersion).$($version.MinorVersion)."
+          }
+          $platformCryptoPlugin = Join-Path $engineRoot 'Engine\Plugins\Experimental\PlatformCrypto\PlatformCrypto.uplugin'
+          $aesGcmPlugin = Join-Path $engineRoot 'Engine\Plugins\Runtime\PacketHandlers\AESGCMHandlerComponent\AESGCMHandlerComponent.uplugin'
+          if (!(Test-Path -LiteralPath $platformCryptoPlugin -PathType Leaf)) {
+            throw "UE 5.8 PlatformCrypto plugin is missing: $platformCryptoPlugin"
+          }
+          if (!(Test-Path -LiteralPath $aesGcmPlugin -PathType Leaf)) {
+            throw "UE 5.8 AESGCMHandlerComponent plugin is missing: $aesGcmPlugin"
+          }
+          Write-Host "PlatformCrypto plugin: $platformCryptoPlugin"
+          Write-Host "AES-GCM packet-handler plugin: $aesGcmPlugin"
+          $programFilesX86 = [Environment]::GetEnvironmentVariable('ProgramFiles(x86)')
+          $vswhere = Join-Path $programFilesX86 'Microsoft Visual Studio\Installer\vswhere.exe'
+          if (!(Test-Path -LiteralPath $vswhere -PathType Leaf)) { throw 'Visual Studio Installer vswhere.exe was not found.' }
+          $vsPath = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+          if ([string]::IsNullOrWhiteSpace($vsPath)) { throw 'Visual Studio C++ x64 build tools are not installed.' }
+          Write-Host "Unreal Engine: $($version.MajorVersion).$($version.MinorVersion).$($version.PatchVersion)"
+          Write-Host "Visual Studio C++: $vsPath"
+          Write-Host "RIDGE_UE_ROOT: $engineRoot"
+
+      - name: Inspect UE 5.8 crypto provider surface (diagnostic only)
+        shell: pwsh
+        run: |
+          & .\Tools\BotLab\Inspect-UE58CryptoProvider.ps1 -UnrealRoot $env:RIDGE_UE_ROOT
+
+      - name: Build RIDGE Game, Editor and optional Dedicated Server
+        shell: pwsh
+        run: |
+          $buildServer = '${{ inputs.build_dedicated_server }}' -eq 'true'
+          & .\Tools\BotLab\Run-UE58BotLabBuild.ps1 -UnrealRoot $env:RIDGE_UE_ROOT -BuildDedicatedServer:$buildServer
+          if ($LASTEXITCODE -ne 0) { throw "RIDGE UE 5.8 build script returned exit code $LASTEXITCODE." }
+
+      - name: Verify UBT/UHT build report and all requested target logs
+        if: always()
+        shell: pwsh
+        run: |
+          $reportPath = Join-Path $PWD 'RIDGE_GIS\Data\QA\ridge_ue58_build_report.json'
+          if (!(Test-Path -LiteralPath $reportPath -PathType Leaf)) {
+            throw "UE build report was not produced: $reportPath"
+          }
+          $report = Get-Content -LiteralPath $reportPath -Raw | ConvertFrom-Json
+          if ($report.Schema -ne 'ridge.ue58.build-report.v1') { throw "Unexpected UE build report schema: $($report.Schema)" }
+          if ($report.OverallStatus -ne 'PASS' -or $report.UBTAndUHT -ne 'PASS') {
+            throw 'At least one Unreal target did not complete UBT/UHT successfully.'
+          }
+          if ($report.EngineVersion -notmatch '^5\.8\.' -or $report.Platform -ne 'Win64' -or $report.Configuration -ne 'Development') {
+            throw 'Build report engine version/platform/configuration does not match the required UE 5.8 Win64 Development gate.'
+          }
+
+          $expectedTargets = @('RIDGE','RIDGEEditor')
+          $buildServer = '${{ inputs.build_dedicated_server }}' -eq 'true'
+          if ($buildServer) { $expectedTargets += 'RIDGEServer' }
+          $actualTargets = @($report.Targets | ForEach-Object { [string]$_.Target })
+          if (($actualTargets -join ',') -ne ($expectedTargets -join ',')) {
+            throw "Unexpected target set/order. Expected [$($expectedTargets -join ',')], received [$($actualTargets -join ',')]."
+          }
+
+          foreach ($targetName in $expectedTargets) {
+            $targetMatches = @($report.Targets | Where-Object { $_.Target -eq $targetName })
+            if ($targetMatches.Count -ne 1) { throw "Build report must contain exactly one result for $targetName." }
+            $target = $targetMatches[0]
+            if ([int]$target.ExitCode -ne 0 -or $target.Status -ne 'PASS') {
+              throw "$targetName did not pass UBT/UHT. ExitCode=$($target.ExitCode), Status=$($target.Status)"
+            }
+            $logPath = [string]$target.Log
+            if ([string]::IsNullOrWhiteSpace($logPath) -or !(Test-Path -LiteralPath $logPath -PathType Leaf)) {
+              throw "$targetName build log is missing: $logPath"
+            }
+            $logFile = Get-Item -LiteralPath $logPath
+            if ($logFile.Length -lt 1) { throw "$targetName build log is empty: $logPath" }
+          }
+          $report | ConvertTo-Json -Depth 8
+
+      - name: Upload UE 5.8 build report and per-target logs
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ridge-ue58-windows-build
+          path: |
+            RIDGE_GIS/Data/QA/ridge_ue58_build_report.json
+            RIDGE_GIS/Data/QA/ridge_ue58_crypto_provider_probe.json
+            RIDGE_GIS/Data/QA/ue58_build_logs/*.log
+          if-no-files-found: warn
+          retention-days: 30

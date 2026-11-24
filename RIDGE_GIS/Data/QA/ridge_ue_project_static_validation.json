@@ -1,8 +1,8 @@
 {
   "schema": "ridge.botlab.ue-project-static-validation.v1",
   "status": "STATIC_PASS",
-  "checks": 24,
-  "passed": 24,
+  "checks": 37,
+  "passed": 37,
   "failed": 0,
   "ue_build_status": "NOT_RUN_STATIC_ONLY",
   "runtime_status": "NOT_RUN_STATIC_ONLY",
@@ -126,6 +126,79 @@
       "id": "cpp_collision_observability",
       "status": "PASS",
       "detail": "source contract present"
+    },
+    {
+      "id": "session_login_header_exists",
+      "status": "PASS",
+      "detail": "RidgeSessionLoginSubsystem.h exists"
+    },
+    {
+      "id": "session_login_uht_generated_include_last",
+      "status": "PASS",
+      "detail": "session login generated.h is the final include"
+    },
+    {
+      "id": "session_login_blueprint_entrypoint",
+      "status": "PASS",
+      "detail": "Blueprint-callable login entry point"
+    },
+    {
+      "id": "session_login_blueprint_result",
+      "status": "PASS",
+      "detail": "Blueprint login result event"
+    },
+    {
+      "id": "session_login_cpp_exists",
+      "status": "PASS",
+      "detail": "RidgeSessionLoginSubsystem.cpp exists"
+    },
+    {
+      "id": "session_login_oidc_gateway_request",
+      "status": "PASS",
+      "detail": "POST /v1/gateway/session source contract"
+    },
+    {
+      "id": "session_login_bearer_authorization",
+      "status": "PASS",
+      "detail": "OIDC access token uses Authorization Bearer header"
+    },
+    {
+      "id": "session_login_client_travel",
+      "status": "PASS",
+      "detail": "validated response is passed to ClientTravel"
+    },
+    {
+      "id": "session_login_ticket_and_attempt_validation",
+      "status": "PASS",
+      "detail": "join ticket and attempt UUID are validated"
+    },
+    {
+      "id": "session_login_expiry_validation",
+      "status": "PASS",
+      "detail": "join ticket expiry is validated"
+    },
+    {
+      "id": "session_login_loopback_http_allowlist",
+      "status": "PASS",
+      "detail": "development HTTP is restricted to exact loopback host"
+    },
+    {
+      "id": "session_login_no_internal_service_secrets",
+      "status": "PASS",
+      "detail": "client source contains no internal service credentials"
+    },
+    {
+      "id": "session_login_gateway_config",
+      "status": "PASS",
+      "detail": "non-secret development Gateway URL is configured"
     }
-  ]
+  ],
+  "validation_revision": "97d67d25064713c1654a60f8f2e7a82d7235cb0d",
+  "workflow_run": "https://github.com/maisuradzee/Ridge/actions/runs/45364048038",
+  "workflow_artifact": {
+    "name": "ridge-ue-project-static-validation",
+    "uploaded": true,
+    "retention_days": 14,
+    "expires_at": "2026-12-08T09:19:27Z"
+  }
 }

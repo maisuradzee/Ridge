@@ -70,6 +70,36 @@ test('server exposes PostgreSQL mode and refuses ephemeral production storage', 
 });
 
 
+test('migration 005 stores ticket hash, expiry and stable claim attempt as an all-or-none tuple', async () => {
+  const migration = await readFile(new URL('database/migrations/005_session_join_tickets.sql', root), 'utf8');
+  assert.match(migration, /join_ticket_hash TEXT/);
+  assert.match(migration, /join_ticket_expires_at TIMESTAMPTZ/);
+  assert.match(migration, /join_attempt_id UUID/);
+  assert.match(migration, /join_ticket_hash IS NULL AND join_ticket_expires_at IS NULL AND join_attempt_id IS NULL/);
+  assert.match(migration, /join_ticket_hash IS NOT NULL AND join_ticket_expires_at IS NOT NULL AND join_attempt_id IS NOT NULL/);
+
+  const registry = await readFile(new URL('backend/src/session-registry.mjs', root), 'utf8');
+  assert.match(registry, /column_name = 'join_ticket_hash'/);
+  assert.match(registry, /column_name = 'join_ticket_expires_at'/);
+  assert.match(registry, /column_name = 'join_attempt_id'/);
+  assert.match(registry, /JOIN_TICKET_CLAIM_ATTEMPT_MISMATCH/);
+});
+
+test('migration 006 stores per-instance Dedicated Server token hashes only', async () => {
+  const migration = await readFile(new URL('database/migrations/006_dedicated_server_credentials.sql', root), 'utf8');
+  assert.match(migration, /dedicated_server_credentials/);
+  assert.match(migration, /token_hash TEXT NOT NULL/);
+  assert.match(migration, /credential_id UUID NOT NULL/);
+  assert.match(migration, /expires_at TIMESTAMPTZ NOT NULL/);
+  assert.match(migration, /revoked_at TIMESTAMPTZ/);
+
+  const registry = await readFile(new URL('backend/src/session-registry.mjs', root), 'utf8');
+  assert.match(registry, /issueServerCredential/);
+  assert.match(registry, /authenticateServerCredential/);
+  assert.match(registry, /revokeServerCredential/);
+  assert.match(registry, /dedicated_server_credentials/);
+});
+
 test('PostgreSQL service initializes only after required migrations and preserves world epoch', async () => {
   const seen = [];
   const pool = {
