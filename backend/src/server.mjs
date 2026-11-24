@@ -13,6 +13,7 @@ const STORAGE = process.env.RIDGE_STORAGE ?? (process.env.DATABASE_URL ? 'postgr
 const GAME_SERVER_TOKEN = process.env.RIDGE_SERVER_EVENT_TOKEN ?? '';
 const GATEWAY_TOKEN = process.env.RIDGE_GATEWAY_TOKEN ?? '';
 const SERVER_PROVISIONING_TOKEN = process.env.RIDGE_SERVER_PROVISIONING_TOKEN ?? '';
+const SERVER_PROVISIONING_ACTOR_ID = process.env.RIDGE_SERVER_PROVISIONING_ACTOR_ID ?? '';
 const TRUST_PROXY = process.env.RIDGE_TRUST_PROXY === 'true';
 
 
@@ -90,17 +91,31 @@ async function requireGameServer(request, routeServerId, sessionRegistry) {
   }
 }
 
+function getProvisioningActor() {
+  const actorId = SERVER_PROVISIONING_ACTOR_ID ||
+    (ENV !== 'production' ? 'ridge-development-orchestrator' : '');
+  if (!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,79}$/.test(actorId)) {
+    throw new RidgeError(
+      503,
+      'SERVER_PROVISIONING_ACTOR_NOT_CONFIGURED',
+      'Server provisioning service principal is not configured.',
+    );
+  }
+  return { actorType: 'service', actorId };
+}
+
 function requireServerProvisioner(request) {
   if (!SERVER_PROVISIONING_TOKEN) {
     if (ENV !== 'production' && GAME_SERVER_TOKEN &&
         safeTokenEquals(request.headers['x-ridge-server-token'], GAME_SERVER_TOKEN)) {
-      return;
+      return { actorType: 'service', actorId: 'ridge-development-compatibility' };
     }
     throw new RidgeError(403, 'SERVER_PROVISIONING_FORBIDDEN', 'Server provisioning authorization failed.');
   }
   if (!safeTokenEquals(request.headers['x-ridge-provisioning-token'], SERVER_PROVISIONING_TOKEN)) {
     throw new RidgeError(403, 'SERVER_PROVISIONING_FORBIDDEN', 'Server provisioning authorization failed.');
   }
+  return getProvisioningActor();
 }
 
 function requireGateway(request) {
@@ -207,6 +222,9 @@ async function main() {
   }
   if (ENV === 'production' && !SERVER_PROVISIONING_TOKEN) {
     throw new Error('Production RIDGE API requires RIDGE_SERVER_PROVISIONING_TOKEN for per-instance credential rotation.');
+  }
+  if (ENV === 'production' && !/^[A-Za-z0-9][A-Za-z0-9._:-]{0,79}$/.test(SERVER_PROVISIONING_ACTOR_ID)) {
+    throw new Error('Production RIDGE API requires RIDGE_SERVER_PROVISIONING_ACTOR_ID (stable service-principal ID).');
   }
   if (ENV === 'production' && !TRUST_PROXY) {
     throw new Error('Production RIDGE public gateway requires a trusted HTTPS reverse proxy (RIDGE_TRUST_PROXY=true).');
@@ -316,8 +334,12 @@ async function main() {
       // Control-plane credential issuance is restricted to the deployment orchestrator.
       const serverCredentialMatch = url.pathname.match(/^\/v1\/control\/shards\/([A-Za-z0-9._:-]{1,80})\/credentials$/);
       if (request.method === 'POST' && serverCredentialMatch) {
-        requireServerProvisioner(request);
-        const credential = await sessionRegistry.issueServerCredential({ serverId: serverCredentialMatch[1] });
+        const actor = requireServerProvisioner(request);
+        const credential = await sessionRegistry.issueServerCredential({
+          serverId: serverCredentialMatch[1],
+          actorType: actor.actorType,
+          actorId: actor.actorId,
+        });
         return send(response, 201, credential);
       }
 
@@ -335,8 +357,12 @@ async function main() {
 
       const revokeServerCredentialMatch = url.pathname.match(/^\/v1\/control\/shards\/([A-Za-z0-9._:-]{1,80})\/credentials\/revoke$/);
       if (request.method === 'POST' && revokeServerCredentialMatch) {
-        requireServerProvisioner(request);
-        return send(response, 200, await sessionRegistry.revokeServerCredential({ serverId: revokeServerCredentialMatch[1] }));
+        const actor = requireServerProvisioner(request);
+        return send(response, 200, await sessionRegistry.revokeServerCredential({
+          serverId: revokeServerCredentialMatch[1],
+          actorType: actor.actorType,
+          actorId: actor.actorId,
+        }));
       }
 
       // Session and shard control plane. Production requires per-instance credentials.
