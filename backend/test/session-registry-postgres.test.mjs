@@ -53,6 +53,34 @@ test('PostgreSQL session registry serializes shard capacity, reuses leases, clai
     const activeCredential = await registry.issueServerCredential({ serverId });
     assert.equal(await registry.authenticateServerCredential({ serverId, token: activeCredential.token }), true);
 
+    const credentialEvents = await registry.listServerCredentialEvents({ serverId, limit: 10 });
+    assert.deepEqual(credentialEvents.map((event) => event.action), [
+      'issued',
+      'revoked',
+      'rotated',
+      'issued',
+    ]);
+    assert.equal(credentialEvents[2].credentialId, rotatedCredential.credentialId);
+    assert.equal(credentialEvents[2].previousCredentialId, firstCredential.credentialId);
+    assert.ok(credentialEvents.every((event) =>
+      !Object.hasOwn(event, 'token') && !Object.hasOwn(event, 'tokenHash')
+    ));
+
+    await assert.rejects(
+      pool.query(
+        'UPDATE ridge.dedicated_server_credential_events SET action = action WHERE server_id = $1',
+        [serverId],
+      ),
+      (error) => error.code === '55000',
+    );
+    await assert.rejects(
+      pool.query(
+        'DELETE FROM ridge.dedicated_server_credential_events WHERE server_id = $1',
+        [serverId],
+      ),
+      (error) => error.code === '55000',
+    );
+
     const attempts = await Promise.allSettled(
       playerIds.map((playerId) => registry.allocatePlayer(playerId, 'ge-tbilisi')),
     );
