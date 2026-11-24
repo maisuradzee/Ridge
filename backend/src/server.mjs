@@ -404,7 +404,7 @@ async function main() {
         return send(response, 200, key);
       }
 
-      const shardTransportKeyRevokeMatch = url.pathname.match(/^\\/v1\\/internal\\/shards\\/([A-Za-z0-9._:-]{1,80})\\/transport-key\\/([A-Za-z0-9._:-]{1,80})\\/revoke$/);
+      const shardTransportKeyRevokeMatch = url.pathname.match(/^\/v1\/internal\/shards\/([A-Za-z0-9._:-]{1,80})\/transport-key\/([A-Za-z0-9._:-]{1,80})\/revoke$/);
       if (request.method === 'POST' && shardTransportKeyRevokeMatch) {
         const [, serverId, keyId] = shardTransportKeyRevokeMatch;
         await requireGameServer(request, serverId, sessionRegistry);
@@ -414,7 +414,7 @@ async function main() {
         return send(response, 200, result);
       }
 
-      const controlTransportKeyRevokeMatch = url.pathname.match(/^\\/v1\\/control\\/shards\\/([A-Za-z0-9._:-]{1,80})\\/transport-key\\/([A-Za-z0-9._:-]{1,80})\\/revoke$/);
+      const controlTransportKeyRevokeMatch = url.pathname.match(/^\/v1\/control\/shards\/([A-Za-z0-9._:-]{1,80})\/transport-key\/([A-Za-z0-9._:-]{1,80})\/revoke$/);
       if (request.method === 'POST' && controlTransportKeyRevokeMatch) {
         const actor = requireServerProvisioner(request);
         const [, serverId, keyId] = controlTransportKeyRevokeMatch;
@@ -424,7 +424,7 @@ async function main() {
         return send(response, 200, result);
       }
 
-      const transportKeyAuditMatch = url.pathname.match(/^\\/v1\\/control\\/shards\\/([A-Za-z0-9._:-]{1,80})\\/transport-key-audit$/);
+      const transportKeyAuditMatch = url.pathname.match(/^\/v1\/control\/shards\/([A-Za-z0-9._:-]{1,80})\/transport-key-audit$/);
       if (request.method === 'GET' && transportKeyAuditMatch) {
         requireServerProvisioner(request);
         const limitParam = url.searchParams.get('limit');
