@@ -329,3 +329,20 @@ Remaining:
 The secure response now echoes the exact validated `clientPublicKey` next to the selected shard's `serverPublicKey`. This makes both public keys explicit inputs to the future client/server AAD transcript and avoids a client needing to infer which submitted key the Gateway accepted.
 
 The integration test now submits an invalid low-order client key, then retries using the same OIDC subject with a valid key. The successful reservation proves invalid client public keys are rejected before session allocation and do not leave a pending login lock. It also asserts the response echoes the exact client public key.
+
+
+## 15. Unreal client fail-closed handling for secure Gateway responses
+
+The current `URidgeSessionLoginSubsystem` still implements only the legacy Development URL handoff and does not yet seal X25519/HKDF/AES-GCM join envelopes. It now explicitly checks for the Gateway `transport` field immediately after JSON parsing.
+
+If the field exists, the client returns a failure to the login caller before it reads the join ticket or constructs a `ClientTravel` URL. It never treats a secure response as permission to fall back to `ridgeJoinTicket` in plaintext URL options. This is a guard, not a complete encrypted-client implementation.
+
+A BotLab source-contract test verifies that this guard occurs before ticket parsing, plaintext URL construction and `ClientTravel`. The `FJsonObject::HasField` API is documented in the official UE 5.8 Json API reference:
+- https://dev.epicgames.com/documentation/unreal-engine/API/Runtime/Json/FJsonObject?application_version=5.8
+
+Acceptance:
+- Secure-response plaintext fallback guard: **IMPLEMENTED / SOURCE-CONTRACT_CI_VERIFIED**.
+- Legacy Development-only handoff: **RETAINED** for existing smoke-test flows.
+- UE 5.8 Game/Editor/Dedicated Server UBT/UHT compile of this C++ change: **NOT_RUN**.
+- Envelope sealing, Dedicated Server decryption and AES-GCM packet encryption: **NOT_IMPLEMENTED**.
+- Production Gateway: **FAIL_CLOSED**.
