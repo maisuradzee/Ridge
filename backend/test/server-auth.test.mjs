@@ -369,6 +369,7 @@ test('per-instance server credential is isolated, rotated and revoked by the pro
       RIDGE_ENV: 'development',
       RIDGE_STORAGE: 'memory',
       RIDGE_SERVER_PROVISIONING_TOKEN: provisioningToken,
+      RIDGE_SERVER_PROVISIONING_ACTOR_ID: 'ridge-test-orchestrator',
     },
     stdio: 'ignore',
   });
@@ -468,12 +469,16 @@ test('per-instance server credential is isolated, rotated and revoked by the pro
   const unauthenticatedAudit = await fetch(auditUrl);
   assert.equal(unauthenticatedAudit.status, 403);
 
-  const auditResponse = await fetch(auditUrl, { headers: provisionHeaders });
+  const auditResponse = await fetch(auditUrl, {
+    headers: { ...provisionHeaders, 'x-ridge-provisioning-actor-id': 'forged-client-actor' },
+  });
   assert.equal(auditResponse.status, 200);
   const audit = await auditResponse.json();
   assert.equal(audit.serverId, serverId);
   assert.deepEqual(audit.events.map((event) => event.action), ['revoked', 'rotated', 'issued']);
   assert.ok(audit.events.every((event) =>
+    event.actorType === 'service' &&
+    event.actorId === 'ridge-test-orchestrator' &&
     !Object.hasOwn(event, 'token') && !Object.hasOwn(event, 'tokenHash')
   ));
 
